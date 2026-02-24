@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="img/logo_writher.png" width="120" alt="Writher icon">
+  <img src="img/logo_writher.png" width="280" alt="Writher">
 </p>
 
 <h1 align="center">Writher</h1>
