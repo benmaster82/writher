@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+
+# IDE
+.kiro/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Runtime-generated files
+writher.db
+writher.log
+writher.log.*
+writher.ico
+writher_icon.png
+recovery_notes.txt
+
+# Development backups and legacy asset scripts
+assets/
