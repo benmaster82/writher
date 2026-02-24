@@ -16,6 +16,12 @@
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
 </p>
 
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=dsaG5v-cX5o">
+    <img src="https://img.youtube.com/vi/dsaG5v-cX5o/maxresdefault.jpg" width="600" alt="Writher Demo Video">
+  </a>
+</p>
+
 ---
 
 ## What is Writher?
