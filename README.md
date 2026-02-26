@@ -30,8 +30,15 @@ Writher sits quietly in your system tray and gives you two super-powers:
 
 | Mode | Hotkey | What it does |
 |---|---|---|
-| **Dictation** | Hold `AltGr` | Transcribes your voice and pastes the text directly into whichever app has focus — editors, browsers, chat windows, anything. |
-| **Assistant** | Hold `Ctrl+R` | Understands natural-language commands and saves notes, creates appointments, sets reminders, manages lists — all by voice. |
+| **Dictation** | `AltGr` | Transcribes your voice and pastes the text directly into whichever app has focus — editors, browsers, chat windows, anything. |
+| **Assistant** | `Ctrl+R` | Understands natural-language commands and saves notes, creates appointments, sets reminders, manages lists — all by voice. |
+
+Both hotkeys support two recording modes, configurable from the **Settings** window in the system tray:
+
+| Recording mode | How it works |
+|---|---|
+| **Hold** (default) | Hold the key to record, release to stop. |
+| **Toggle** | Press once to start recording, press again to stop. A configurable safety timeout auto-stops the recording if you forget. |
 
 Everything runs **locally**: speech recognition via [faster-whisper](https://github.com/SYSTRAN/faster-whisper), intent parsing via [Ollama](https://ollama.com), and data stored in a local SQLite database. No cloud, no API keys, no telemetry.
 
@@ -39,12 +46,13 @@ Everything runs **locally**: speech recognition via [faster-whisper](https://git
 
 ## Features
 
-- **Real-time dictation** — hold a key, speak, release, text appears. Clipboard is saved and restored automatically.
+- **Real-time dictation** — speak and text appears. Supports both hold-to-record and toggle (press to start/stop) modes. Clipboard is saved and restored automatically.
 - **Voice-controlled assistant** — save notes, create shopping/todo lists, schedule appointments, set reminders, all through natural speech.
 - **Smart date parsing** — say *"remind me tomorrow at 9"* or *"meeting next Monday at 3pm"* and the LLM converts relative times to absolute datetimes.
 - **Toast notifications** — get Windows notifications when reminders fire or appointments are approaching.
 - **Animated floating widget** — a minimal pill-shaped overlay with expressive "Pandora Blackboard" eyes that react to state (listening, thinking, happy, error, etc.).
 - **Notes & Agenda window** — a dark-themed borderless window to browse, check off list items, and delete notes/appointments/reminders.
+- **Settings window** — configure recording mode (hold vs toggle) and max recording duration directly from the system tray, with settings persisted across restarts.
 - **Multi-language** — ships with English and Italian; easy to add more via the `locales.py` string table.
 - **Fully offline** — no internet required after model download.
 
@@ -154,6 +162,10 @@ ASSISTANT_HOTKEY = Key.ctrl_r  # Assistant
 # Language ("en" or "it")
 LANGUAGE = "en"
 
+# Recording mode
+HOLD_TO_RECORD = True          # True = hold key, False = toggle (press/press)
+MAX_RECORD_SECONDS = 120       # Safety timeout for toggle mode (seconds)
+
 # Whisper
 MODEL_SIZE = "base"            # tiny, base, small, medium, large-v3
 DEVICE = "cpu"                 # "cpu" or "cuda"
@@ -166,6 +178,8 @@ OLLAMA_MODEL = "gpt-oss:120b-cloud"
 # Notification lead time
 APPOINTMENT_REMIND_MINUTES = 15
 ```
+
+> **Note:** `HOLD_TO_RECORD` and `MAX_RECORD_SECONDS` can also be changed at runtime from the **Settings** window in the system tray. Changes made there are persisted in the database and override `config.py` defaults.
 
 ### Choosing a Whisper model
 
@@ -185,16 +199,35 @@ For CUDA acceleration, install `ctranslate2` with CUDA support and set `DEVICE =
 
 ### Dictation mode
 
+**Hold mode** (default):
+
 1. Focus any text field (editor, browser, chat…)
 2. **Hold** `AltGr`
 3. Speak
 4. **Release** — transcribed text is pasted automatically
 
+**Toggle mode:**
+
+1. Focus any text field
+2. **Press** `AltGr` once to start recording
+3. Speak
+4. **Press** `AltGr` again to stop — transcribed text is pasted automatically
+
+> In toggle mode, a safety timeout (configurable in Settings) will auto-stop the recording if you forget to press the key again.
+
 ### Assistant mode
+
+**Hold mode** (default):
 
 1. **Hold** `Ctrl+R`
 2. Speak a command
 3. **Release** — Writher processes and confirms
+
+**Toggle mode:**
+
+1. **Press** `Ctrl+R` once to start recording
+2. Speak a command
+3. **Press** `Ctrl+R` again to stop — Writher processes and confirms
 
 **Example commands:**
 
@@ -208,7 +241,11 @@ For CUDA acceleration, install `ctranslate2` with CUDA support and set `DEVICE =
 
 ### System tray
 
-Right-click the tray icon to open **Notes & Agenda** or to **Quit**.
+Right-click the tray icon to access:
+
+- **Notes & Agenda** — open the notes/appointments/reminders viewer
+- **Settings** — configure recording mode (hold vs toggle) and max recording duration
+- **Quit** — exit Writher
 
 ---
 
@@ -226,15 +263,16 @@ Right-click the tray icon to open **Notes & Agenda** or to **Quit**.
 writher/
 ├── main.py              # Entry point and orchestrator
 ├── config.py            # All user-configurable settings
-├── hotkey.py            # Dual-hotkey listener (pynput)
+├── hotkey.py            # Dual-hotkey listener with hold/toggle modes (pynput)
 ├── recorder.py          # Microphone recording (sounddevice)
 ├── transcriber.py       # Speech-to-text (faster-whisper)
 ├── injector.py          # Clipboard paste into active app (Win32 API)
 ├── assistant.py         # Ollama LLM integration + function calling
-├── database.py          # SQLite storage (notes, appointments, reminders)
+├── database.py          # SQLite storage (notes, appointments, reminders, settings)
 ├── notifier.py          # Toast notifications + reminder/appointment scheduler
 ├── widget.py            # Floating pill overlay with animated eyes
 ├── notes_window.py      # Notes/Agenda/Reminders viewer window
+├── settings_window.py   # Settings window (recording mode, max duration)
 ├── tray_icon.py         # System tray icon (pystray)
 ├── brand.py             # "Pandora Blackboard" icon renderer
 ├── locales.py           # i18n string tables (EN, IT)

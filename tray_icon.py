@@ -6,9 +6,10 @@ from brand import make_tray_icon
 
 
 class TrayIcon:
-    def __init__(self, on_quit, on_show_notes=None):
+    def __init__(self, on_quit, on_show_notes=None, on_show_settings=None):
         self._on_quit = on_quit
         self._on_show_notes = on_show_notes
+        self._on_show_settings = on_show_settings
         self._icon = None
 
     def _build_menu(self):
@@ -17,7 +18,12 @@ class TrayIcon:
             pystray.Menu.SEPARATOR,
         ]
         if self._on_show_notes:
-            items.append(pystray.MenuItem(locales.get("tray_notes_agenda"), self._show_notes))
+            items.append(pystray.MenuItem(locales.get("tray_notes_agenda"),
+                                          self._show_notes))
+        if self._on_show_settings:
+            items.append(pystray.MenuItem(locales.get("tray_settings"),
+                                          self._show_settings))
+        if self._on_show_notes or self._on_show_settings:
             items.append(pystray.Menu.SEPARATOR)
         items.append(pystray.MenuItem(locales.get("tray_quit"), self._quit))
         return pystray.Menu(*items)
@@ -25,6 +31,10 @@ class TrayIcon:
     def _show_notes(self, icon, item):
         if self._on_show_notes:
             self._on_show_notes()
+
+    def _show_settings(self, icon, item):
+        if self._on_show_settings:
+            self._on_show_settings()
 
     def _quit(self, icon, item):
         icon.stop()
@@ -38,8 +48,6 @@ class TrayIcon:
             locales.get("tray_idle"),
             menu=self._build_menu(),
         )
-        # run_detached() starts the message loop in an internal thread
-        # managed by pystray — the correct non-blocking approach on Windows.
         self._icon.run_detached()
 
     def set_recording(self, recording: bool):

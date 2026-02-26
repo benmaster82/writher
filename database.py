@@ -51,6 +51,15 @@ def init():
         cols = [row[1] for row in c.execute("PRAGMA table_info(appointments)")]
         if "notified" not in cols:
             c.execute("ALTER TABLE appointments ADD COLUMN notified INTEGER NOT NULL DEFAULT 0")
+
+        # Settings key/value store
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS settings (
+                key   TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            )
+        """)
+
         c.commit()
         c.close()
 
@@ -307,5 +316,29 @@ def delete_reminder(rid: int):
     with _lock:
         c = _conn()
         c.execute("DELETE FROM reminders WHERE id=?", (rid,))
+        c.commit()
+        c.close()
+
+
+# ── Settings ──────────────────────────────────────────────────────────────
+
+def get_setting(key: str, default: str = "") -> str:
+    """Return a setting value, or *default* if not found."""
+    with _lock:
+        c = _conn()
+        row = c.execute("SELECT value FROM settings WHERE key=?", (key,)).fetchone()
+        c.close()
+    return row["value"] if row else default
+
+
+def save_setting(key: str, value: str):
+    """Insert or update a setting."""
+    with _lock:
+        c = _conn()
+        c.execute(
+            "INSERT INTO settings (key, value) VALUES (?, ?)"
+            " ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            (key, value),
+        )
         c.commit()
         c.close()

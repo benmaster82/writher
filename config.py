@@ -22,6 +22,13 @@ COMPUTE_TYPE = "int8"
 OLLAMA_URL = "http://localhost:11434"
 OLLAMA_MODEL = "gpt-oss:120b-cloud"
 
+# ── Recording mode ────────────────────────────────────────────────────────
+# True = hold key to record (release stops).  False = toggle (press start, press stop).
+HOLD_TO_RECORD = True
+
+# Maximum recording duration in seconds (toggle mode only, safety net).
+MAX_RECORD_SECONDS = 120
+
 # ── Appointment notifications ─────────────────────────────────────────────
 # How many minutes before an appointment to send a toast notification.
 APPOINTMENT_REMIND_MINUTES = 15

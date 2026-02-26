@@ -65,6 +65,17 @@ _STRINGS: dict[str, dict[str, str]] = {
         "appointment_toast_title":  "Writher Appointment",
         "appointment_toast_body":   "📅 {title} — in {minutes} min",
         "appointment_toast_now":    "📅 {title} — now!",
+
+        # tray_icon.py — settings menu
+        "tray_settings":            "Settings",
+
+        # settings_window.py
+        "settings_title":           "Settings",
+        "setting_record_mode":      "Recording mode",
+        "setting_hold":             "Hold to record",
+        "setting_toggle":           "Press to start / stop",
+        "setting_max_duration":     "Max recording (seconds)",
+        "setting_saved":            "Settings saved",
     },
 
     "it": {
@@ -114,6 +125,17 @@ _STRINGS: dict[str, dict[str, str]] = {
         "appointment_toast_title":  "Writher Appuntamento",
         "appointment_toast_body":   "📅 {title} — tra {minutes} min",
         "appointment_toast_now":    "📅 {title} — adesso!",
+
+        # tray_icon.py — settings menu
+        "tray_settings":            "Impostazioni",
+
+        # settings_window.py
+        "settings_title":           "Impostazioni",
+        "setting_record_mode":      "Modalità registrazione",
+        "setting_hold":             "Tieni premuto per registrare",
+        "setting_toggle":           "Premi per avviare / fermare",
+        "setting_max_duration":     "Durata max registrazione (secondi)",
+        "setting_saved":            "Impostazioni salvate",
     },
 }
 
