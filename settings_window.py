@@ -1,4 +1,4 @@
-"""Settings window for Writher — dark-themed, borderless, draggable.
+"""Settings window — CustomTkinter + Pandora Blackboard theme.
 
 Allows the user to configure:
   - Recording mode: hold-to-record vs toggle (press to start/stop)
@@ -6,30 +6,18 @@ Allows the user to configure:
 """
 
 import tkinter as tk
+import customtkinter as ctk
+from PIL import ImageTk
+
 from logger import log
 import config
 import database as db
 import locales
 from brand import make_title_bar_image
-from PIL import ImageTk
+import theme as T
 
-# ── Palette (matches notes_window.py) ─────────────────────────────────────
-_BG        = "#16161a"
-_BG2       = "#1e1e24"
-_FG        = "#e0e0e8"
-_ACCENT    = "#5bcefa"
-_DIM       = "#78787f"
-_CARD_BG   = "#24242c"
-_BORDER    = "#2e2e38"
-_TITLE_BG  = "#131316"
-_CLOSE_HOV = "#e05555"
-_BTN_BG    = "#2a2a32"
-_BTN_SEL   = "#5bcefa"
-_SLIDER_BG = "#2a2a32"
-_SLIDER_FG = "#5bcefa"
-
-_WIN_W, _WIN_H = 400, 300
-_TITLE_H = 38
+_WIN_W, _WIN_H = 420, 310
+_TITLE_H = 40
 
 
 class SettingsWindow:
@@ -42,14 +30,18 @@ class SettingsWindow:
         self._hold_btn = None
         self._toggle_btn = None
         self._slider = None
-        self._slider_label = None
-        self._slider_frame = None
+        self._slider_val_label = None
+        self._slider_section = None
 
     def show(self):
         if self._win is not None:
             try:
                 if self._win.winfo_exists():
+                    self._win.attributes("-topmost", True)
                     self._win.lift()
+                    self._win.focus_force()
+                    self._win.after(100, lambda: self._win.attributes("-topmost", True)
+                                    if self._win and self._win.winfo_exists() else None)
                     self._sync_ui()
                     return
             except Exception:
@@ -60,9 +52,9 @@ class SettingsWindow:
     # ── Build ─────────────────────────────────────────────────────────────
 
     def _build(self):
-        win = tk.Toplevel(self._root)
+        win = ctk.CTkToplevel(self._root)
         win.overrideredirect(True)
-        win.configure(bg=_BORDER)
+        win.configure(fg_color=T.BG_DEEP)
         win.attributes("-topmost", True)
 
         sx = win.winfo_screenwidth()
@@ -72,93 +64,100 @@ class SettingsWindow:
         win.geometry(f"{_WIN_W}x{_WIN_H}+{x}+{y}")
         self._win = win
 
-        outer = tk.Frame(win, bg=_BORDER)
-        outer.pack(fill="both", expand=True, padx=1, pady=1)
+        outer = ctk.CTkFrame(win, fg_color=T.BG_DEEP, border_color=T.BORDER,
+                             border_width=1, corner_radius=0)
+        outer.pack(fill="both", expand=True)
 
         # ── Title bar ────────────────────────────────────────────────
-        title_bar = tk.Frame(outer, bg=_TITLE_BG, height=_TITLE_H)
+        title_bar = ctk.CTkFrame(outer, fg_color=T.TITLE_BG, height=_TITLE_H,
+                                 corner_radius=0)
         title_bar.pack(fill="x")
         title_bar.pack_propagate(False)
 
         eye_img = make_title_bar_image(size=20)
         self._title_eye_tk = ImageTk.PhotoImage(eye_img)
-        eye_lbl = tk.Label(title_bar, image=self._title_eye_tk, bg=_TITLE_BG)
-        eye_lbl.pack(side="left", padx=(12, 6))
+        eye_lbl = tk.Label(title_bar, image=self._title_eye_tk, bg=T.TITLE_BG)
+        eye_lbl.pack(side="left", padx=(14, 8))
 
-        title_lbl = tk.Label(title_bar, text=locales.get("settings_title"),
-                             bg=_TITLE_BG, fg=_FG,
-                             font=("Segoe UI", 10, "bold"))
+        title_lbl = ctk.CTkLabel(title_bar, text=locales.get("settings_title"),
+                                 font=T.FONT_TITLE, text_color=T.FG)
         title_lbl.pack(side="left")
 
-        close_btn = tk.Label(title_bar, text="✕", bg=_TITLE_BG, fg=_DIM,
-                             font=("Segoe UI", 11), padx=14, cursor="hand2")
-        close_btn.pack(side="right", fill="y")
-        close_btn.bind("<Enter>", lambda e: close_btn.config(bg=_CLOSE_HOV, fg="#fff"))
-        close_btn.bind("<Leave>", lambda e: close_btn.config(bg=_TITLE_BG, fg=_DIM))
-        close_btn.bind("<Button-1>", lambda e: self._close())
+        close_btn = ctk.CTkButton(
+            title_bar, text="✕", width=44, height=_TITLE_H,
+            fg_color="transparent", hover_color=T.CLOSE_HOVER,
+            text_color=T.FG_DIM, font=(T.FONT_FAMILY, 15),
+            corner_radius=0, command=self._close,
+        )
+        close_btn.pack(side="right")
 
         for w in (title_bar, title_lbl):
             w.bind("<Button-1>", self._start_drag)
             w.bind("<B1-Motion>", self._on_drag)
 
         # ── Content ──────────────────────────────────────────────────
-        content = tk.Frame(outer, bg=_BG)
-        content.pack(fill="both", expand=True, padx=16, pady=16)
+        content = ctk.CTkFrame(outer, fg_color=T.BG, corner_radius=0)
+        content.pack(fill="both", expand=True, padx=1, pady=(0, 1))
+
+        pad = ctk.CTkFrame(content, fg_color="transparent")
+        pad.pack(fill="both", expand=True, padx=T.PAD_XL, pady=T.PAD_L)
 
         # Recording mode label
-        tk.Label(content, text=locales.get("setting_record_mode"),
-                 bg=_BG, fg=_FG, font=("Segoe UI", 10, "bold"),
-                 anchor="w").pack(fill="x", pady=(0, 10))
+        ctk.CTkLabel(pad, text=locales.get("setting_record_mode"),
+                     font=T.FONT_TITLE, text_color=T.FG,
+                     anchor="w").pack(fill="x", pady=(0, T.PAD_M))
 
-        # Mode buttons row
-        btn_row = tk.Frame(content, bg=_BG)
-        btn_row.pack(fill="x", pady=(0, 20))
+        # Mode buttons
+        btn_row = ctk.CTkFrame(pad, fg_color="transparent")
+        btn_row.pack(fill="x", pady=(0, T.PAD_L))
 
-        self._hold_btn = tk.Label(
+        self._hold_btn = ctk.CTkButton(
             btn_row, text=locales.get("setting_hold"),
-            bg=_BTN_BG, fg=_FG, font=("Segoe UI", 9),
-            padx=16, pady=8, cursor="hand2",
+            font=T.FONT_SMALL, height=36, corner_radius=6,
+            fg_color=T.BG_CARD, hover_color=T.BG_HOVER,
+            border_color=T.BORDER, border_width=1,
+            text_color=T.FG, command=lambda: self._set_mode(True),
         )
-        self._hold_btn.pack(side="left", padx=(0, 8))
-        self._hold_btn.bind("<Button-1>", lambda e: self._set_mode(True))
+        self._hold_btn.pack(side="left", padx=(0, T.PAD_M))
 
-        self._toggle_btn = tk.Label(
+        self._toggle_btn = ctk.CTkButton(
             btn_row, text=locales.get("setting_toggle"),
-            bg=_BTN_BG, fg=_FG, font=("Segoe UI", 9),
-            padx=16, pady=8, cursor="hand2",
+            font=T.FONT_SMALL, height=36, corner_radius=6,
+            fg_color=T.BG_CARD, hover_color=T.BG_HOVER,
+            border_color=T.BORDER, border_width=1,
+            text_color=T.FG, command=lambda: self._set_mode(False),
         )
         self._toggle_btn.pack(side="left")
-        self._toggle_btn.bind("<Button-1>", lambda e: self._set_mode(False))
 
         # Separator
-        tk.Frame(content, bg=_BORDER, height=1).pack(fill="x", pady=(0, 16))
+        ctk.CTkFrame(pad, fg_color=T.BORDER, height=1,
+                     corner_radius=0).pack(fill="x", pady=(0, T.PAD_L))
 
-        # Max duration slider (toggle mode only)
-        self._slider_frame = tk.Frame(content, bg=_BG)
-        self._slider_frame.pack(fill="x")
+        # Max duration section (toggle mode only)
+        self._slider_section = ctk.CTkFrame(pad, fg_color="transparent")
+        self._slider_section.pack(fill="x")
 
-        tk.Label(self._slider_frame,
-                 text=locales.get("setting_max_duration"),
-                 bg=_BG, fg=_FG, font=("Segoe UI", 10, "bold"),
-                 anchor="w").pack(fill="x", pady=(0, 8))
+        lbl_row = ctk.CTkFrame(self._slider_section, fg_color="transparent")
+        lbl_row.pack(fill="x", pady=(0, T.PAD_M))
 
-        slider_row = tk.Frame(self._slider_frame, bg=_BG)
-        slider_row.pack(fill="x")
+        ctk.CTkLabel(lbl_row, text=locales.get("setting_max_duration"),
+                     font=T.FONT_TITLE, text_color=T.FG,
+                     anchor="w").pack(side="left")
 
-        self._slider = tk.Scale(
-            slider_row, from_=30, to=300, orient="horizontal",
-            bg=_BG, fg=_FG, troughcolor=_SLIDER_BG,
-            highlightthickness=0, bd=0, sliderrelief="flat",
-            font=("Segoe UI", 9), length=280,
+        self._slider_val_label = ctk.CTkLabel(
+            lbl_row, text="120s", font=T.FONT_TITLE,
+            text_color=T.ACCENT, anchor="e",
+        )
+        self._slider_val_label.pack(side="right")
+
+        self._slider = ctk.CTkSlider(
+            self._slider_section, from_=30, to=300,
+            fg_color=T.BG_INPUT, progress_color=T.ACCENT,
+            button_color=T.ACCENT, button_hover_color=T.ACCENT_HOVER,
+            height=18, corner_radius=9,
             command=self._on_slider_change,
         )
-        self._slider.pack(side="left", fill="x", expand=True)
-
-        self._slider_label = tk.Label(
-            slider_row, text="120s", bg=_BG, fg=_ACCENT,
-            font=("Segoe UI", 10, "bold"), width=5,
-        )
-        self._slider_label.pack(side="right", padx=(8, 0))
+        self._slider.pack(fill="x")
 
     # ── Drag ──────────────────────────────────────────────────────────────
 
@@ -183,35 +182,35 @@ class SettingsWindow:
     # ── UI sync ───────────────────────────────────────────────────────────
 
     def _sync_ui(self):
-        """Update UI elements to reflect current config values."""
         hold = getattr(config, "HOLD_TO_RECORD", True)
         self._update_mode_buttons(hold)
         max_sec = getattr(config, "MAX_RECORD_SECONDS", 120)
         if self._slider:
             self._slider.set(max_sec)
-        if self._slider_label:
-            self._slider_label.config(text=f"{max_sec}s")
+        if self._slider_val_label:
+            self._slider_val_label.configure(text=f"{max_sec}s")
         self._update_slider_visibility(hold)
 
     def _update_mode_buttons(self, hold: bool):
         if self._hold_btn:
-            self._hold_btn.config(
-                bg=_BTN_SEL if hold else _BTN_BG,
-                fg="#000" if hold else _FG,
+            self._hold_btn.configure(
+                fg_color=T.FG if hold else T.BG_CARD,
+                text_color=T.BG_DEEP if hold else T.FG,
+                border_color=T.FG if hold else T.BORDER,
             )
         if self._toggle_btn:
-            self._toggle_btn.config(
-                bg=_BTN_SEL if not hold else _BTN_BG,
-                fg="#000" if not hold else _FG,
+            self._toggle_btn.configure(
+                fg_color=T.FG if not hold else T.BG_CARD,
+                text_color=T.BG_DEEP if not hold else T.FG,
+                border_color=T.FG if not hold else T.BORDER,
             )
 
     def _update_slider_visibility(self, hold: bool):
-        """Show slider only in toggle mode."""
-        if self._slider_frame:
+        if self._slider_section:
             if hold:
-                self._slider_frame.pack_forget()
+                self._slider_section.pack_forget()
             else:
-                self._slider_frame.pack(fill="x")
+                self._slider_section.pack(fill="x")
 
     # ── Callbacks ─────────────────────────────────────────────────────────
 
@@ -226,5 +225,5 @@ class SettingsWindow:
         seconds = int(float(value))
         config.MAX_RECORD_SECONDS = seconds
         db.save_setting("max_record_seconds", str(seconds))
-        if self._slider_label:
-            self._slider_label.config(text=f"{seconds}s")
+        if self._slider_val_label:
+            self._slider_val_label.configure(text=f"{seconds}s")

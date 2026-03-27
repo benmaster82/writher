@@ -1,7 +1,18 @@
+import ctypes
 import queue
 import threading
 import time
 import tkinter as tk
+
+# Fix DPI awareness before any window is created.
+# CustomTkinter changes the DPI mode which shifts widget positioning.
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(1)   # PROCESS_SYSTEM_DPI_AWARE
+except Exception:
+    try:
+        ctypes.windll.user32.SetProcessDPIAware()
+    except Exception:
+        pass
 
 _STOP = object()  # sentinel to shut down pipeline workers
 

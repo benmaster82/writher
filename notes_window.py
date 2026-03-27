@@ -1,35 +1,29 @@
-"""Custom borderless window for viewing notes, appointments and reminders."""
+"""Notes, Agenda & Reminders window — CustomTkinter + Pandora Blackboard theme.
+
+Features:
+  - Dark glassmorphic design matching the floating widget
+  - Resizable window with maximize / restore support
+  - Custom title bar with drag, close, and maximize buttons
+  - Tabbed interface (Notes, Agenda, Reminders)
+  - Scrollable card-based content
+"""
 
 import json
 import tkinter as tk
 from datetime import datetime
+
+import customtkinter as ctk
 from PIL import ImageTk
+
 from logger import log
 import database as db
 import locales
 from brand import make_title_bar_image
+import theme as T
 
-# ── Palette ───────────────────────────────────────────────────────────────
-_BG        = "#16161a"
-_BG2       = "#1e1e24"
-_FG        = "#e0e0e8"
-_ACCENT    = "#5bcefa"
-_CARD_BG   = "#24242c"
-_CARD_HOVER = "#2c2c36"
-_DIM       = "#78787f"
-_RED       = "#e05555"
-_RED_HOVER = "#ff6666"
-_GREEN     = "#55cc77"
-_BORDER    = "#2e2e38"
-_TAB_BG    = "#1a1a20"
-_TAB_SEL   = "#5bcefa"
-_TITLE_BG  = "#131316"
-_CLOSE_BG  = "#2a2a32"
-_CLOSE_HOV = "#e05555"
-
-_WIN_W, _WIN_H = 500, 580
-_TITLE_H   = 38
-_TAB_H     = 36
+_WIN_W, _WIN_H = 520, 600
+_MIN_W, _MIN_H = 380, 400
+_TITLE_H = 40
 
 
 class NotesWindow:
@@ -39,18 +33,21 @@ class NotesWindow:
         self._current_tab = "notes"
         self._drag_x = 0
         self._drag_y = 0
+        self._maximized = False
+        self._restore_geo = None
+        self._title_eye_tk = None
         self._tab_buttons = {}
-        self._tab_indicators = {}
-        self._content_frame = None
-        self._scroll_canvas = None
-        self._inner_frame = None
-        self._title_eye_tk = None  # prevent garbage collection of title bar image
+        self._scroll_frame = None
 
     def show(self, tab: str = "notes"):
         if self._win is not None:
             try:
                 if self._win.winfo_exists():
+                    self._win.attributes("-topmost", True)
                     self._win.lift()
+                    self._win.focus_force()
+                    self._win.after(100, lambda: self._win.attributes("-topmost", False)
+                                    if self._win and self._win.winfo_exists() else None)
                     self._switch_tab(tab)
                     return
             except Exception:
@@ -61,12 +58,12 @@ class NotesWindow:
     # ── Build ─────────────────────────────────────────────────────────────
 
     def _build(self):
-        win = tk.Toplevel(self._root)
+        win = ctk.CTkToplevel(self._root)
         win.overrideredirect(True)
-        win.configure(bg=_BORDER)
+        win.configure(fg_color=T.BG_DEEP)
         win.attributes("-topmost", False)
+        win.minsize(_MIN_W, _MIN_H)
 
-        # Centre on screen
         sx = win.winfo_screenwidth()
         sy = win.winfo_screenheight()
         x = (sx - _WIN_W) // 2
@@ -74,40 +71,58 @@ class NotesWindow:
         win.geometry(f"{_WIN_W}x{_WIN_H}+{x}+{y}")
         self._win = win
 
-        # Outer border frame (1 px border effect)
-        outer = tk.Frame(win, bg=_BORDER)
-        outer.pack(fill="both", expand=True, padx=1, pady=1)
+        # Force to front on creation, then release topmost
+        win.attributes("-topmost", True)
+        win.after(100, lambda: win.attributes("-topmost", False)
+                  if win.winfo_exists() else None)
 
-        # ── Custom title bar ──────────────────────────────────────────────
-        title_bar = tk.Frame(outer, bg=_TITLE_BG, height=_TITLE_H)
+        # Outer border frame
+        outer = ctk.CTkFrame(win, fg_color=T.BG_DEEP, border_color=T.BORDER,
+                             border_width=1, corner_radius=0)
+        outer.pack(fill="both", expand=True)
+
+        # ── Custom title bar ──────────────────────────────────────────
+        title_bar = ctk.CTkFrame(outer, fg_color=T.TITLE_BG, height=_TITLE_H,
+                                 corner_radius=0)
         title_bar.pack(fill="x")
         title_bar.pack_propagate(False)
 
-        # Title icon (Pandora Blackboard eyes rendered via PIL)
+        # Pandora eyes icon
         eye_img = make_title_bar_image(size=20)
         self._title_eye_tk = ImageTk.PhotoImage(eye_img)
-        eye_lbl = tk.Label(title_bar, image=self._title_eye_tk, bg=_TITLE_BG)
-        eye_lbl.pack(side="left", padx=(12, 6))
+        eye_lbl = tk.Label(title_bar, image=self._title_eye_tk, bg=T.TITLE_BG)
+        eye_lbl.pack(side="left", padx=(14, 8))
 
-        title_lbl = tk.Label(title_bar, text="Writher", bg=_TITLE_BG, fg=_FG,
-                             font=("Segoe UI", 10, "bold"))
+        title_lbl = ctk.CTkLabel(title_bar, text="Writher", font=(T.FONT_FAMILY, 13, "bold"),
+                                 text_color=T.FG)
         title_lbl.pack(side="left")
 
         # Close button
-        close_btn = tk.Label(title_bar, text="✕", bg=_TITLE_BG, fg=_DIM,
-                             font=("Segoe UI", 11), padx=14, cursor="hand2")
-        close_btn.pack(side="right", fill="y")
-        close_btn.bind("<Enter>", lambda e: close_btn.config(bg=_CLOSE_HOV, fg="#fff"))
-        close_btn.bind("<Leave>", lambda e: close_btn.config(bg=_TITLE_BG, fg=_DIM))
-        close_btn.bind("<Button-1>", lambda e: self._close())
+        close_btn = ctk.CTkButton(
+            title_bar, text="✕", width=44, height=_TITLE_H,
+            fg_color="transparent", hover_color=T.CLOSE_HOVER,
+            text_color=T.FG_DIM, font=(T.FONT_FAMILY, 15),
+            corner_radius=0, command=self._close,
+        )
+        close_btn.pack(side="right")
+
+        # Maximize / restore button
+        self._max_btn = ctk.CTkButton(
+            title_bar, text="□", width=44, height=_TITLE_H,
+            fg_color="transparent", hover_color=T.BG_HOVER,
+            text_color=T.FG_DIM, font=(T.FONT_FAMILY, 14),
+            corner_radius=0, command=self._toggle_maximize,
+        )
+        self._max_btn.pack(side="right")
 
         # Drag support
         for w in (title_bar, title_lbl):
             w.bind("<Button-1>", self._start_drag)
             w.bind("<B1-Motion>", self._on_drag)
+            w.bind("<Double-Button-1>", lambda e: self._toggle_maximize())
 
-        # ── Tab bar ──────────────────────────────────────────────────────
-        tab_bar = tk.Frame(outer, bg=_BG, height=_TAB_H)
+        # ── Tab bar ───────────────────────────────────────────────────
+        tab_bar = ctk.CTkFrame(outer, fg_color=T.BG, height=48, corner_radius=0)
         tab_bar.pack(fill="x")
         tab_bar.pack_propagate(False)
 
@@ -118,90 +133,102 @@ class NotesWindow:
         ]
 
         for key, label in tabs:
-            col = tk.Frame(tab_bar, bg=_BG)
-            col.pack(side="left", fill="y", padx=(0, 1))
-
-            btn = tk.Label(col, text=label, bg=_BG, fg=_DIM,
-                           font=("Segoe UI", 9), padx=16, pady=8,
-                           cursor="hand2")
-            btn.pack(fill="both", expand=True)
-
-            # Bottom indicator line
-            indicator = tk.Frame(col, bg=_BG, height=2)
-            indicator.pack(fill="x")
-
-            btn.bind("<Button-1>", lambda e, k=key: self._switch_tab(k))
-            btn.bind("<Enter>", lambda e, b=btn: b.config(fg=_FG) if b.cget("fg") != _ACCENT else None)
-            btn.bind("<Leave>", lambda e, b=btn, k=key: b.config(fg=_DIM) if k != self._current_tab else None)
-
+            btn = ctk.CTkButton(
+                tab_bar, text=label, font=(T.FONT_FAMILY, 11),
+                fg_color="transparent", hover_color=T.BG_HOVER,
+                text_color=T.FG_DIM, corner_radius=0,
+                height=48, width=160,
+                command=lambda k=key: self._switch_tab(k),
+            )
+            btn.pack(side="left", fill="y")
             self._tab_buttons[key] = btn
-            self._tab_indicators[key] = indicator
 
-        # Separator line under tabs
-        tk.Frame(outer, bg=_BORDER, height=1).pack(fill="x")
+        # Separator
+        ctk.CTkFrame(outer, fg_color=T.BORDER, height=1,
+                     corner_radius=0).pack(fill="x")
 
-        # ── Scrollable content area ──────────────────────────────────────
-        content = tk.Frame(outer, bg=_BG2)
-        content.pack(fill="both", expand=True)
-        self._content_frame = content
+        # ── Scrollable content ────────────────────────────────────────
+        self._scroll_frame = ctk.CTkScrollableFrame(
+            outer, fg_color=T.BG, corner_radius=0,
+            scrollbar_button_color=T.BORDER,
+            scrollbar_button_hover_color=T.BORDER_GLOW,
+        )
+        self._scroll_frame.pack(fill="both", expand=True)
 
-        canvas = tk.Canvas(content, bg=_BG2, highlightthickness=0, bd=0)
-        inner = tk.Frame(canvas, bg=_BG2)
-
-        inner.bind("<Configure>",
-                   lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        self._canvas_win = canvas.create_window((0, 0), window=inner, anchor="nw",
-                                                 width=_WIN_W - 4)
-
-        def _on_mousewheel(event):
-            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-        canvas.bind_all("<MouseWheel>", _on_mousewheel)
-
-        canvas.pack(fill="both", expand=True)
-
-        content.bind("<Configure>",
-                     lambda e: canvas.itemconfig(self._canvas_win,
-                                                 width=e.width - 4)
-                     if canvas.find_all() else None)
-
-        # Custom scrollbar drawn on the canvas
-        self._sb_id = canvas.create_rectangle(0, 0, 0, 0,
-                                              fill="#3a3a48", outline="")
-        self._sb_visible = False
-
-        def _update_scrollbar(*_args):
-            first, last = canvas.yview()
-            if float(last) - float(first) >= 1.0:
-                canvas.coords(self._sb_id, 0, 0, 0, 0)
-                self._sb_visible = False
-                return
-            self._sb_visible = True
-            cw = canvas.winfo_width()
-            ch = canvas.winfo_height()
-            sb_w = 4
-            sb_x = cw - sb_w - 2
-            bar_h = max(20, ch * (float(last) - float(first)))
-            bar_y = ch * float(first)
-            canvas.coords(self._sb_id, sb_x, bar_y + 2,
-                          sb_x + sb_w, bar_y + bar_h - 2)
-            canvas.tag_raise(self._sb_id)
-
-        canvas.configure(yscrollcommand=_update_scrollbar)
-
-        self._scroll_canvas = canvas
-        self._inner_frame = inner
+        # ── Resize grip (bottom-right corner) ─────────────────────────
+        grip = ctk.CTkLabel(outer, text="⋮⋮", font=(T.FONT_FAMILY, 12),
+                            text_color=T.FG_DIM, width=20, cursor="size_nw_se")
+        grip.place(relx=1.0, rely=1.0, anchor="se")
+        grip.bind("<Button-1>", self._start_resize)
+        grip.bind("<B1-Motion>", self._on_resize)
 
     # ── Drag ──────────────────────────────────────────────────────────────
 
     def _start_drag(self, event):
+        if self._maximized:
+            return
         self._drag_x = event.x
         self._drag_y = event.y
 
     def _on_drag(self, event):
-        if self._win:
-            x = self._win.winfo_x() + (event.x - self._drag_x)
-            y = self._win.winfo_y() + (event.y - self._drag_y)
-            self._win.geometry(f"+{x}+{y}")
+        if self._maximized or not self._win:
+            return
+        x = self._win.winfo_x() + (event.x - self._drag_x)
+        y = self._win.winfo_y() + (event.y - self._drag_y)
+        self._win.geometry(f"+{x}+{y}")
+
+    # ── Resize ────────────────────────────────────────────────────────────
+
+    def _start_resize(self, event):
+        if self._maximized:
+            return
+        self._resize_x = event.x_root
+        self._resize_y = event.y_root
+        self._resize_w = self._win.winfo_width()
+        self._resize_h = self._win.winfo_height()
+
+    def _on_resize(self, event):
+        if self._maximized or not self._win:
+            return
+        dx = event.x_root - self._resize_x
+        dy = event.y_root - self._resize_y
+        new_w = max(_MIN_W, self._resize_w + dx)
+        new_h = max(_MIN_H, self._resize_h + dy)
+        self._win.geometry(f"{new_w}x{new_h}")
+
+    # ── Maximize / Restore ────────────────────────────────────────────────
+
+    def _toggle_maximize(self):
+        if not self._win:
+            return
+        if self._maximized:
+            self._win.geometry(self._restore_geo)
+            self._max_btn.configure(text="□")
+            self._maximized = False
+        else:
+            self._restore_geo = self._win.geometry()
+            import ctypes
+            from ctypes import wintypes
+            # Get the work area (screen minus taskbar)
+            class RECT(ctypes.Structure):
+                _fields_ = [("left", wintypes.LONG), ("top", wintypes.LONG),
+                            ("right", wintypes.LONG), ("bottom", wintypes.LONG)]
+            rect = RECT()
+            ctypes.windll.user32.SystemParametersInfoW(0x0030, 0,
+                                                        ctypes.byref(rect), 0)
+            # Tk applies its own scaling — convert physical px to Tk units
+            scale = self._win.tk.call("tk", "scaling") / (96 / 72)
+            if scale <= 0:
+                scale = 1.0
+            x = int(rect.left / scale)
+            y = int(rect.top / scale)
+            w = int((rect.right - rect.left) / scale)
+            h = int((rect.bottom - rect.top) / scale)
+            self._win.geometry(f"{w}x{h}+{x}+{y}")
+            self._max_btn.configure(text="❐")
+            self._maximized = True
+
+    # ── Close ─────────────────────────────────────────────────────────────
 
     def _close(self):
         if self._win:
@@ -210,6 +237,8 @@ class NotesWindow:
             except Exception:
                 pass
             self._win = None
+            self._maximized = False
+            self._tab_buttons = {}
 
     # ── Tabs ──────────────────────────────────────────────────────────────
 
@@ -217,15 +246,13 @@ class NotesWindow:
         self._current_tab = tab
         for key, btn in self._tab_buttons.items():
             if key == tab:
-                btn.config(fg=_ACCENT)
-                self._tab_indicators[key].config(bg=_TAB_SEL)
+                btn.configure(text_color=T.FG, fg_color=T.BG_CARD)
             else:
-                btn.config(fg=_DIM)
-                self._tab_indicators[key].config(bg=_BG)
+                btn.configure(text_color=T.FG_DIM, fg_color="transparent")
         self._refresh()
 
     def _refresh(self):
-        for w in self._inner_frame.winfo_children():
+        for w in self._scroll_frame.winfo_children():
             w.destroy()
         if self._current_tab == "notes":
             self._populate_notes()
@@ -236,108 +263,103 @@ class NotesWindow:
 
     # ── Card helper ───────────────────────────────────────────────────────
 
-    def _make_card(self, parent) -> tk.Frame:
-        card = tk.Frame(parent, bg=_CARD_BG, padx=12, pady=10)
-        card.pack(fill="x", padx=8, pady=4)
+    def _make_card(self) -> ctk.CTkFrame:
+        card = ctk.CTkFrame(
+            self._scroll_frame, fg_color=T.BG_CARD,
+            border_color=T.BORDER, border_width=1,
+            corner_radius=8,
+        )
+        card.pack(fill="x", padx=T.PAD_M, pady=T.PAD_S)
 
         def _enter(e):
-            card.config(bg=_CARD_HOVER)
-            for child in card.winfo_children():
-                try:
-                    if child.cget("bg") == _CARD_BG:
-                        child.config(bg=_CARD_HOVER)
-                    for sub in child.winfo_children():
-                        if sub.cget("bg") == _CARD_BG:
-                            sub.config(bg=_CARD_HOVER)
-                except Exception:
-                    pass
-
+            card.configure(border_color=T.BORDER_GLOW)
         def _leave(e):
-            card.config(bg=_CARD_BG)
-            for child in card.winfo_children():
-                try:
-                    if child.cget("bg") == _CARD_HOVER:
-                        child.config(bg=_CARD_BG)
-                    for sub in child.winfo_children():
-                        if sub.cget("bg") == _CARD_HOVER:
-                            sub.config(bg=_CARD_BG)
-                except Exception:
-                    pass
-
+            card.configure(border_color=T.BORDER)
         card.bind("<Enter>", _enter)
         card.bind("<Leave>", _leave)
         return card
 
-    def _make_delete_btn(self, parent, command) -> tk.Label:
-        btn = tk.Label(parent, text="✕", bg=_CARD_BG, fg=_DIM,
-                       font=("Segoe UI", 9), cursor="hand2", padx=4)
-        btn.pack(side="right")
-        btn.bind("<Enter>", lambda e: btn.config(fg=_RED_HOVER))
-        btn.bind("<Leave>", lambda e: btn.config(fg=_DIM))
-        btn.bind("<Button-1>", lambda e: command())
+    def _make_delete_btn(self, parent, command):
+        btn = ctk.CTkButton(
+            parent, text="✕", width=28, height=28,
+            fg_color="transparent", hover_color=T.RED,
+            text_color=T.FG_DIM, font=T.FONT_SMALL,
+            corner_radius=4, command=command,
+        )
+        btn.pack(side="right", padx=(T.PAD_S, 0))
         return btn
+
+    def _empty_label(self, text: str):
+        ctk.CTkLabel(
+            self._scroll_frame, text=text,
+            text_color=T.FG_DIM, font=T.FONT_BODY,
+        ).pack(pady=60)
 
     # ── Notes ─────────────────────────────────────────────────────────────
 
     def _populate_notes(self):
         notes = db.get_all_notes()
         if not notes:
-            tk.Label(self._inner_frame, text=locales.get("no_notes"),
-                     bg=_BG2, fg=_DIM, font=("Segoe UI", 11)).pack(pady=40)
+            self._empty_label(locales.get("no_notes"))
             return
 
         for note in notes:
-            card = self._make_card(self._inner_frame)
-            hdr = tk.Frame(card, bg=_CARD_BG)
+            card = self._make_card()
+            inner = ctk.CTkFrame(card, fg_color="transparent")
+            inner.pack(fill="x", padx=T.PAD_M, pady=T.PAD_M)
+
+            # Header row
+            hdr = ctk.CTkFrame(inner, fg_color="transparent")
             hdr.pack(fill="x")
 
             title = note["title"] or (
                 locales.get("default_list_title") if note["note_type"] == "list"
                 else locales.get("default_note_title")
             )
-            tk.Label(hdr, text=title, bg=_CARD_BG, fg=_ACCENT,
-                     font=("Segoe UI", 10, "bold"), anchor="w").pack(side="left")
-
-            tk.Label(hdr, text=note["category"], bg=_CARD_BG, fg=_DIM,
-                     font=("Segoe UI", 8)).pack(side="left", padx=(8, 0))
+            ctk.CTkLabel(hdr, text=title, font=T.FONT_TITLE,
+                         text_color=T.ACCENT).pack(side="left")
+            ctk.CTkLabel(hdr, text=note["category"], font=T.FONT_TINY,
+                         text_color=T.FG_DIM).pack(side="left", padx=(T.PAD_M, 0))
 
             nid = note["id"]
             self._make_delete_btn(hdr, lambda i=nid: self._delete_note(i))
 
+            # Content
             if note["note_type"] == "list":
-                self._render_list(card, note)
+                self._render_list(inner, note)
             else:
-                tk.Label(card, text=note["content"], bg=_CARD_BG, fg=_FG,
-                         font=("Segoe UI", 10), anchor="w", justify="left",
-                         wraplength=420).pack(fill="x", pady=(6, 0))
+                ctk.CTkLabel(inner, text=note["content"], font=T.FONT_BODY,
+                             text_color=T.FG, anchor="w", justify="left",
+                             wraplength=420).pack(fill="x", pady=(T.PAD_S, 0))
 
-            tk.Label(card, text=note["updated_at"], bg=_CARD_BG, fg=_DIM,
-                     font=("Segoe UI", 8), anchor="e").pack(fill="x", pady=(4, 0))
+            # Timestamp
+            ctk.CTkLabel(inner, text=note["updated_at"], font=T.FONT_TINY,
+                         text_color=T.FG_DIM, anchor="e").pack(fill="x",
+                         pady=(T.PAD_S, 0))
 
-    def _render_list(self, parent: tk.Frame, note: dict):
+    def _render_list(self, parent, note: dict):
         try:
             items = json.loads(note["content"])
         except (json.JSONDecodeError, TypeError):
             items = []
 
         for entry in items:
-            row = tk.Frame(parent, bg=_CARD_BG)
-            row.pack(fill="x", pady=1)
-
             checked = entry.get("checked", False)
             text = entry.get("item", "")
-            symbol = "☑" if checked else "☐"
-            fg = _DIM if checked else _FG
-
             nid = note["id"]
             item_text = text
-            btn = tk.Button(
-                row, text=f"{symbol}  {text}", bg=_CARD_BG, fg=fg,
-                font=("Segoe UI", 10), bd=0, anchor="w", cursor="hand2",
-                activebackground=_CARD_HOVER, activeforeground=fg,
+
+            cb = ctk.CTkCheckBox(
+                parent, text=text, font=T.FONT_BODY,
+                text_color=T.FG_DIM if checked else T.FG,
+                fg_color=T.ACCENT, hover_color=T.ACCENT_HOVER,
+                border_color=T.BORDER_GLOW, checkmark_color=T.BG_DEEP,
+                corner_radius=4,
                 command=lambda i=nid, t=item_text: self._toggle_item(i, t),
             )
-            btn.pack(fill="x")
+            if checked:
+                cb.select()
+            cb.pack(fill="x", pady=1, padx=(T.PAD_S, 0))
 
     def _toggle_item(self, note_id: int, item_text: str):
         db.check_item(note_id, item_text)
@@ -352,17 +374,19 @@ class NotesWindow:
     def _populate_appointments(self):
         appts = db.get_appointments()
         if not appts:
-            tk.Label(self._inner_frame, text=locales.get("no_appointments"),
-                     bg=_BG2, fg=_DIM, font=("Segoe UI", 11)).pack(pady=40)
+            self._empty_label(locales.get("no_appointments"))
             return
 
         for a in appts:
-            card = self._make_card(self._inner_frame)
-            hdr = tk.Frame(card, bg=_CARD_BG)
+            card = self._make_card()
+            inner = ctk.CTkFrame(card, fg_color="transparent")
+            inner.pack(fill="x", padx=T.PAD_M, pady=T.PAD_M)
+
+            hdr = ctk.CTkFrame(inner, fg_color="transparent")
             hdr.pack(fill="x")
 
-            tk.Label(hdr, text=a["title"], bg=_CARD_BG, fg=_ACCENT,
-                     font=("Segoe UI", 10, "bold"), anchor="w").pack(side="left")
+            ctk.CTkLabel(hdr, text=a["title"], font=T.FONT_TITLE,
+                         text_color=T.ACCENT).pack(side="left")
 
             aid = a["id"]
             self._make_delete_btn(hdr, lambda i=aid: self._delete_appt(i))
@@ -372,13 +396,14 @@ class NotesWindow:
                 dt_str = dt.strftime("%d/%m/%Y  %H:%M")
             except Exception:
                 dt_str = a["dt"]
-            tk.Label(card, text=f"📅  {dt_str}", bg=_CARD_BG, fg=_FG,
-                     font=("Segoe UI", 10), anchor="w").pack(fill="x", pady=(6, 0))
+            ctk.CTkLabel(inner, text=f"📅  {dt_str}", font=T.FONT_BODY,
+                         text_color=T.FG, anchor="w").pack(fill="x",
+                         pady=(T.PAD_S, 0))
 
             if a["description"]:
-                tk.Label(card, text=a["description"], bg=_CARD_BG, fg=_DIM,
-                         font=("Segoe UI", 9), anchor="w", wraplength=420,
-                         justify="left").pack(fill="x", pady=(2, 0))
+                ctk.CTkLabel(inner, text=a["description"], font=T.FONT_SMALL,
+                             text_color=T.FG_DIM, anchor="w", wraplength=420,
+                             justify="left").pack(fill="x", pady=(2, 0))
 
     def _delete_appt(self, aid: int):
         db.delete_appointment(aid)
@@ -389,20 +414,22 @@ class NotesWindow:
     def _populate_reminders(self):
         rems = db.get_all_reminders(include_notified=True)
         if not rems:
-            tk.Label(self._inner_frame, text=locales.get("no_reminders"),
-                     bg=_BG2, fg=_DIM, font=("Segoe UI", 11)).pack(pady=40)
+            self._empty_label(locales.get("no_reminders"))
             return
 
         for r in rems:
-            card = self._make_card(self._inner_frame)
-            hdr = tk.Frame(card, bg=_CARD_BG)
+            card = self._make_card()
+            inner = ctk.CTkFrame(card, fg_color="transparent")
+            inner.pack(fill="x", padx=T.PAD_M, pady=T.PAD_M)
+
+            hdr = ctk.CTkFrame(inner, fg_color="transparent")
             hdr.pack(fill="x")
 
             done = r["notified"]
             status = "✓" if done else "⏰"
-            fg = _DIM if done else _FG
-            tk.Label(hdr, text=f"{status}  {r['message']}", bg=_CARD_BG, fg=fg,
-                     font=("Segoe UI", 10), anchor="w").pack(side="left")
+            fg = T.FG_DIM if done else T.FG
+            ctk.CTkLabel(hdr, text=f"{status}  {r['message']}", font=T.FONT_BODY,
+                         text_color=fg, anchor="w").pack(side="left")
 
             rid = r["id"]
             self._make_delete_btn(hdr, lambda i=rid: self._delete_rem(i))
@@ -412,8 +439,9 @@ class NotesWindow:
                 dt_str = dt.strftime("%d/%m/%Y  %H:%M")
             except Exception:
                 dt_str = r["remind_at"]
-            tk.Label(card, text=dt_str, bg=_CARD_BG, fg=_DIM,
-                     font=("Segoe UI", 8), anchor="e").pack(fill="x", pady=(4, 0))
+            ctk.CTkLabel(inner, text=dt_str, font=T.FONT_TINY,
+                         text_color=T.FG_DIM, anchor="e").pack(fill="x",
+                         pady=(T.PAD_S, 0))
 
     def _delete_rem(self, rid: int):
         db.delete_reminder(rid)

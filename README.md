@@ -118,7 +118,7 @@ venv\Scripts\activate
 ### 3. Install dependencies
 
 ```bash
-pip install faster-whisper numpy sounddevice pynput pystray Pillow requests winotify
+pip install faster-whisper numpy sounddevice pynput pystray Pillow requests winotify customtkinter
 ```
 
 > **Optional:** install `plyer` as a fallback notification backend:
@@ -271,10 +271,11 @@ writher/
 ├── database.py          # SQLite storage (notes, appointments, reminders, settings)
 ├── notifier.py          # Toast notifications + reminder/appointment scheduler
 ├── widget.py            # Floating pill overlay with animated eyes
-├── notes_window.py      # Notes/Agenda/Reminders viewer window
-├── settings_window.py   # Settings window (recording mode, max duration)
+├── notes_window.py      # Notes/Agenda/Reminders viewer window (CustomTkinter)
+├── settings_window.py   # Settings window (CustomTkinter)
 ├── tray_icon.py         # System tray icon (pystray)
 ├── brand.py             # "Pandora Blackboard" icon renderer
+├── theme.py             # Unified colour palette and font definitions
 ├── locales.py           # i18n string tables (EN, IT)
 ├── logger.py            # Rotating file + console logger
 ├── debug_keys.py        # Key event debugger utility
