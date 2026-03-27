@@ -173,7 +173,7 @@ def _call_ollama(text: str) -> dict | None:
     }
 
     try:
-        resp = requests.post(url, json=payload, timeout=10)
+        resp = requests.post(url, json=payload, timeout=30)
         resp.raise_for_status()
         data = resp.json()
     except Exception as exc:
