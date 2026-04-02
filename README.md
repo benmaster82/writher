@@ -26,7 +26,7 @@
 
 ## What is WritHer?
 
-Writher sits quietly in your system tray and gives you two super-powers:
+WritHer sits quietly in your system tray and gives you two super-powers:
 
 | Mode | Hotkey | What it does |
 |---|---|---|
