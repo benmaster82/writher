@@ -25,3 +25,6 @@ recovery_notes.txt
 
 # Development backups and legacy asset scripts
 assets/
+
+# Landing page (hosted separately)
+site/
