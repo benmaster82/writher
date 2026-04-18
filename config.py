@@ -18,9 +18,13 @@ SAMPLE_RATE = 16000
 DEVICE = "cpu"
 COMPUTE_TYPE = "int8"
 
+# ── Microphone ────────────────────────────────────────────────────────────
+# None = system default.  Set to device name (str) to use a specific mic.
+MIC_DEVICE_NAME = None
+
 # ── Ollama (assistant) ───────────────────────────────────────────────────
 OLLAMA_URL = "http://localhost:11434"
-OLLAMA_MODEL = "gpt-oss:120b-cloud"
+OLLAMA_MODEL = "gpt-oss:20b-cloud"
 
 # ── Recording mode ────────────────────────────────────────────────────────
 # True = hold key to record (release stops).  False = toggle (press start, press stop).

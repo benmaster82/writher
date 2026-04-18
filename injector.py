@@ -131,19 +131,21 @@ def _save_recovery(text: str):
 def inject(text: str):
     """Paste *text* into the currently focused application.
 
-    If clipboard write fails, the text is saved to recovery_notes.txt
-    so the user never loses dictated content.
+    Every transcription is saved to recovery_notes.txt as a safety net,
+    so dictated content is never lost even if the paste target ignores Ctrl+V.
     """
     if not text:
         return
+
+    # Always save to recovery file — paste target may silently ignore Ctrl+V
+    _save_recovery(text)
 
     # Save current clipboard content
     original = _get_clipboard_text()
 
     try:
         if not _set_clipboard_text(text):
-            log.error("Failed to set clipboard text — saving to recovery file")
-            _save_recovery(text)
+            log.error("Failed to set clipboard text (already saved to recovery)")
             return
         time.sleep(0.05)
 

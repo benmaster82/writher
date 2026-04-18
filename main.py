@@ -65,9 +65,9 @@ def _load_settings():
             config.MAX_RECORD_SECONDS = int(max_sec)
         except ValueError:
             pass
-    mic = db.get_setting("mic_device_index", "")
+    mic = db.get_setting("mic_device_name", "")
     if mic != "":
-        config.MIC_DEVICE_INDEX = int(mic) if mic != "none" else None
+        config.MIC_DEVICE_NAME = mic if mic != "none" else None
 
 
 # ── Toggle-mode timeout helpers ───────────────────────────────────────────

@@ -333,7 +333,12 @@ class NotesWindow:
                              wraplength=440).pack(fill="x", pady=(T.PAD_M, 0))
 
             # Timestamp
-            ctk.CTkLabel(inner, text=note["updated_at"], font=T.FONT_SMALL,
+            try:
+                ts = datetime.fromisoformat(note["updated_at"])
+                ts_str = ts.strftime("%d/%m/%Y  %H:%M")
+            except Exception:
+                ts_str = note["updated_at"]
+            ctk.CTkLabel(inner, text=ts_str, font=T.FONT_SMALL,
                          text_color=T.FG_DIM, anchor="e").pack(fill="x",
                          pady=(T.PAD_M, 0))
 

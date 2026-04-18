@@ -319,14 +319,15 @@ class SettingsWindow:
                 if wasapi_idx is not None and dev.get("hostapi") != wasapi_idx:
                     continue
                 name = dev["name"]
-                # Skip duplicates
+                # Skip exact duplicate names
                 if name in seen_names:
                     continue
                 seen_names.add(name)
                 devices.append((i, name))
 
             # Fallback: if WASAPI filter left us with nothing, show all
-            if len(devices) == 1 and wasapi_idx is not None:
+            if len(devices) == 1:
+                seen_names.clear()
                 for i, dev in enumerate(all_devs):
                     if dev["max_input_channels"] > 0:
                         name = dev["name"]
@@ -342,12 +343,12 @@ class SettingsWindow:
         """Set the dropdown to reflect the current config value."""
         if not self._mic_dropdown:
             return
-        current = getattr(config, "MIC_DEVICE_INDEX", None)
-        # Find matching entry
-        for idx, name in self._mic_devices:
-            if idx == current:
-                self._mic_dropdown.set(name)
-                return
+        current_name = getattr(config, "MIC_DEVICE_NAME", None)
+        if current_name:
+            for idx, name in self._mic_devices:
+                if name == current_name:
+                    self._mic_dropdown.set(name)
+                    return
         # Fallback to default
         if self._mic_devices:
             self._mic_dropdown.set(self._mic_devices[0][1])
@@ -363,10 +364,14 @@ class SettingsWindow:
         """Called when user picks a mic from the dropdown."""
         for idx, name in self._mic_devices:
             if name == selected_name:
-                config.MIC_DEVICE_INDEX = idx
-                db.save_setting("mic_device_index",
-                                str(idx) if idx is not None else "none")
-                log.info("Microphone set to: %s (index=%s)", name, idx)
+                if idx is None:
+                    # System default
+                    config.MIC_DEVICE_NAME = None
+                    db.save_setting("mic_device_name", "none")
+                else:
+                    config.MIC_DEVICE_NAME = name
+                    db.save_setting("mic_device_name", name)
+                log.info("Microphone set to: %s", name)
                 return
 
     def _on_refresh_mic(self):
