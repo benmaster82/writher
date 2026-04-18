@@ -5,7 +5,7 @@
 <h1 align="center">WritHer</h1>
 
 <p align="center">
-  <strong>Offline voice assistant & dictation tool for Windows (Python) — dictate text anywhere or manage notes, appointments and reminders hands-free.</strong>
+  <strong>Offline voice assistant & dictation tool for Windows (Python) - dictate text anywhere or manage notes, appointments and reminders hands-free.</strong>
 </p>
 
 <p align="center">
@@ -26,14 +26,14 @@
 
 ## 🆕 What's New
 
-- 🎙️ **Microphone selection** — pick your input device from Settings, with hot-plug refresh
-- 🔄 **Toggle recording mode** — press once to start, press again to stop (alternative to hold)
-- ⏱️ **Safety timeout** — auto-stops recording in toggle mode if you forget
-- 🎨 **Redesigned UI** — CustomTkinter with unified Pandora Blackboard theme (pure black + bright white)
-- 🖥️ **Resizable Notes window** — drag to resize, maximize/restore, DPI-aware
-- ⚡ **Faster Ollama responses** — timeout increased from 10s to 30s for larger models
-- 🐛 **Bug fixes** — clean shutdown, widget positioning, visual artifacts removed
-- 🔌 **Reliable mic switching** — select any microphone (USB, Bluetooth, AirPods) from Settings and switch on the fly without restart. Tested with Bluetooth HFP devices.
+- 🎙️ **Microphone selection** - pick your input device from Settings, with hot-plug refresh
+- 🔄 **Toggle recording mode** - press once to start, press again to stop (alternative to hold)
+- ⏱️ **Safety timeout** - auto-stops recording in toggle mode if you forget
+- 🎨 **Redesigned UI** - CustomTkinter with unified Pandora Blackboard theme (pure black + bright white)
+- 🖥️ **Resizable Notes window** - drag to resize, maximize/restore, DPI-aware
+- ⚡ **Faster Ollama responses** - timeout increased from 10s to 30s for larger models
+- 🐛 **Bug fixes** - clean shutdown, widget positioning, visual artifacts removed
+- 🔌 **Reliable mic switching** - select any microphone (USB, Bluetooth, AirPods) from Settings and switch on the fly without restart. Tested with Bluetooth HFP devices.
 
 > 💬 **Feedback welcome!** If you test WritHer with different microphones or setups, please [open an issue](https://github.com/benmaster82/writher/issues) and let us know how it goes. Your feedback helps improve the app for everyone.
 
@@ -45,8 +45,8 @@ WritHer sits quietly in your system tray and gives you two super-powers:
 
 | Mode | Hotkey | What it does |
 |---|---|---|
-| **Dictation** | `AltGr` | Transcribes your voice and pastes the text directly into whichever app has focus — editors, browsers, chat windows, anything. |
-| **Assistant** | `Ctrl+R` | Understands natural-language commands and saves notes, creates appointments, sets reminders, manages lists — all by voice. |
+| **Dictation** | `AltGr` | Transcribes your voice and pastes the text directly into whichever app has focus - editors, browsers, chat windows, anything. |
+| **Assistant** | `Ctrl+R` | Understands natural-language commands and saves notes, creates appointments, sets reminders, manages lists - all by voice. |
 
 Both hotkeys support two recording modes, configurable from the **Settings** window in the system tray:
 
@@ -61,17 +61,17 @@ Everything runs **locally**: speech recognition via [faster-whisper](https://git
 
 ## Features
 
-- **Real-time dictation** — speak and text appears. Supports both hold-to-record and toggle (press to start/stop) modes. Clipboard is saved and restored automatically.
-- **Voice-controlled assistant** — save notes, create shopping/todo lists, schedule appointments, set reminders, all through natural speech.
-- **Smart date parsing** — say *"remind me tomorrow at 9"* or *"meeting next Monday at 3pm"* and the LLM converts relative times to absolute datetimes.
-- **Toast notifications** — get Windows notifications when reminders fire or appointments are approaching.
-- **Animated floating widget** — a minimal pill-shaped overlay with expressive "Pandora Blackboard" eyes that react to state (listening, thinking, happy, error, etc.).
-- **Notes & Agenda window** — a dark-themed resizable window to browse, check off list items, and delete notes/appointments/reminders. Supports maximize/restore and drag-to-resize.
-- **Settings window** — configure recording mode, max recording duration, and microphone device directly from the system tray. All settings are persisted across restarts.
-- **Microphone selection** — choose your input device from a dropdown in Settings. Supports hot-plug detection with a refresh button — no restart needed.
-- **Modern UI** — built with CustomTkinter and a unified "Pandora Blackboard" theme (pure black + bright white) defined in a single `theme.py` file.
-- **Multi-language** — ships with English and Italian; easy to add more via the `locales.py` string table.
-- **Fully offline** — no internet required after model download.
+- **Real-time dictation** - speak and text appears. Supports both hold-to-record and toggle (press to start/stop) modes. Clipboard is saved and restored automatically.
+- **Voice-controlled assistant** - save notes, create shopping/todo lists, schedule appointments, set reminders, all through natural speech.
+- **Smart date parsing** - say *"remind me tomorrow at 9"* or *"meeting next Monday at 3pm"* and the LLM converts relative times to absolute datetimes.
+- **Toast notifications** - get Windows notifications when reminders fire or appointments are approaching.
+- **Animated floating widget** - a minimal pill-shaped overlay with expressive "Pandora Blackboard" eyes that react to state (listening, thinking, happy, error, etc.).
+- **Notes & Agenda window** - a dark-themed resizable window to browse, check off list items, and delete notes/appointments/reminders. Supports maximize/restore and drag-to-resize.
+- **Settings window** - configure recording mode, max recording duration, and microphone device directly from the system tray. All settings are persisted across restarts.
+- **Microphone selection** - choose your input device from a dropdown in Settings. Supports hot-plug detection with a refresh button - no restart needed.
+- **Modern UI** - built with CustomTkinter and a unified "Pandora Blackboard" theme (pure black + bright white) defined in a single `theme.py` file.
+- **Multi-language** - ships with English and Italian; easy to add more via the `locales.py` string table.
+- **Fully offline** - no internet required after model download.
 
 ---
 
@@ -224,14 +224,14 @@ For CUDA acceleration, install `ctranslate2` with CUDA support and set `DEVICE =
 1. Focus any text field (editor, browser, chat…)
 2. **Hold** `AltGr`
 3. Speak
-4. **Release** — transcribed text is pasted automatically
+4. **Release** - transcribed text is pasted automatically
 
 **Toggle mode:**
 
 1. Focus any text field
 2. **Press** `AltGr` once to start recording
 3. Speak
-4. **Press** `AltGr` again to stop — transcribed text is pasted automatically
+4. **Press** `AltGr` again to stop - transcribed text is pasted automatically
 
 > In toggle mode, a safety timeout (configurable in Settings) will auto-stop the recording if you forget to press the key again.
 
@@ -241,13 +241,13 @@ For CUDA acceleration, install `ctranslate2` with CUDA support and set `DEVICE =
 
 1. **Hold** `Ctrl+R`
 2. Speak a command
-3. **Release** — Writher processes and confirms
+3. **Release** - Writher processes and confirms
 
 **Toggle mode:**
 
 1. **Press** `Ctrl+R` once to start recording
 2. Speak a command
-3. **Press** `Ctrl+R` again to stop — Writher processes and confirms
+3. **Press** `Ctrl+R` again to stop - Writher processes and confirms
 
 **Example commands:**
 
@@ -263,9 +263,9 @@ For CUDA acceleration, install `ctranslate2` with CUDA support and set `DEVICE =
 
 Right-click the tray icon to access:
 
-- **Notes & Agenda** — open the notes/appointments/reminders viewer
-- **Settings** — configure recording mode (hold vs toggle), max recording duration, and microphone device
-- **Quit** — exit WritHer
+- **Notes & Agenda** - open the notes/appointments/reminders viewer
+- **Settings** - configure recording mode (hold vs toggle), max recording duration, and microphone device
+- **Quit** - exit WritHer
 
 > **Tip:** Windows may hide the tray icon in the overflow area (the ^ arrow). To keep it always visible, go to **Settings → Personalization → Taskbar → Other system tray icons** and enable WritHer.
 
@@ -322,7 +322,7 @@ WritHer uses the system default input device unless you select a specific one in
 
 **"No speech detected" but microphone works?**
 This usually means Whisper received audio but couldn't recognize speech. Common causes:
-- Wrong input device selected (e.g. "Stereo Mix" instead of your actual mic) — check the microphone dropdown in Settings
+- Wrong input device selected (e.g. "Stereo Mix" instead of your actual mic) - check the microphone dropdown in Settings
 - Microphone volume too low in Windows sound settings (aim for 70-80%)
 - Try switching to `MODEL_SIZE = "small"` in `config.py` for better accuracy with lower quality audio
 
