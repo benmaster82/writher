@@ -24,6 +24,18 @@
 
 ---
 
+## 🆕 What's New
+
+- 🎙️ **Microphone selection** — pick your input device from Settings, with hot-plug refresh
+- 🔄 **Toggle recording mode** — press once to start, press again to stop (alternative to hold)
+- ⏱️ **Safety timeout** — auto-stops recording in toggle mode if you forget
+- 🎨 **Redesigned UI** — CustomTkinter with unified Pandora Blackboard theme (pure black + bright white)
+- 🖥️ **Resizable Notes window** — drag to resize, maximize/restore, DPI-aware
+- ⚡ **Faster Ollama responses** — timeout increased from 10s to 30s for larger models
+- 🐛 **Bug fixes** — clean shutdown, widget positioning, visual artifacts removed
+
+---
+
 ## What is WritHer?
 
 WritHer sits quietly in your system tray and gives you two super-powers:
