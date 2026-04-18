@@ -76,6 +76,8 @@ _STRINGS: dict[str, dict[str, str]] = {
         "setting_toggle":           "Press to start / stop",
         "setting_max_duration":     "Max recording (seconds)",
         "setting_saved":            "Settings saved",
+        "setting_microphone":       "Microphone",
+        "setting_mic_default":      "System default",
     },
 
     "it": {
@@ -136,6 +138,8 @@ _STRINGS: dict[str, dict[str, str]] = {
         "setting_toggle":           "Premi per avviare / fermare",
         "setting_max_duration":     "Durata max registrazione (secondi)",
         "setting_saved":            "Impostazioni salvate",
+        "setting_microphone":       "Microfono",
+        "setting_mic_default":      "Predefinito di sistema",
     },
 }
 

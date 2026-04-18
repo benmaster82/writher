@@ -156,14 +156,6 @@ def _render_pill(w: int, h: int, radius: int,
         fill=fill_rgb + (255,),
     )
 
-    # Subtle top-edge highlight (inset 0 1px 0 rgba(255,255,255,0.04))
-    hi_rgb = (255, 255, 255)
-    for yy in range(bw, bw + scale * 2):
-        a = int(10 * (1.0 - (yy - bw) / (scale * 2)))
-        if a <= 0:
-            break
-        draw.line([(sr, yy), (sw - sr, yy)], fill=hi_rgb + (a,))
-
     pill = pill.resize((w, h), Image.LANCZOS)
 
     # Convert to chromakey for transparent regions
@@ -457,7 +449,7 @@ class RecordingWidget:
 
         sw = win.winfo_screenwidth()
         sh = win.winfo_screenheight()
-        win.geometry(f"{_W}x{_H}+{(sw - _W) // 2}+{sh - _H - 52}")
+        win.geometry(f"{_W}x{_H}+{(sw - _W) // 2}+{sh - _H - 80}")
 
         c = tk.Canvas(win, width=_W, height=_H, bg=_CHROMAKEY,
                       highlightthickness=0)

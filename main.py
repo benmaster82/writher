@@ -65,6 +65,9 @@ def _load_settings():
             config.MAX_RECORD_SECONDS = int(max_sec)
         except ValueError:
             pass
+    mic = db.get_setting("mic_device_index", "")
+    if mic != "":
+        config.MIC_DEVICE_INDEX = int(mic) if mic != "none" else None
 
 
 # ── Toggle-mode timeout helpers ───────────────────────────────────────────
@@ -290,12 +293,28 @@ def _quit():
         recorder.stop()
     except Exception:
         pass
+    # Hide child windows immediately, then destroy root after event queue drains
     if root:
         try:
-            root.after(0, root.destroy)
+            if notes_win and notes_win._win and notes_win._win.winfo_exists():
+                notes_win._win.withdraw()
+            if settings_win and settings_win._win and settings_win._win.winfo_exists():
+                settings_win._win.withdraw()
+        except Exception:
+            pass
+        try:
+            root.after(50, _destroy_root)
         except Exception:
             pass
     log.info("Shutdown complete.")
+
+
+def _destroy_root():
+    """Destroy root after pending Tk events have been processed."""
+    try:
+        root.destroy()
+    except Exception:
+        pass
 
 
 def main():

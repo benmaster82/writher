@@ -51,8 +51,10 @@ Everything runs **locally**: speech recognition via [faster-whisper](https://git
 - **Smart date parsing** — say *"remind me tomorrow at 9"* or *"meeting next Monday at 3pm"* and the LLM converts relative times to absolute datetimes.
 - **Toast notifications** — get Windows notifications when reminders fire or appointments are approaching.
 - **Animated floating widget** — a minimal pill-shaped overlay with expressive "Pandora Blackboard" eyes that react to state (listening, thinking, happy, error, etc.).
-- **Notes & Agenda window** — a dark-themed borderless window to browse, check off list items, and delete notes/appointments/reminders.
-- **Settings window** — configure recording mode (hold vs toggle) and max recording duration directly from the system tray, with settings persisted across restarts.
+- **Notes & Agenda window** — a dark-themed resizable window to browse, check off list items, and delete notes/appointments/reminders. Supports maximize/restore and drag-to-resize.
+- **Settings window** — configure recording mode, max recording duration, and microphone device directly from the system tray. All settings are persisted across restarts.
+- **Microphone selection** — choose your input device from a dropdown in Settings. Supports hot-plug detection with a refresh button — no restart needed.
+- **Modern UI** — built with CustomTkinter and a unified "Pandora Blackboard" theme (pure black + bright white) defined in a single `theme.py` file.
 - **Multi-language** — ships with English and Italian; easy to add more via the `locales.py` string table.
 - **Fully offline** — no internet required after model download.
 
@@ -166,6 +168,9 @@ LANGUAGE = "en"
 HOLD_TO_RECORD = True          # True = hold key, False = toggle (press/press)
 MAX_RECORD_SECONDS = 120       # Safety timeout for toggle mode (seconds)
 
+# Microphone
+MIC_DEVICE_INDEX = None        # None = system default, or device index (int)
+
 # Whisper
 MODEL_SIZE = "base"            # tiny, base, small, medium, large-v3
 DEVICE = "cpu"                 # "cpu" or "cuda"
@@ -173,13 +178,13 @@ COMPUTE_TYPE = "int8"          # int8, float16, float32
 
 # Ollama
 OLLAMA_URL = "http://localhost:11434"
-OLLAMA_MODEL = "gpt-oss:120b-cloud"
+OLLAMA_MODEL = "llama3.1:8b"
 
 # Notification lead time
 APPOINTMENT_REMIND_MINUTES = 15
 ```
 
-> **Note:** `HOLD_TO_RECORD` and `MAX_RECORD_SECONDS` can also be changed at runtime from the **Settings** window in the system tray. Changes made there are persisted in the database and override `config.py` defaults.
+> **Note:** `HOLD_TO_RECORD`, `MAX_RECORD_SECONDS`, and `MIC_DEVICE_INDEX` can also be changed at runtime from the **Settings** window in the system tray. Changes made there are persisted in the database and override `config.py` defaults.
 
 ### Choosing a Whisper model
 
@@ -244,8 +249,10 @@ For CUDA acceleration, install `ctranslate2` with CUDA support and set `DEVICE =
 Right-click the tray icon to access:
 
 - **Notes & Agenda** — open the notes/appointments/reminders viewer
-- **Settings** — configure recording mode (hold vs toggle) and max recording duration
-- **Quit** — exit Writher
+- **Settings** — configure recording mode (hold vs toggle), max recording duration, and microphone device
+- **Quit** — exit WritHer
+
+> **Tip:** Windows may hide the tray icon in the overflow area (the ^ arrow). To keep it always visible, go to **Settings → Personalization → Taskbar → Other system tray icons** and enable WritHer.
 
 ---
 
@@ -296,10 +303,19 @@ Run `python debug_keys.py` to see exactly what pynput reports for your keyboard.
 Make sure Ollama is running (`ollama serve`) and the URL in `config.py` matches. The tray tooltip will show a warning if the connection fails at startup.
 
 **No audio / microphone not found?**
-Writher uses the system default input device. Check your Windows sound settings. The widget will display a "🎤 No microphone detected" message if the device can't be opened.
+WritHer uses the system default input device unless you select a specific one in Settings. If the widget shows "🎤 No microphone detected", check your Windows sound settings. You can also open **Settings** from the tray and use the microphone dropdown to pick the correct device. Hit the ⟳ button to refresh the list if you just plugged in a new mic.
+
+**"No speech detected" but microphone works?**
+This usually means Whisper received audio but couldn't recognize speech. Common causes:
+- Wrong input device selected (e.g. "Stereo Mix" instead of your actual mic) — check the microphone dropdown in Settings
+- Microphone volume too low in Windows sound settings (aim for 70-80%)
+- Try switching to `MODEL_SIZE = "small"` in `config.py` for better accuracy with lower quality audio
 
 **Text not pasting?**
 The injector uses `Ctrl+V` via the clipboard. Some apps with custom input handling may not respond. If injection fails, the text is saved to `recovery_notes.txt` so nothing is lost.
+
+**Tray icon not visible?**
+Windows 11 hides new tray icons by default. Go to **Settings → Personalization → Taskbar → Other system tray icons** and enable WritHer to keep it always visible.
 
 ---
 

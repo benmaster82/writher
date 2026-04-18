@@ -122,7 +122,7 @@ class NotesWindow:
             w.bind("<Double-Button-1>", lambda e: self._toggle_maximize())
 
         # ── Tab bar ───────────────────────────────────────────────────
-        tab_bar = ctk.CTkFrame(outer, fg_color=T.BG, height=48, corner_radius=0)
+        tab_bar = ctk.CTkFrame(outer, fg_color=T.BG, height=52, corner_radius=0)
         tab_bar.pack(fill="x")
         tab_bar.pack_propagate(False)
 
@@ -134,10 +134,10 @@ class NotesWindow:
 
         for key, label in tabs:
             btn = ctk.CTkButton(
-                tab_bar, text=label, font=(T.FONT_FAMILY, 11),
+                tab_bar, text=label, font=(T.FONT_FAMILY, 12),
                 fg_color="transparent", hover_color=T.BG_HOVER,
                 text_color=T.FG_DIM, corner_radius=0,
-                height=48, width=160,
+                height=52, width=160,
                 command=lambda k=key: self._switch_tab(k),
             )
             btn.pack(side="left", fill="y")
@@ -267,9 +267,9 @@ class NotesWindow:
         card = ctk.CTkFrame(
             self._scroll_frame, fg_color=T.BG_CARD,
             border_color=T.BORDER, border_width=1,
-            corner_radius=8,
+            corner_radius=10,
         )
-        card.pack(fill="x", padx=T.PAD_M, pady=T.PAD_S)
+        card.pack(fill="x", padx=T.PAD_L, pady=(T.PAD_M, T.PAD_S))
 
         def _enter(e):
             card.configure(border_color=T.BORDER_GLOW)
@@ -281,10 +281,10 @@ class NotesWindow:
 
     def _make_delete_btn(self, parent, command):
         btn = ctk.CTkButton(
-            parent, text="✕", width=28, height=28,
+            parent, text="✕", width=32, height=32,
             fg_color="transparent", hover_color=T.RED,
             text_color=T.FG_DIM, font=T.FONT_SMALL,
-            corner_radius=4, command=command,
+            corner_radius=6, command=command,
         )
         btn.pack(side="right", padx=(T.PAD_S, 0))
         return btn
@@ -306,7 +306,7 @@ class NotesWindow:
         for note in notes:
             card = self._make_card()
             inner = ctk.CTkFrame(card, fg_color="transparent")
-            inner.pack(fill="x", padx=T.PAD_M, pady=T.PAD_M)
+            inner.pack(fill="x", padx=T.PAD_L, pady=T.PAD_L)
 
             # Header row
             hdr = ctk.CTkFrame(inner, fg_color="transparent")
@@ -330,12 +330,12 @@ class NotesWindow:
             else:
                 ctk.CTkLabel(inner, text=note["content"], font=T.FONT_BODY,
                              text_color=T.FG, anchor="w", justify="left",
-                             wraplength=420).pack(fill="x", pady=(T.PAD_S, 0))
+                             wraplength=440).pack(fill="x", pady=(T.PAD_M, 0))
 
             # Timestamp
-            ctk.CTkLabel(inner, text=note["updated_at"], font=T.FONT_TINY,
+            ctk.CTkLabel(inner, text=note["updated_at"], font=T.FONT_SMALL,
                          text_color=T.FG_DIM, anchor="e").pack(fill="x",
-                         pady=(T.PAD_S, 0))
+                         pady=(T.PAD_M, 0))
 
     def _render_list(self, parent, note: dict):
         try:
@@ -380,7 +380,7 @@ class NotesWindow:
         for a in appts:
             card = self._make_card()
             inner = ctk.CTkFrame(card, fg_color="transparent")
-            inner.pack(fill="x", padx=T.PAD_M, pady=T.PAD_M)
+            inner.pack(fill="x", padx=T.PAD_L, pady=T.PAD_L)
 
             hdr = ctk.CTkFrame(inner, fg_color="transparent")
             hdr.pack(fill="x")
@@ -398,12 +398,12 @@ class NotesWindow:
                 dt_str = a["dt"]
             ctk.CTkLabel(inner, text=f"📅  {dt_str}", font=T.FONT_BODY,
                          text_color=T.FG, anchor="w").pack(fill="x",
-                         pady=(T.PAD_S, 0))
+                         pady=(T.PAD_M, 0))
 
             if a["description"]:
                 ctk.CTkLabel(inner, text=a["description"], font=T.FONT_SMALL,
-                             text_color=T.FG_DIM, anchor="w", wraplength=420,
-                             justify="left").pack(fill="x", pady=(2, 0))
+                             text_color=T.FG_DIM, anchor="w", wraplength=440,
+                             justify="left").pack(fill="x", pady=(T.PAD_S, 0))
 
     def _delete_appt(self, aid: int):
         db.delete_appointment(aid)
@@ -420,7 +420,7 @@ class NotesWindow:
         for r in rems:
             card = self._make_card()
             inner = ctk.CTkFrame(card, fg_color="transparent")
-            inner.pack(fill="x", padx=T.PAD_M, pady=T.PAD_M)
+            inner.pack(fill="x", padx=T.PAD_L, pady=T.PAD_L)
 
             hdr = ctk.CTkFrame(inner, fg_color="transparent")
             hdr.pack(fill="x")
@@ -439,9 +439,9 @@ class NotesWindow:
                 dt_str = dt.strftime("%d/%m/%Y  %H:%M")
             except Exception:
                 dt_str = r["remind_at"]
-            ctk.CTkLabel(inner, text=dt_str, font=T.FONT_TINY,
+            ctk.CTkLabel(inner, text=dt_str, font=T.FONT_SMALL,
                          text_color=T.FG_DIM, anchor="e").pack(fill="x",
-                         pady=(T.PAD_S, 0))
+                         pady=(T.PAD_M, 0))
 
     def _delete_rem(self, rid: int):
         db.delete_reminder(rid)

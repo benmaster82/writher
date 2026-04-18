@@ -31,10 +31,12 @@ class Recorder:
         self._frames = []
         self.recording = True
         try:
+            device = getattr(config, "MIC_DEVICE_INDEX", None)
             self._stream = sd.InputStream(
                 samplerate=config.SAMPLE_RATE,
                 channels=1,
                 dtype="float32",
+                device=device,
                 callback=self._callback,
             )
             self._stream.start()

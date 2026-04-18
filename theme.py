@@ -15,7 +15,7 @@ BORDER_GLOW = "#2a2a3a"     # brighter border for focus / hover
 
 # ── Text ──────────────────────────────────────────────────────────────────
 FG          = "#ffffff"     # pure white primary text
-FG_DIM      = "#888898"     # secondary / muted text
+FG_DIM      = "#a0a0b0"     # secondary / muted text (readable)
 FG_ACCENT   = "#ccccdd"     # slightly muted white
 
 # ── Accent ────────────────────────────────────────────────────────────────
@@ -35,10 +35,10 @@ CLOSE_HOVER = "#ff4444"
 
 # ── Fonts ─────────────────────────────────────────────────────────────────
 FONT_FAMILY = "Segoe UI"
-FONT_TITLE  = (FONT_FAMILY, 12, "bold")
-FONT_BODY   = (FONT_FAMILY, 11)
-FONT_SMALL  = (FONT_FAMILY, 10)
-FONT_TINY   = (FONT_FAMILY, 9)
+FONT_TITLE  = (FONT_FAMILY, 14, "bold")
+FONT_BODY   = (FONT_FAMILY, 13)
+FONT_SMALL  = (FONT_FAMILY, 12)
+FONT_TINY   = (FONT_FAMILY, 11)
 
 # ── Spacing ───────────────────────────────────────────────────────────────
 PAD_S  = 4

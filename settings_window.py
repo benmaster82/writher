@@ -3,9 +3,11 @@
 Allows the user to configure:
   - Recording mode: hold-to-record vs toggle (press to start/stop)
   - Max recording duration in seconds (toggle mode only)
+  - Microphone device selection
 """
 
 import tkinter as tk
+import sounddevice as sd
 import customtkinter as ctk
 from PIL import ImageTk
 
@@ -16,7 +18,7 @@ import locales
 from brand import make_title_bar_image
 import theme as T
 
-_WIN_W, _WIN_H = 420, 310
+_WIN_W, _WIN_H = 440, 420
 _TITLE_H = 40
 
 
@@ -32,6 +34,9 @@ class SettingsWindow:
         self._slider = None
         self._slider_val_label = None
         self._slider_section = None
+        self._mic_dropdown = None
+        self._mic_devices = []   # list of (index, name)
+        self._refresh_btn = None
 
     def show(self):
         if self._win is not None:
@@ -159,6 +164,43 @@ class SettingsWindow:
         )
         self._slider.pack(fill="x")
 
+        # Separator
+        ctk.CTkFrame(pad, fg_color=T.BORDER, height=1,
+                     corner_radius=0).pack(fill="x", pady=T.PAD_L)
+
+        # ── Microphone selection ─────────────────────────────────────
+        ctk.CTkLabel(pad, text=locales.get("setting_microphone"),
+                     font=T.FONT_TITLE, text_color=T.FG,
+                     anchor="w").pack(fill="x", pady=(0, T.PAD_M))
+
+        mic_row = ctk.CTkFrame(pad, fg_color="transparent")
+        mic_row.pack(fill="x")
+
+        self._mic_devices = self._get_input_devices()
+        mic_names = [name for _, name in self._mic_devices]
+
+        self._mic_dropdown = ctk.CTkComboBox(
+            mic_row, values=mic_names, font=T.FONT_SMALL,
+            dropdown_font=T.FONT_SMALL,
+            fg_color=T.BG_CARD, border_color=T.BORDER,
+            button_color=T.BORDER_GLOW, button_hover_color=T.FG_DIM,
+            dropdown_fg_color=T.BG_CARD, dropdown_hover_color=T.BG_HOVER,
+            dropdown_text_color=T.FG, text_color=T.FG,
+            height=36, corner_radius=6,
+            command=self._on_mic_change,
+            state="readonly",
+        )
+        self._mic_dropdown.pack(side="left", fill="x", expand=True)
+
+        self._refresh_btn = ctk.CTkButton(
+            mic_row, text="⟳", width=36, height=36,
+            fg_color=T.BG_CARD, hover_color=T.BG_HOVER,
+            border_color=T.BORDER, border_width=1,
+            text_color=T.FG, font=(T.FONT_FAMILY, 16),
+            corner_radius=6, command=self._on_refresh_mic,
+        )
+        self._refresh_btn.pack(side="right", padx=(T.PAD_M, 0))
+
     # ── Drag ──────────────────────────────────────────────────────────────
 
     def _start_drag(self, event):
@@ -190,20 +232,33 @@ class SettingsWindow:
         if self._slider_val_label:
             self._slider_val_label.configure(text=f"{max_sec}s")
         self._update_slider_visibility(hold)
+        # Refresh mic list every time settings is shown
+        self._refresh_mic_list()
+        self._sync_mic_dropdown()
 
     def _update_mode_buttons(self, hold: bool):
         if self._hold_btn:
-            self._hold_btn.configure(
-                fg_color=T.FG if hold else T.BG_CARD,
-                text_color=T.BG_DEEP if hold else T.FG,
-                border_color=T.FG if hold else T.BORDER,
-            )
+            if hold:
+                self._hold_btn.configure(
+                    fg_color=T.FG, text_color="#000000",
+                    border_color=T.FG, hover_color=T.ACCENT_HOVER,
+                )
+            else:
+                self._hold_btn.configure(
+                    fg_color=T.BG_CARD, text_color=T.FG,
+                    border_color=T.BORDER, hover_color=T.BG_HOVER,
+                )
         if self._toggle_btn:
-            self._toggle_btn.configure(
-                fg_color=T.FG if not hold else T.BG_CARD,
-                text_color=T.BG_DEEP if not hold else T.FG,
-                border_color=T.FG if not hold else T.BORDER,
-            )
+            if not hold:
+                self._toggle_btn.configure(
+                    fg_color=T.FG, text_color="#000000",
+                    border_color=T.FG, hover_color=T.ACCENT_HOVER,
+                )
+            else:
+                self._toggle_btn.configure(
+                    fg_color=T.BG_CARD, text_color=T.FG,
+                    border_color=T.BORDER, hover_color=T.BG_HOVER,
+                )
 
     def _update_slider_visibility(self, hold: bool):
         if self._slider_section:
@@ -227,3 +282,103 @@ class SettingsWindow:
         db.save_setting("max_record_seconds", str(seconds))
         if self._slider_val_label:
             self._slider_val_label.configure(text=f"{seconds}s")
+
+    # ── Microphone helpers ────────────────────────────────────────────────
+
+    @staticmethod
+    def _get_input_devices() -> list[tuple[int | None, str]]:
+        """Return list of (device_index, display_name) for input devices.
+
+        Filters to show only Windows WASAPI devices (the real hardware),
+        avoiding duplicates from MME / DirectSound / WDM-KS drivers.
+        Falls back to all input devices if no WASAPI host is found.
+        """
+        default_label = locales.get("setting_mic_default")
+        devices = [(None, default_label)]
+
+        try:
+            # Force PortAudio to re-scan hardware (picks up newly connected devices)
+            sd._terminate()
+            sd._initialize()
+
+            all_devs = sd.query_devices()
+            host_apis = sd.query_hostapis()
+
+            # Find the WASAPI host API index
+            wasapi_idx = None
+            for i, api in enumerate(host_apis):
+                if "WASAPI" in api.get("name", ""):
+                    wasapi_idx = i
+                    break
+
+            seen_names = set()
+            for i, dev in enumerate(all_devs):
+                if dev["max_input_channels"] <= 0:
+                    continue
+                # Filter to WASAPI only (if available)
+                if wasapi_idx is not None and dev.get("hostapi") != wasapi_idx:
+                    continue
+                name = dev["name"]
+                # Skip duplicates
+                if name in seen_names:
+                    continue
+                seen_names.add(name)
+                devices.append((i, name))
+
+            # Fallback: if WASAPI filter left us with nothing, show all
+            if len(devices) == 1 and wasapi_idx is not None:
+                for i, dev in enumerate(all_devs):
+                    if dev["max_input_channels"] > 0:
+                        name = dev["name"]
+                        if name not in seen_names:
+                            seen_names.add(name)
+                            devices.append((i, name))
+
+        except Exception as exc:
+            log.warning("Could not enumerate audio devices: %s", exc)
+        return devices
+
+    def _sync_mic_dropdown(self):
+        """Set the dropdown to reflect the current config value."""
+        if not self._mic_dropdown:
+            return
+        current = getattr(config, "MIC_DEVICE_INDEX", None)
+        # Find matching entry
+        for idx, name in self._mic_devices:
+            if idx == current:
+                self._mic_dropdown.set(name)
+                return
+        # Fallback to default
+        if self._mic_devices:
+            self._mic_dropdown.set(self._mic_devices[0][1])
+
+    def _refresh_mic_list(self):
+        """Re-scan audio devices and update the dropdown values."""
+        self._mic_devices = self._get_input_devices()
+        if self._mic_dropdown:
+            mic_names = [name for _, name in self._mic_devices]
+            self._mic_dropdown.configure(values=mic_names)
+
+    def _on_mic_change(self, selected_name: str):
+        """Called when user picks a mic from the dropdown."""
+        for idx, name in self._mic_devices:
+            if name == selected_name:
+                config.MIC_DEVICE_INDEX = idx
+                db.save_setting("mic_device_index",
+                                str(idx) if idx is not None else "none")
+                log.info("Microphone set to: %s (index=%s)", name, idx)
+                return
+
+    def _on_refresh_mic(self):
+        """Re-scan devices and update dropdown without closing the window."""
+        self._refresh_mic_list()
+        self._sync_mic_dropdown()
+        log.info("Microphone list refreshed.")
+        # Visual feedback: flash the button green briefly
+        if self._refresh_btn:
+            self._refresh_btn.configure(fg_color=T.GREEN, text_color="#000000")
+            self._refresh_btn.after(
+                500, lambda: self._refresh_btn.configure(
+                    fg_color=T.BG_CARD, text_color=T.FG)
+                if self._refresh_btn and self._win else None
+            )
