@@ -33,6 +33,9 @@
 - 🖥️ **Resizable Notes window** — drag to resize, maximize/restore, DPI-aware
 - ⚡ **Faster Ollama responses** — timeout increased from 10s to 30s for larger models
 - 🐛 **Bug fixes** — clean shutdown, widget positioning, visual artifacts removed
+- 🔌 **Reliable mic switching** — select any microphone (USB, Bluetooth, AirPods) from Settings and switch on the fly without restart. Tested with Bluetooth HFP devices.
+
+> 💬 **Feedback welcome!** If you test WritHer with different microphones or setups, please [open an issue](https://github.com/benmaster82/writher/issues) and let us know how it goes. Your feedback helps improve the app for everyone.
 
 ---
 
