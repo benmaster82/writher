@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WritHer | Free Offline Voice Dictation & Wispr Flow Alternative</title>
+  <meta name="description"
+    content="WritHer is a 100% offline, privacy-first alternative to Wispr Flow and Dragon. Dictate anywhere, use local LLM voice assistants, and manage notes on Windows. No cloud, open-source." />
+  <meta name="keywords" content="offline voice dictation, Wispr flow alternative, local LLM voice assistant, Dragon NaturallySpeaking alternative, faster-whisper windows, privacy-first speech to text" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      /* ── Pandora Blackboard palette (from brand.py / widget.py) ── */
+      --bg-deep: #000000;
+      /* pure black */
+      --bg: #050508;
+      /* primary background */
+      --surface: #0a0a0f;
+      /* cards / elevated surfaces */
+      --bg-hover: #111118;
+      /* hover state */
+      --border: #1a1a24;
+      /* subtle borders */
+      --border-glow: #2a2a3a;
+      /* focus / hover borders */
+
+      --white: #ffffff;
+      /* primary text */
+      --fg-accent: #ccccdd;
+      /* slightly muted white */
+      --muted: #a0a0b0;
+      /* secondary text */
+      --accent-dim: #666678;
+      /* muted accent */
+
+      --accent: #ffffff;
+      /* white accent — on brand */
+      --accent-hover: #ddddee;
+
+      --green: #55cc77;
+      /* semantic green */
+      --red: #ff4444;
+      /* semantic red */
+      --yellow: #ffaa00;
+      /* semantic yellow / warning */
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--fg-accent);
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+      cursor: default;
+    }
+
+    /* ── NOISE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: .5;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.2rem 2.5rem;
+      background: rgba(5, 5, 8, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 800;
+      font-size: 1.2rem;
+      color: var(--white);
+      letter-spacing: -.02em;
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+    }
+
+    .nav-links a {
+      color: var(--accent-dim);
+      text-decoration: none;
+      font-size: .75rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      transition: color .2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--white);
+    }
+
+    .nav-cta {
+      background: var(--white);
+      color: #000;
+      padding: .5rem 1.2rem;
+      border-radius: 4px;
+      font-size: .75rem;
+      font-weight: 500;
+      text-decoration: none;
+      letter-spacing: .05em;
+      transition: background .2s;
+    }
+
+    .nav-cta:hover {
+      background: var(--accent-hover);
+    }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 7rem 2rem 4rem;
+      overflow: hidden;
+    }
+
+    /* radial glow behind widget */
+    .hero-glow {
+      position: absolute;
+      top: 30%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.04) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── WIDGET ── */
+    .widget {
+      position: relative;
+      width: 80px;
+      height: 40px;
+      background: var(--bg-deep);
+      border: 1px solid var(--border-glow);
+      border-radius: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 2.5rem;
+      box-shadow: 0 0 40px rgba(255, 255, 255, 0.05), 0 0 0 1px rgba(255, 255, 255, 0.04);
+      animation: widgetPulse 4s ease-in-out infinite;
+    }
+
+    @keyframes widgetPulse {
+
+      0%,
+      100% {
+        box-shadow: 0 0 40px rgba(255, 255, 255, 0.05), 0 0 0 1px rgba(255, 255, 255, 0.04);
+      }
+
+      50% {
+        box-shadow: 0 0 60px rgba(255, 255, 255, 0.10), 0 0 0 1px rgba(255, 255, 255, 0.08);
+      }
+    }
+
+    .eye {
+      width: 10px;
+      height: 10px;
+      background: var(--white);
+      border-radius: 50%;
+      animation: blink 5s ease-in-out infinite;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+    }
+
+    .eye:nth-child(2) {
+      animation-delay: .08s;
+    }
+
+    @keyframes blink {
+
+      0%,
+      90%,
+      100% {
+        transform: scaleY(1);
+      }
+
+      95% {
+        transform: scaleY(0.08);
+      }
+    }
+
+    /* listening state */
+    .widget.listening .eye {
+      animation: lookAround 2s ease-in-out infinite;
+    }
+
+    @keyframes lookAround {
+
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+
+      25% {
+        transform: translateX(-2px);
+      }
+
+      75% {
+        transform: translateX(2px);
+      }
+    }
+
+    /* ── HERO TEXT ── */
+    .hero-tag {
+      font-size: .7rem;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1.2rem;
+      opacity: 0;
+      animation: fadeUp .6s .1s forwards;
+    }
+
+    .hero-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(3rem, 7vw, 5.5rem);
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -.04em;
+      color: var(--white);
+      margin-bottom: 1.5rem;
+      opacity: 0;
+      animation: fadeUp .6s .2s forwards;
+    }
+
+    .hero-title em {
+      font-style: normal;
+      color: var(--fg-accent);
+      opacity: .7;
+    }
+
+    .hero-sub {
+      font-size: clamp(.85rem, 1.5vw, 1rem);
+      color: var(--muted);
+      max-width: 480px;
+      line-height: 1.7;
+      margin-bottom: 2.5rem;
+      opacity: 0;
+      animation: fadeUp .6s .3s forwards;
+    }
+
+    .hero-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .6rem;
+      justify-content: center;
+      margin-bottom: 2.5rem;
+      opacity: 0;
+      animation: fadeUp .6s .4s forwards;
+    }
+
+    .badge {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: .35rem .8rem;
+      font-size: .7rem;
+      letter-spacing: .06em;
+      color: var(--muted);
+    }
+
+    .badge.lit {
+      border-color: var(--border-glow);
+      color: var(--fg-accent);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      opacity: 0;
+      animation: fadeUp .6s .5s forwards;
+    }
+
+    .btn-primary {
+      background: var(--white);
+      color: #000;
+      padding: .8rem 2rem;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .8rem;
+      font-weight: 500;
+      text-decoration: none;
+      letter-spacing: .04em;
+      transition: background .2s, transform .15s;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: .8rem 2rem;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .8rem;
+      text-decoration: none;
+      letter-spacing: .04em;
+      transition: border-color .2s, color .2s;
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--border-glow);
+      color: var(--white);
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ── HOTKEY DEMO ── */
+    .hotkey-demo {
+      margin-top: 4rem;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      opacity: 0;
+      animation: fadeUp .6s .7s forwards;
+    }
+
+    .hotkey-item {
+      display: flex;
+      align-items: center;
+      gap: .8rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: .8rem 1.2rem;
+    }
+
+    .kbd {
+      background: var(--bg-hover);
+      border: 1px solid var(--border-glow);
+      border-bottom: 2px solid var(--border-glow);
+      border-radius: 4px;
+      padding: .2rem .6rem;
+      font-size: .7rem;
+      color: var(--white);
+    }
+
+    .hotkey-desc {
+      font-size: .7rem;
+      color: var(--muted);
+    }
+
+    .hotkey-desc strong {
+      color: var(--fg-accent);
+      display: block;
+      margin-bottom: .1rem;
+    }
+
+    /* ── SECTION SHARED ── */
+    section {
+      position: relative;
+      padding: 6rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: .65rem;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--accent-dim);
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -.03em;
+      line-height: 1.05;
+      color: var(--white);
+      margin-bottom: 1rem;
+    }
+
+    .section-sub {
+      color: var(--muted);
+      font-size: .85rem;
+      line-height: 1.7;
+      max-width: 500px;
+      margin-bottom: 3rem;
+    }
+
+    /* ── FEATURES GRID ── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      padding: 2rem;
+      transition: background .2s;
+    }
+
+    .feature-card:hover {
+      background: var(--bg-hover);
+    }
+
+    .feature-icon {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .feature-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: .5rem;
+      color: var(--white);
+    }
+
+    .feature-desc {
+      font-size: .75rem;
+      line-height: 1.7;
+      color: var(--muted);
+    }
+
+    /* ── MODES SPLIT ── */
+    .modes {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+
+    @media (max-width: 640px) {
+      .modes {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .mode-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+      transition: border-color .2s;
+    }
+
+    .mode-card:hover {
+      border-color: var(--border-glow);
+    }
+
+    .mode-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: var(--white);
+      opacity: 0;
+      transition: opacity .2s;
+    }
+
+    .mode-card:hover::before {
+      opacity: .15;
+    }
+
+    .mode-hotkey {
+      display: inline-flex;
+      gap: .3rem;
+      margin-bottom: 1rem;
+    }
+
+    .mode-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: var(--white);
+      margin-bottom: .5rem;
+    }
+
+    .mode-desc {
+      font-size: .75rem;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 1.2rem;
+    }
+
+    .mode-examples {
+      display: flex;
+      flex-direction: column;
+      gap: .4rem;
+    }
+
+    .example-cmd {
+      font-size: .7rem;
+      color: var(--muted);
+      padding: .4rem .7rem;
+      background: var(--bg-deep);
+      border-radius: 4px;
+      border-left: 2px solid var(--border-glow);
+    }
+
+    .example-cmd::before {
+      content: '🎙️ ';
+    }
+
+    /* ── COMPARE TABLE ── */
+    .compare-wrap {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      margin-top: 2rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .75rem;
+    }
+
+    thead th {
+      background: var(--surface);
+      padding: 1rem 1.2rem;
+      text-align: left;
+      font-weight: 500;
+      letter-spacing: .04em;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    thead th:first-child {
+      color: var(--muted);
+    }
+
+    thead th.writher-col {
+      color: var(--white);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .15s;
+    }
+
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    tbody td {
+      padding: .9rem 1.2rem;
+      color: var(--muted);
+    }
+
+    tbody td:first-child {
+      color: var(--fg-accent);
+      font-size: .7rem;
+    }
+
+    .writher-col {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .check {
+      color: var(--green);
+      font-size: .9rem;
+    }
+
+    .cross {
+      color: var(--red);
+      font-size: .9rem;
+    }
+
+    .partial {
+      color: var(--yellow);
+      font-size: .85rem;
+    }
+
+    /* ── STACK ── */
+    .stack-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .stack-pill {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: .6rem 1.2rem;
+      font-size: .72rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      color: var(--muted);
+      transition: border-color .2s, color .2s;
+    }
+
+    .stack-pill:hover {
+      border-color: var(--border-glow);
+      color: var(--fg-accent);
+    }
+
+    .stack-pill span {
+      font-size: 1rem;
+    }
+
+    /* ── CTA SECTION ── */
+    .cta-section {
+      text-align: center;
+      padding: 6rem 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 100%, rgba(255, 255, 255, 0.03) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .cta-inner {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .cta-big {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      letter-spacing: -.03em;
+      line-height: 1.1;
+      color: var(--white);
+      margin-bottom: 1rem;
+    }
+
+    .cta-sub {
+      color: var(--muted);
+      font-size: .8rem;
+      line-height: 1.7;
+      margin-bottom: 2rem;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    footer p {
+      font-size: .7rem;
+      color: var(--muted);
+    }
+
+    footer a {
+      color: var(--fg-accent);
+      text-decoration: none;
+    }
+
+    /* ── SOUND WAVE ── */
+    .wave {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      height: 24px;
+    }
+
+    .wave-bar {
+      width: 3px;
+      background: var(--white);
+      border-radius: 2px;
+      opacity: .4;
+      animation: wave 1.2s ease-in-out infinite;
+    }
+
+    .wave-bar:nth-child(1) {
+      animation-delay: 0s;
+      height: 6px;
+    }
+
+    .wave-bar:nth-child(2) {
+      animation-delay: .1s;
+      height: 14px;
+    }
+
+    .wave-bar:nth-child(3) {
+      animation-delay: .2s;
+      height: 20px;
+    }
+
+    .wave-bar:nth-child(4) {
+      animation-delay: .15s;
+      height: 24px;
+    }
+
+    .wave-bar:nth-child(5) {
+      animation-delay: .05s;
+      height: 18px;
+    }
+
+    .wave-bar:nth-child(6) {
+      animation-delay: .12s;
+      height: 10px;
+    }
+
+    .wave-bar:nth-child(7) {
+      animation-delay: .25s;
+      height: 6px;
+    }
+
+    @keyframes wave {
+
+      0%,
+      100% {
+        transform: scaleY(1);
+      }
+
+      50% {
+        transform: scaleY(.3);
+      }
+    }
+
+    /* ── DIVIDER ── */
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+    }
+
+    /* ── SCROLL REVEAL ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity .6s ease, transform .6s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── HERO MOCK ── */
+    .hero-mock {
+      background: var(--surface);
+      border: 1px solid var(--border-glow);
+      border-radius: 8px;
+      width: 100%;
+      max-width: 540px;
+      margin: 3rem auto 0;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      position: relative;
+      z-index: 10;
+      opacity: 0;
+      animation: fadeUp .6s .6s forwards;
+      text-align: left;
+      overflow: hidden;
+    }
+
+    .mock-header {
+      background: rgba(0, 0, 0, 0.4);
+      border-bottom: 1px solid var(--border);
+      padding: 0.4rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .mock-title {
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-family: 'Inter', sans-serif;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .mock-win-icons {
+      display: flex;
+      gap: 0.2rem;
+      color: var(--muted);
+      font-size: 0.6rem;
+      align-items: center;
+    }
+
+    .mock-win-icons span {
+      width: 28px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: background 0.1s;
+    }
+
+    .mock-win-icons span:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .mock-win-icons span.close:hover {
+      background: #e81123;
+      color: white;
+    }
+
+    .mock-body {
+      padding: 1.5rem;
+      min-height: 100px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--white);
+    }
+
+    .mock-cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1.1em;
+      background: var(--accent);
+      vertical-align: middle;
+      animation: blink 1s step-end infinite;
+      margin-left: 4px;
+    }
+
+    /* ── MOBILE RESPONSIVENESS ── */
+    @media (max-width: 768px) {
+      nav {
+        padding: 1rem 1.5rem;
+      }
+      .nav-links {
+        display: none; /* Hide menu links on mobile to save space, keeping Logo & CTA */
+      }
+      .hero {
+        padding: 7rem 1.5rem 3rem;
+      }
+      section, .cta-section {
+        padding: 4rem 1.5rem;
+      }
+      .hotkey-demo {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      footer {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+      }
+    }
+  </style>
+
+  <!-- SEO JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "WritHer",
+    "applicationCategory": "ProductivityApplication",
+    "operatingSystem": "Windows 10, Windows 11",
+    "description": "A 100% offline, privacy-first voice dictation software and local LLM voice assistant for Windows. The ultimate free, open-source alternative to Wispr Flow and Dragon NaturallySpeaking.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
+</head>
+
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a class="nav-logo" href="#">Writher</a>
+    <div class="nav-links">
+      <a href="#demo">Demo</a>
+      <a href="#features">Features</a>
+      <a href="#modes">How it works</a>
+      <a href="#compare">Compare</a>
+    </div>
+    <a class="nav-cta" href="https://github.com/benmaster82/writher" target="_blank">View on GitHub →</a>
+  </nav>
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="hero-glow"></div>
+
+    <div class="widget" id="heroWidget">
+      <div class="eye"></div>
+      <div class="eye"></div>
+    </div>
+
+    <p class="hero-tag">Voice-powered productivity · Windows · 100% offline</p>
+
+    <h1 class="hero-title">
+      Speak.<br>
+      <em>It writes.</em>
+    </h1>
+
+    <p class="hero-sub">
+      Writher sits in your system tray and lets you dictate text into any app —
+      or manage notes, reminders and appointments by voice. No cloud. No API keys. No telemetry.
+    </p>
+
+    <div class="hero-badges">
+      <span class="badge lit">🎙️ faster-whisper</span>
+      <span class="badge lit">🧠 Ollama LLM</span>
+      <span class="badge">Python 3.11+</span>
+      <span class="badge">SQLite</span>
+      <span class="badge">MIT License</span>
+      <span class="badge">Windows 10 / 11</span>
+    </div>
+
+    <div class="hero-actions">
+      <a class="btn-primary" href="https://github.com/benmaster82/writher" target="_blank">
+        ★ Star on GitHub
+      </a>
+      <a class="btn-ghost" href="#modes">See how it works</a>
+    </div>
+
+    <div class="hero-mock">
+      <div class="mock-header">
+        <div class="mock-title"><span style="font-size: 0.9rem;">📝</span> note.txt — Notepad</div>
+        <div class="mock-win-icons">
+          <span>─</span>
+          <span>☐</span>
+          <span class="close">✕</span>
+        </div>
+      </div>
+      <div class="mock-body">
+        <span id="typewriterText"></span><span class="mock-cursor"></span>
+      </div>
+    </div>
+
+    <div class="hotkey-demo">
+      <div class="hotkey-item">
+        <div class="wave">
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+        </div>
+        <div>
+          <kbd class="kbd">Hold AltGr</kbd>
+          <div class="hotkey-desc"><strong>Dictation mode</strong>speak → text appears in any app</div>
+        </div>
+      </div>
+      <div class="hotkey-item">
+        <kbd class="kbd">Hold Ctrl+R</kbd>
+        <div class="hotkey-desc"><strong>Assistant mode</strong>voice commands for notes & reminders</div>
+      </div>
+  </header>
+
+  <main>
+
+  <div class="divider"></div>
+
+  <!-- DEMO -->
+  <section id="demo">
+    <p class="section-label reveal">See it in action</p>
+    <h2 class="section-title reveal">Meet WritHer.</h2>
+    <div class="video-container reveal"
+      style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; border: 1px solid var(--border-glow); box-shadow: 0 20px 40px rgba(0,0,0,0.5); margin-top: 3rem; background: var(--bg-deep);">
+      <iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+        src="https://www.youtube.com/embed/lfV0LF3EGMw?si=UXd3eAu2FcBlEa6y" title="YouTube video player" frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <p class="section-label reveal">What you get</p>
+    <h2 class="section-title reveal">Everything runs<br>on your machine.</h2>
+    <p class="section-sub reveal">No subscriptions. No internet after setup. Your voice data never leaves your computer.
+    </p>
+
+    <div class="features-grid reveal">
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <div class="feature-title">Universal Dictation</div>
+        <div class="feature-desc">Hold a key, speak, release. Text is pasted into whichever window has focus — editors,
+          browsers, chat apps, anything.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <div class="feature-title">Voice AI Assistant</div>
+        <div class="feature-desc">Natural language commands parsed by a local LLM via Ollama. Save notes, schedule
+          appointments, set reminders — all by voice.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <div class="feature-title">100% Offline</div>
+        <div class="feature-desc">Speech recognition via faster-whisper, intent parsing via Ollama, data stored in local
+          SQLite. Zero cloud dependency.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🗓️</div>
+        <div class="feature-title">Smart Scheduling</div>
+        <div class="feature-desc">Say "meeting next Monday at 3pm" and the LLM converts relative times to absolute
+          datetimes automatically.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">👁️</div>
+        <div class="feature-title">Animated Widget</div>
+        <div class="feature-desc">A minimal pill-shaped overlay with expressive "Pandora Blackboard" eyes that react to
+          state: listening, thinking, happy, error.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🌍</div>
+        <div class="feature-title">Multi-language</div>
+        <div class="feature-desc">Ships with English and Italian. Easy to add more via the locales.py string table — no
+          recompilation needed.</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- MODES -->
+  <section id="modes">
+    <p class="section-label reveal">Two modes, one tray icon</p>
+    <h2 class="section-title reveal">Hold a key.<br>Speak. Done.</h2>
+
+    <div class="modes reveal">
+      <div class="mode-card">
+        <div class="mode-hotkey">
+          <kbd class="kbd">Hold</kbd>
+          <kbd class="kbd">AltGr</kbd>
+        </div>
+        <div class="mode-title">Dictation</div>
+        <div class="mode-desc">
+          Transcribes your voice and pastes the text directly into whichever app has focus.
+          Clipboard is saved and restored automatically.
+        </div>
+        <div class="mode-examples">
+          <div class="example-cmd">Write a quick email reply</div>
+          <div class="example-cmd">Type in VS Code, Notion, Teams...</div>
+          <div class="example-cmd">Any text field, any app</div>
+        </div>
+      </div>
+
+      <div class="mode-card">
+        <div class="mode-hotkey">
+          <kbd class="kbd">Hold</kbd>
+          <kbd class="kbd">Ctrl</kbd>
+          <kbd class="kbd">R</kbd>
+        </div>
+        <div class="mode-title">Assistant</div>
+        <div class="mode-desc">
+          Natural-language commands powered by a local Ollama LLM.
+          Create structured data from speech without touching the keyboard.
+        </div>
+        <div class="mode-examples">
+          <div class="example-cmd">Remind me to call Marco in one hour</div>
+          <div class="example-cmd">Shopping list: bread, eggs, butter</div>
+          <div class="example-cmd">Dentist appointment tomorrow at 3pm</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- COMPARE -->
+  <section id="compare">
+    <p class="section-label reveal">Honest comparison</p>
+    <h2 class="section-title reveal">How WritHer stacks up.</h2>
+    <p class="section-sub reveal">Looking for a free, open-source <strong>Wispr Flow alternative</strong> or a private replacement for <strong>Dragon NaturallySpeaking</strong>? WritHer is the only tool that combines universal dictation with a local LLM assistant — entirely on your device.</p>
+
+    <div class="compare-wrap reveal">
+      <table>
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th class="writher-col">Writher</th>
+            <th>Wispr Flow</th>
+            <th>Dragon</th>
+            <th>Win. Speech</th>
+            <th>Whisper Desktop</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>100% offline / local</td>
+            <td class="writher-col"><span class="check">✓</span></td>
+            <td><span class="cross">✗</span> cloud</td>
+            <td><span class="check">✓</span></td>
+            <td><span class="check">✓</span></td>
+            <td><span class="check">✓</span></td>
+          </tr>
+          <tr>
+            <td>Free &amp; open source</td>
+            <td class="writher-col"><span class="check">✓</span></td>
+            <td><span class="cross">✗</span> ~$12/mo</td>
+            <td><span class="cross">✗</span> $150–500</td>
+            <td><span class="check">✓</span></td>
+            <td><span class="check">✓</span></td>
+          </tr>
+          <tr>
+            <td>Works in any app</td>
+            <td class="writher-col"><span class="check">✓</span></td>
+            <td><span class="check">✓</span></td>
+            <td><span class="check">✓</span></td>
+            <td><span class="partial">⚠</span> limited</td>
+            <td><span class="check">✓</span></td>
+          </tr>
+          <tr>
+            <td>Voice AI assistant</td>
+            <td class="writher-col"><span class="check">✓</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+          </tr>
+          <tr>
+            <td>Notes &amp; reminders by voice</td>
+            <td class="writher-col"><span class="check">✓</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+          </tr>
+          <tr>
+            <td>Local LLM (Ollama)</td>
+            <td class="writher-col"><span class="check">✓</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+          </tr>
+          <tr>
+            <td>No account / API key</td>
+            <td class="writher-col"><span class="check">✓</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="check">✓</span></td>
+            <td><span class="check">✓</span></td>
+            <td><span class="check">✓</span></td>
+          </tr>
+          <tr>
+            <td>Data never leaves device</td>
+            <td class="writher-col"><span class="check">✓</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="check">✓</span></td>
+            <td><span class="check">✓</span></td>
+            <td><span class="check">✓</span></td>
+          </tr>
+          <tr>
+            <td>Multi-language</td>
+            <td class="writher-col"><span class="check">✓</span></td>
+            <td><span class="check">✓</span></td>
+            <td><span class="check">✓</span></td>
+            <td><span class="partial">⚠</span> limited</td>
+            <td><span class="check">✓</span></td>
+          </tr>
+          <tr>
+            <td>Animated overlay widget</td>
+            <td class="writher-col"><span class="check">✓</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- STACK -->
+  <section>
+    <p class="section-label reveal">Built with</p>
+    <h2 class="section-title reveal">Open source,<br>end to end.</h2>
+
+    <div class="stack-grid reveal">
+      <div class="stack-pill"><span>🎤</span> faster-whisper — speech recognition</div>
+      <div class="stack-pill"><span>🧠</span> Ollama — local LLM inference</div>
+      <div class="stack-pill"><span>🐍</span> Python 3.11+</div>
+      <div class="stack-pill"><span>🗄️</span> SQLite — local database</div>
+      <div class="stack-pill"><span>🖼️</span> Tkinter — widget &amp; overlay</div>
+      <div class="stack-pill"><span>🔔</span> winotify — Windows toast notifications</div>
+      <div class="stack-pill"><span>⌨️</span> pynput — global hotkeys</div>
+      <div class="stack-pill"><span>📋</span> Win32 API — clipboard injection</div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="cta-section">
+    <div class="cta-inner reveal">
+      <div class="widget" style="margin: 0 auto 2rem; animation-delay: .2s;">
+        <div class="eye"></div>
+        <div class="eye"></div>
+      </div>
+      <h2 class="cta-big">Your voice.<br>Your data.<br><em style="color:var(--fg-accent);opacity:.6">Your rules.</em>
+      </h2>
+      <p class="cta-sub">
+        Free. Open source. MIT licensed.<br>
+        No cloud. No subscriptions. No telemetry. Ever.
+      </p>
+      <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+        <a class="btn-primary" href="https://github.com/benmaster82/writher" target="_blank">
+          View on GitHub →
+        </a>
+        <a class="btn-ghost" href="https://github.com/benmaster82/writher#installation" target="_blank">
+          Installation guide
+        </a>
+      </div>
+
+      <div class="reveal" style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border); text-align: center;">
+        <p style="font-size: 0.85rem; color: var(--fg-accent); margin-bottom: 0.5rem; font-family: 'Space Grotesk', sans-serif; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">💛 Contributors Welcome</p>
+        <p style="font-size: 0.75rem; color: var(--muted); max-width: 450px; margin: 0 auto 1.5rem; line-height: 1.6;">
+          WritHer is built by the community, for the community. Are you a Python developer, UI enthusiast, or translator? We are actively looking for collaborators to help shape the future of local AI dictation.
+        </p>
+        <a class="btn-ghost" style="padding: 0.5rem 1.2rem; font-size: 0.7rem;" href="https://github.com/benmaster82/writher/issues" target="_blank">
+          Explore Open Issues
+        </a>
+      </div>
+    </div>
+  </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>Writher — MIT License — <a href="https://github.com/benmaster82/writher">github.com/benmaster82/writher</a></p>
+    <p style="color:var(--muted)">Built with 🎙️ faster-whisper · 🧠 Ollama · 🐍 Python</p>
+  </footer>
+
+  <script>
+    // Scroll reveal
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add('visible'); }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // Widget listening state on hover
+    const widget = document.getElementById('heroWidget');
+    widget.addEventListener('mouseenter', () => widget.classList.add('listening'));
+    widget.addEventListener('mouseleave', () => widget.classList.remove('listening'));
+
+    // Typewriter effect
+    const twStr = "- Meeting with the design team tomorrow at 10 AM regarding the new app layout.\\n- Follow up on the latest commits.";
+    const twEl = document.getElementById('typewriterText');
+    let twIdx = 0;
+    function typeWriter() {
+      if (twIdx < twStr.length) {
+        if (twStr.charAt(twIdx) === "\\n") {
+          twEl.innerHTML += "<br>";
+        } else {
+          twEl.innerHTML += twStr.charAt(twIdx);
+        }
+        twIdx++;
+        setTimeout(typeWriter, Math.random() * 40 + 20);
+      } else {
+        setTimeout(() => { twEl.innerHTML = ""; twIdx = 0; typeWriter(); }, 4000);
+      }
+    }
+    setTimeout(typeWriter, 1200);
+  </script>
+
+</body>
+
+</html>
