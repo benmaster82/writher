@@ -340,6 +340,22 @@ MIT
 
 ---
 
+## Contributing
+
+WritHer is a young project and contributions are very welcome!
+
+Here are the areas where help is most needed:
+
+- **macOS port** - replace Win32 injection and winotify with macOS equivalents
+- **Linux port** - same as above for Linux (xdotool, libnotify, etc.)
+- **New languages** - just add an entry to `locales.py`
+- **Ollama model testing** - report which models work best with function calling
+- **Bug reports and UX feedback** - open an issue, any feedback is appreciated
+
+If you want to contribute, feel free to open an issue to discuss your idea first, or just fork and submit a PR. No formal process required, just good intentions.
+
+---
+
 <p align="center">
   <sub>Built with 🎙️ faster-whisper · 🧠 Ollama · 🐍 Python</sub>
 </p>
