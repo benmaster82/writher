@@ -68,6 +68,18 @@ def _load_settings():
     mic = db.get_setting("mic_device_name", "")
     if mic != "":
         config.MIC_DEVICE_NAME = mic if mic != "none" else None
+    ollama_model = db.get_setting("ollama_model", "")
+    if ollama_model:
+        config.OLLAMA_MODEL = ollama_model
+    ollama_url = db.get_setting("ollama_url", "")
+    if ollama_url:
+        config.OLLAMA_URL = ollama_url
+    whisper = db.get_setting("whisper_model", "")
+    if whisper:
+        config.MODEL_SIZE = whisper
+    lang = db.get_setting("language", "")
+    if lang:
+        config.LANGUAGE = lang
 
 
 # ── Toggle-mode timeout helpers ───────────────────────────────────────────

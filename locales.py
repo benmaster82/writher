@@ -78,6 +78,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "setting_saved":            "Settings saved",
         "setting_microphone":       "Microphone",
         "setting_mic_default":      "System default",
+        "setting_ollama_model":     "Ollama model",
+        "setting_ollama_url":       "Ollama URL",
+        "setting_whisper_model":    "Whisper model",
+        "setting_language":         "Language",
+        "setting_restart_required": "Restart required to apply",
     },
 
     "it": {
@@ -140,6 +145,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "setting_saved":            "Impostazioni salvate",
         "setting_microphone":       "Microfono",
         "setting_mic_default":      "Predefinito di sistema",
+        "setting_ollama_model":     "Modello Ollama",
+        "setting_ollama_url":       "URL Ollama",
+        "setting_whisper_model":    "Modello Whisper",
+        "setting_language":         "Lingua",
+        "setting_restart_required": "Riavvio necessario per applicare",
     },
 }
 
