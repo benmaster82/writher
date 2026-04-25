@@ -28,3 +28,8 @@ assets/
 
 # Landing page (hosted separately)
 site/
+
+# PyInstaller build artifacts
+build/
+dist/
+*.spec
