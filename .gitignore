@@ -32,4 +32,3 @@ site/
 # PyInstaller build artifacts
 build/
 dist/
-*.spec
