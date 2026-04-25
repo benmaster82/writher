@@ -34,6 +34,8 @@
 - ⚡ **Faster Ollama responses** - timeout increased from 10s to 30s for larger models
 - 🐛 **Bug fixes** - clean shutdown, widget positioning, visual artifacts removed
 - 🔌 **Reliable mic switching** - select any microphone (USB, Bluetooth, AirPods) from Settings and switch on the fly without restart. Tested with Bluetooth HFP devices.
+- 📦 **Standalone exe** - download and run, no Python installation required. Whisper model downloads automatically on first launch.
+- ⚙️ **Full Settings panel** - Ollama model/URL, Whisper model, language, microphone, recording mode - all configurable from the tray menu.
 
 > 💬 **Feedback welcome!** If you test WritHer with different microphones or setups, please [open an issue](https://github.com/benmaster82/writher/issues) and let us know how it goes. Your feedback helps improve the app for everyone.
 
@@ -110,29 +112,43 @@ Everything runs **locally**: speech recognition via [faster-whisper](https://git
 ## Requirements
 
 - **Windows 10/11**
-- **Python 3.11+**
 - **Ollama** running locally (for the assistant mode)
 - A working **microphone**
+- Internet connection on first launch (to download the Whisper speech model, ~74 MB)
 
 ---
 
 ## Installation
 
-### 1. Clone the repository
+### Option A: Download the exe (recommended)
+
+1. Download `WritHer-v1.0.0-win64.zip` from the [latest release](https://github.com/benmaster82/writher/releases/latest)
+2. Extract to any folder
+3. Run `WritHer.exe`
+4. On first launch, the Whisper model will be downloaded automatically (you'll see the progress in the console window)
+5. Right-click the tray icon for **Settings** and **Notes & Agenda**
+
+> **Note:** Ollama must be installed and running for the voice assistant (Ctrl+R). Dictation (AltGr) works without Ollama.
+
+### Option B: Run from source
+
+#### 1. Clone the repository
 
 ```bash
 git clone https://github.com/benmaster82/writher.git
 cd writher
 ```
 
-### 2. Create a virtual environment (recommended)
+#### 2. Create a virtual environment (recommended)
 
 ```bash
 python -m venv venv
 venv\Scripts\activate
 ```
 
-### 3. Install dependencies
+> Requires **Python 3.11+**
+
+#### 3. Install dependencies
 
 ```bash
 pip install faster-whisper numpy sounddevice pynput pystray Pillow requests winotify customtkinter
