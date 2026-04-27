@@ -32,3 +32,6 @@ site/
 # PyInstaller build artifacts
 build/
 dist/
+
+# SEO instructions (local only)
+modificaseo.md
