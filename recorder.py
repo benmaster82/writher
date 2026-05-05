@@ -78,24 +78,39 @@ class Recorder:
         if self.recording:
             return
         self._frames = []
+        self._sample_rate = config.SAMPLE_RATE
         self.recording = True
         try:
             device_name = getattr(config, "MIC_DEVICE_NAME", None)
             device_idx = _resolve_device(device_name)
             log.info("Opening mic: name=%s resolved_idx=%s", device_name, device_idx)
 
-            # Try configured sample rate first, fall back to device default
+            # Always try 16000 Hz first (what Whisper expects).
+            # Only fall back to device native rate if 16kHz is not supported.
             sample_rate = config.SAMPLE_RATE
+            try:
+                self._stream = sd.InputStream(
+                    samplerate=sample_rate,
+                    channels=1,
+                    dtype="float32",
+                    device=device_idx,
+                    callback=self._callback,
+                )
+                self._stream.start()
+                self._sample_rate = sample_rate
+                return
+            except (sd.PortAudioError, OSError):
+                # 16kHz not supported by this device, try native rate
+                log.info("Device does not support %d Hz, trying native rate", sample_rate)
+
+            # Fall back to device default sample rate + resample later
             if device_idx is not None:
-                try:
-                    dev_info = sd.query_devices(device_idx)
-                    dev_sr = int(dev_info.get("default_samplerate", sample_rate))
-                    if dev_sr != sample_rate:
-                        log.info("Device default sample rate is %d, using it instead of %d",
-                                 dev_sr, sample_rate)
-                        sample_rate = dev_sr
-                except Exception:
-                    pass
+                dev_info = sd.query_devices(device_idx)
+                sample_rate = int(dev_info.get("default_samplerate", 48000))
+            else:
+                sample_rate = 48000
+            log.info("Using device native sample rate: %d Hz (will resample to %d)",
+                     sample_rate, config.SAMPLE_RATE)
 
             self._stream = sd.InputStream(
                 samplerate=sample_rate,
@@ -105,7 +120,7 @@ class Recorder:
                 callback=self._callback,
             )
             self._stream.start()
-            self._sample_rate = sample_rate  # store for transcriber
+            self._sample_rate = sample_rate
         except (sd.PortAudioError, OSError, Exception) as exc:
             log.error("Failed to open microphone: %s", exc)
             self.recording = False
@@ -124,4 +139,16 @@ class Recorder:
         if not self._frames:
             return None
         audio = np.concatenate(self._frames, axis=0).flatten()
+
+        # Resample to 16kHz if recorded at a different rate
+        target_rate = config.SAMPLE_RATE
+        if self._sample_rate != target_rate:
+            # Simple linear interpolation resampling
+            duration = len(audio) / self._sample_rate
+            target_len = int(duration * target_rate)
+            indices = np.linspace(0, len(audio) - 1, target_len)
+            audio = np.interp(indices, np.arange(len(audio)), audio).astype(np.float32)
+            log.info("Resampled audio from %d Hz to %d Hz (%d samples)",
+                     self._sample_rate, target_rate, target_len)
+
         return audio
