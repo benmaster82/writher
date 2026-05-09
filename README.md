@@ -36,6 +36,10 @@
 - 🔌 **Reliable mic switching** - select any microphone (USB, Bluetooth, AirPods) from Settings and switch on the fly without restart. Tested with Bluetooth HFP devices.
 - 📦 **Standalone exe** - download and run, no Python installation required. Whisper model downloads automatically on first launch.
 - ⚙️ **Full Settings panel** - Ollama model/URL, Whisper model, language, microphone, recording mode - all configurable from the tray menu.
+- 🎯 **Toggle mode fix** - resolved issue where Ctrl+R required double-press to start recording. Added debounce to prevent key-repeat interference.
+- 🎤 **Sample rate fix** - microphones with 48kHz default (e.g. Logitech C310) now work correctly. Audio is recorded at 16kHz when possible, resampled if not.
+- 📁 **Portable data paths** - database, logs, and recovery files stored in %APPDATA%/WritHer when running as exe, preventing permission issues.
+- ✓ **Cleaner widget feedback** - assistant confirmations show minimal icons instead of long text that overflowed the widget.
 
 > 💬 **Feedback welcome!** If you test WritHer with different microphones or setups, please [open an issue](https://github.com/benmaster82/writher/issues) and let us know how it goes. Your feedback helps improve the app for everyone.
 
