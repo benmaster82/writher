@@ -256,11 +256,11 @@ def _assistant_worker():
             elif result == locales.get("not_understood") or result.startswith(locales.get("error", detail="")):
                 if widget:
                     widget.set_expression("sad")
-                    widget.show_message(result, 3000)
+                    widget.show_message("✗", 2000)
             else:
                 if widget:
                     widget.set_expression("happy")
-                    widget.show_message(result, 3000)
+                    widget.show_message("✓", 2000)
 
         except Exception as exc:
             log.error("Assistant pipeline error: %s", exc)

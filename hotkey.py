@@ -3,11 +3,17 @@
 Supports two recording modes controlled by config.HOLD_TO_RECORD:
   - Hold mode (True):  press=start, release=stop  (original behaviour)
   - Toggle mode (False): press=start, press again=stop  (release ignored)
+
+Toggle mode includes a debounce (300ms) to prevent key-repeat and
+accidental double-press from stopping the recording prematurely.
 """
 
+import time
 from pynput import keyboard
 import config
 from logger import log
+
+_DEBOUNCE_SEC = 0.3  # minimum time between toggle actions
 
 
 class HotkeyListener:
@@ -22,6 +28,9 @@ class HotkeyListener:
         # Toggle-mode state: True while actively recording
         self._dict_recording = False
         self._assist_recording = False
+        # Debounce timestamps (toggle mode only)
+        self._dict_last_toggle = 0.0
+        self._assist_last_toggle = 0.0
         self._listener = None
 
     def _is_hold_mode(self) -> bool:
@@ -36,10 +45,11 @@ class HotkeyListener:
                     self._dict_pressed = True
                     self._safe_call(self._on_press, "Dictation press")
             else:
-                # Toggle mode: ignore key-repeat (pressed stays True)
-                if self._dict_pressed:
+                # Toggle mode: use debounce only
+                now = time.monotonic()
+                if now - self._dict_last_toggle < _DEBOUNCE_SEC:
                     return
-                self._dict_pressed = True
+                self._dict_last_toggle = now
                 if not self._dict_recording:
                     self._dict_recording = True
                     self._safe_call(self._on_press, "Dictation toggle-start")
@@ -53,9 +63,13 @@ class HotkeyListener:
                     self._assist_pressed = True
                     self._safe_call(self._on_assist_press, "Assistant press")
             else:
-                if self._assist_pressed:
+                # Toggle mode: use debounce only (not _assist_pressed flag)
+                # because Key.ctrl_r release may arrive as Key.ctrl,
+                # leaving _assist_pressed stuck at True.
+                now = time.monotonic()
+                if now - self._assist_last_toggle < _DEBOUNCE_SEC:
                     return
-                self._assist_pressed = True
+                self._assist_last_toggle = now
                 if not self._assist_recording:
                     self._assist_recording = True
                     self._safe_call(self._on_assist_press, "Assistant toggle-start")

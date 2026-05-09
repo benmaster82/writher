@@ -23,6 +23,9 @@ a = Analysis(
         (ctk_path, 'customtkinter'),
         # faster_whisper assets (Silero VAD ONNX models)
         (os.path.join(fw_path, 'assets'), os.path.join('faster_whisper', 'assets')),
+        # Pre-generated brand icons (avoids writing to _internal at runtime)
+        ('writher.ico', '.'),
+        ('writher_icon.png', '.'),
         # Logo image
         ('img', 'img'),
     ],

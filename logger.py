@@ -1,11 +1,8 @@
 """Centralised logging for Writher (console + rotating file)."""
 
 import logging
-import os
 from logging.handlers import RotatingFileHandler
-
-_LOG_DIR = os.path.dirname(os.path.abspath(__file__))
-_LOG_FILE = os.path.join(_LOG_DIR, "writher.log")
+from paths import LOG_PATH
 
 
 def setup(name: str = "writher") -> logging.Logger:
@@ -18,7 +15,7 @@ def setup(name: str = "writher") -> logging.Logger:
                             datefmt="%Y-%m-%d %H:%M:%S")
 
     # Rotating file handler (1 MB, 3 backups)
-    fh = RotatingFileHandler(_LOG_FILE, maxBytes=1_048_576, backupCount=3,
+    fh = RotatingFileHandler(LOG_PATH, maxBytes=1_048_576, backupCount=3,
                              encoding="utf-8")
     fh.setLevel(logging.DEBUG)
     fh.setFormatter(fmt)

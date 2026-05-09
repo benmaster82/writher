@@ -5,13 +5,13 @@ import os
 import sqlite3
 import threading
 from datetime import datetime, timedelta
+from paths import DB_PATH
 
-_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "writher.db")
 _lock = threading.Lock()
 
 
 def _conn() -> sqlite3.Connection:
-    c = sqlite3.connect(_DB_PATH, check_same_thread=False)
+    c = sqlite3.connect(DB_PATH, check_same_thread=False)
     c.row_factory = sqlite3.Row
     c.execute("PRAGMA journal_mode=WAL")
     return c

@@ -12,8 +12,9 @@ import time
 
 from pynput.keyboard import Controller, Key
 from logger import log
+from paths import RECOVERY_PATH
 
-_RECOVERY_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "recovery_notes.txt")
+_MAX_RECOVERY_SIZE = 512_000  # 500 KB max before rotation
 
 _keyboard = Controller()
 
@@ -117,13 +118,20 @@ def _set_clipboard_text(text: str) -> bool:
 # ── Public API ────────────────────────────────────────────────────────────
 
 def _save_recovery(text: str):
-    """Append text to recovery_notes.txt as fallback when injection fails."""
+    """Append text to recovery_notes.txt. Rotates when file exceeds 500 KB."""
     try:
+        # Rotate if too large
+        if os.path.exists(RECOVERY_PATH):
+            if os.path.getsize(RECOVERY_PATH) > _MAX_RECOVERY_SIZE:
+                backup = RECOVERY_PATH + ".1"
+                if os.path.exists(backup):
+                    os.remove(backup)
+                os.rename(RECOVERY_PATH, backup)
+
         from datetime import datetime
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        with open(_RECOVERY_FILE, "a", encoding="utf-8") as f:
+        with open(RECOVERY_PATH, "a", encoding="utf-8") as f:
             f.write(f"[{timestamp}] {text}\n")
-        log.info("Text saved to recovery_notes.txt")
     except Exception as exc:
         log.error("Failed to save recovery text: %s", exc)
 

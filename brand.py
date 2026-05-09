@@ -8,16 +8,12 @@ Provides reusable eye-icon rendering at any size, used by:
 
 import os
 from PIL import Image, ImageDraw, ImageFilter
+from paths import ICO_PATH, PNG_PATH, BUNDLE_DIR
 
 # ── Eye geometry ratios (relative to output size) ─────────────────────────
 _EYE_SPREAD_RATIO = 0.18   # half-distance between dots / size
 _EYE_RADIUS_RATIO = 0.10   # dot radius / size (larger = crisper at small sizes)
 _GLOW_MULT = 2.8           # glow radius multiplier
-
-# ── Paths ─────────────────────────────────────────────────────────────────
-_DIR = os.path.dirname(os.path.abspath(__file__))
-_ICO_PATH = os.path.join(_DIR, "writher.ico")
-_PNG_PATH = os.path.join(_DIR, "writher_icon.png")
 
 
 def render_eyes(
@@ -122,27 +118,32 @@ def make_title_bar_image(size: int = 20) -> Image.Image:
 def get_notification_icon_path() -> str:
     """Return path to a high-res PNG for toast notifications.
 
-    Generates the file on first call. PNG is preferred over ICO for
-    Windows toast notifications — sharper rendering and no scaling artifacts.
+    Checks bundle first (pre-generated), then DATA_DIR, generates if missing.
     """
-    if not os.path.exists(_PNG_PATH):
+    # Check if pre-generated in bundle
+    bundled = os.path.join(BUNDLE_DIR, "writher_icon.png")
+    if os.path.exists(bundled):
+        return bundled
+    # Generate in user data dir
+    if not os.path.exists(PNG_PATH):
         _generate_notification_png()
-    return _PNG_PATH
+    return PNG_PATH
 
 
 def get_ico_path() -> str:
     """Return path to writher.ico, generating it if missing."""
-    if not os.path.exists(_ICO_PATH):
+    # Check if pre-generated in bundle
+    bundled = os.path.join(BUNDLE_DIR, "writher.ico")
+    if os.path.exists(bundled):
+        return bundled
+    # Generate in user data dir
+    if not os.path.exists(ICO_PATH):
         _generate_ico()
-    return _ICO_PATH
+    return ICO_PATH
 
 
 def _generate_notification_png():
-    """Generate a 256x256 PNG with transparent background for toast icons.
-
-    Transparent background lets the notification blend with the Windows
-    theme (dark or light) instead of showing an ugly dark square.
-    """
+    """Generate a 256x256 PNG with transparent background for toast icons."""
     size = 256
     img = render_eyes(
         size=size,
@@ -153,7 +154,7 @@ def _generate_notification_png():
         bg_rgb=(30, 30, 40),
         bg_alpha=200,
     )
-    img.save(_PNG_PATH, format="PNG")
+    img.save(PNG_PATH, format="PNG")
 
 
 def _generate_ico():
@@ -171,7 +172,7 @@ def _generate_ico():
         images.append(img)
 
     images[0].save(
-        _ICO_PATH,
+        ICO_PATH,
         format="ICO",
         sizes=[(sz, sz) for sz in sizes],
         append_images=images[1:],
