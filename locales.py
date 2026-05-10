@@ -83,6 +83,13 @@ _STRINGS: dict[str, dict[str, str]] = {
         "setting_whisper_model":    "Whisper model",
         "setting_language":         "Language",
         "setting_restart_required": "Restart required to apply",
+
+        # settings_window.py — hotkey configuration
+        "setting_hotkeys":          "Keyboard shortcuts",
+        "setting_hotkey_dictation": "Dictation",
+        "setting_hotkey_assistant": "Assistant",
+        "setting_hotkey_press":     "Press a key...",
+        "setting_hotkey_conflict":  "Already in use",
     },
 
     "it": {
@@ -150,6 +157,13 @@ _STRINGS: dict[str, dict[str, str]] = {
         "setting_whisper_model":    "Modello Whisper",
         "setting_language":         "Lingua",
         "setting_restart_required": "Riavvio necessario per applicare",
+
+        # settings_window.py — hotkey configuration
+        "setting_hotkeys":          "Scorciatoie tastiera",
+        "setting_hotkey_dictation": "Dettatura",
+        "setting_hotkey_assistant": "Assistente",
+        "setting_hotkey_press":     "Premi un tasto...",
+        "setting_hotkey_conflict":  "Già in uso",
     },
 }
 

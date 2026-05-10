@@ -3,6 +3,7 @@
 Allows the user to configure:
   - Recording mode: hold-to-record vs toggle (press to start/stop)
   - Max recording duration in seconds (toggle mode only)
+  - Keyboard shortcuts for dictation and assistant
   - Microphone device selection
   - Ollama model and URL
   - Whisper model size
@@ -13,6 +14,7 @@ import tkinter as tk
 import threading
 import sounddevice as sd
 import customtkinter as ctk
+from pynput import keyboard as kb
 from PIL import ImageTk
 
 from logger import log
@@ -20,6 +22,7 @@ import config
 import database as db
 import locales
 from brand import make_title_bar_image
+from hotkey_util import key_to_str, str_to_key, key_display_name, is_blocked
 import theme as T
 
 _WIN_W, _WIN_H = 460, 580
@@ -70,6 +73,11 @@ class SettingsWindow:
         self._whisper_dropdown = None
         # Language
         self._lang_dropdown = None
+        # Hotkey configuration
+        self._hk_dict_btn = None
+        self._hk_assist_btn = None
+        self._hk_listener = None  # temporary listener for key capture
+        self._hk_capturing = None  # "dictation" or "assistant" or None
         # Callbacks
         self._cb_language_change = on_language_change
         self._cb_whisper_change = on_whisper_change
@@ -199,7 +207,50 @@ class SettingsWindow:
 
         self._build_separator(pad)
 
-        # ── 2. Microphone ────────────────────────────────────────────
+        # ── 2. Keyboard shortcuts ────────────────────────────────────
+        self._build_section_label(pad, locales.get("setting_hotkeys"))
+
+        # Dictation hotkey row
+        hk_dict_row = ctk.CTkFrame(pad, fg_color="transparent")
+        hk_dict_row.pack(fill="x", pady=(0, T.PAD_S))
+
+        ctk.CTkLabel(
+            hk_dict_row, text=locales.get("setting_hotkey_dictation"),
+            font=T.FONT_SMALL, text_color=T.FG_DIM, anchor="w",
+        ).pack(side="left")
+
+        self._hk_dict_btn = ctk.CTkButton(
+            hk_dict_row, text=key_display_name(config.HOTKEY),
+            font=T.FONT_SMALL, height=32, width=140, corner_radius=6,
+            fg_color=T.BG_CARD, hover_color=T.BG_HOVER,
+            border_color=T.BORDER, border_width=1,
+            text_color=T.FG,
+            command=lambda: self._start_hotkey_capture("dictation"),
+        )
+        self._hk_dict_btn.pack(side="right")
+
+        # Assistant hotkey row
+        hk_assist_row = ctk.CTkFrame(pad, fg_color="transparent")
+        hk_assist_row.pack(fill="x", pady=(0, T.PAD_M))
+
+        ctk.CTkLabel(
+            hk_assist_row, text=locales.get("setting_hotkey_assistant"),
+            font=T.FONT_SMALL, text_color=T.FG_DIM, anchor="w",
+        ).pack(side="left")
+
+        self._hk_assist_btn = ctk.CTkButton(
+            hk_assist_row, text=key_display_name(config.ASSISTANT_HOTKEY),
+            font=T.FONT_SMALL, height=32, width=140, corner_radius=6,
+            fg_color=T.BG_CARD, hover_color=T.BG_HOVER,
+            border_color=T.BORDER, border_width=1,
+            text_color=T.FG,
+            command=lambda: self._start_hotkey_capture("assistant"),
+        )
+        self._hk_assist_btn.pack(side="right")
+
+        self._build_separator(pad)
+
+        # ── 3. Microphone ────────────────────────────────────────────
         self._build_section_label(pad, locales.get("setting_microphone"))
 
         mic_row = ctk.CTkFrame(pad, fg_color="transparent")
@@ -231,7 +282,7 @@ class SettingsWindow:
 
         self._build_separator(pad)
 
-        # ── 3. Ollama model ──────────────────────────────────────────
+        # ── 4. Ollama model ──────────────────────────────────────────
         self._build_section_label(pad, locales.get("setting_ollama_model"))
 
         self._ollama_model_dropdown = ctk.CTkComboBox(
@@ -260,7 +311,7 @@ class SettingsWindow:
 
         self._build_separator(pad)
 
-        # ── 4. Whisper model ─────────────────────────────────────────
+        # ── 5. Whisper model ─────────────────────────────────────────
         self._build_section_label(pad, locales.get("setting_whisper_model"))
 
         self._whisper_dropdown = ctk.CTkComboBox(
@@ -283,7 +334,7 @@ class SettingsWindow:
 
         self._build_separator(pad)
 
-        # ── 5. Language ──────────────────────────────────────────────
+        # ── 6. Language ──────────────────────────────────────────────
         self._build_section_label(pad, locales.get("setting_language"))
 
         lang_names = [name for _, name in _LANGUAGES]
@@ -374,6 +425,12 @@ class SettingsWindow:
                 if code == current_lang:
                     self._lang_dropdown.set(name)
                     break
+
+        # Hotkeys
+        if self._hk_dict_btn:
+            self._hk_dict_btn.configure(text=key_display_name(config.HOTKEY))
+        if self._hk_assist_btn:
+            self._hk_assist_btn.configure(text=key_display_name(config.ASSISTANT_HOTKEY))
 
     def _fetch_and_update_ollama_models(self):
         """Fetch Ollama models in background thread, update dropdown on main thread."""
@@ -482,6 +539,87 @@ class SettingsWindow:
                 if self._cb_language_change:
                     self._cb_language_change(code)
                 return
+
+    # ── Hotkey capture ────────────────────────────────────────────────────
+
+    def _start_hotkey_capture(self, target: str):
+        """Enter key-capture mode for the given target ('dictation' or 'assistant')."""
+        btn = self._hk_dict_btn if target == "dictation" else self._hk_assist_btn
+        if not btn or not self._win:
+            return
+
+        # Visual feedback: show "press a key" state
+        btn.configure(
+            text=locales.get("setting_hotkey_press"),
+            fg_color=T.BORDER_GLOW, border_color=T.ACCENT,
+        )
+
+        def on_press(key):
+            # Ignore lone modifier presses that are part of combos
+            # Accept the key and stop listening
+            self._root.after(0, lambda: self._finish_hotkey_capture(target, key))
+            return False  # stop listener
+
+        # Start a temporary listener in a background thread
+        capture_listener = kb.Listener(on_press=on_press)
+        capture_listener.start()
+
+    def _finish_hotkey_capture(self, target: str, key):
+        """Process the captured key and apply it."""
+        btn = self._hk_dict_btn if target == "dictation" else self._hk_assist_btn
+        if not btn or not self._win:
+            return
+
+        # Check if key is blocked
+        if is_blocked(key):
+            btn.configure(
+                text=key_display_name(key) + " ✗",
+                fg_color=T.RED, border_color=T.RED,
+                text_color="#ffffff",
+            )
+            btn.after(1200, lambda: self._reset_hotkey_btn(target))
+            return
+
+        # Check for conflict with the other hotkey
+        other_key = config.ASSISTANT_HOTKEY if target == "dictation" else config.HOTKEY
+        if key == other_key:
+            btn.configure(
+                text=locales.get("setting_hotkey_conflict"),
+                fg_color=T.RED, border_color=T.RED,
+                text_color="#ffffff",
+            )
+            btn.after(1200, lambda: self._reset_hotkey_btn(target))
+            return
+
+        # Apply the new hotkey
+        display = key_display_name(key)
+        if target == "dictation":
+            config.HOTKEY = key
+            db.save_setting("hotkey_dictation", key_to_str(key))
+        else:
+            config.ASSISTANT_HOTKEY = key
+            db.save_setting("hotkey_assistant", key_to_str(key))
+
+        log.info("Hotkey %s set to: %s", target, display)
+
+        # Visual confirmation
+        btn.configure(
+            text=display, fg_color=T.GREEN, border_color=T.GREEN,
+            text_color="#000000",
+        )
+        btn.after(800, lambda: self._reset_hotkey_btn(target))
+
+    def _reset_hotkey_btn(self, target: str):
+        """Reset hotkey button to normal appearance with current value."""
+        btn = self._hk_dict_btn if target == "dictation" else self._hk_assist_btn
+        if not btn or not self._win:
+            return
+        current = config.HOTKEY if target == "dictation" else config.ASSISTANT_HOTKEY
+        btn.configure(
+            text=key_display_name(current),
+            fg_color=T.BG_CARD, border_color=T.BORDER,
+            text_color=T.FG,
+        )
 
     # ── Microphone helpers ────────────────────────────────────────────────
 

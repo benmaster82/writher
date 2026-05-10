@@ -26,6 +26,7 @@
 
 ## 🆕 What's New
 
+- ⌨️ **Customizable hotkeys** - change dictation and assistant shortcuts from Settings. Press the ⌨ button, hit any key, done. No restart needed.
 - 🎙️ **Microphone selection** - pick your input device from Settings, with hot-plug refresh
 - 🔄 **Toggle recording mode** - press once to start, press again to stop (alternative to hold)
 - ⏱️ **Safety timeout** - auto-stops recording in toggle mode if you forget
@@ -49,10 +50,12 @@
 
 WritHer sits quietly in your system tray and gives you two super-powers:
 
-| Mode | Hotkey | What it does |
+| Mode | Hotkey (default) | What it does |
 |---|---|---|
 | **Dictation** | `AltGr` | Transcribes your voice and pastes the text directly into whichever app has focus - editors, browsers, chat windows, anything. |
 | **Assistant** | `Ctrl+R` | Understands natural-language commands and saves notes, creates appointments, sets reminders, manages lists - all by voice. |
+
+Both hotkeys are **fully customizable** from the Settings window — click the ⌨ button next to each shortcut and press your preferred key. The change takes effect immediately, no restart required.
 
 Both hotkeys support two recording modes, configurable from the **Settings** window in the system tray:
 
@@ -73,7 +76,8 @@ Everything runs **locally**: speech recognition via [faster-whisper](https://git
 - **Toast notifications** - get Windows notifications when reminders fire or appointments are approaching.
 - **Animated floating widget** - a minimal pill-shaped overlay with expressive "Pandora Blackboard" eyes that react to state (listening, thinking, happy, error, etc.).
 - **Notes & Agenda window** - a dark-themed resizable window to browse, check off list items, and delete notes/appointments/reminders. Supports maximize/restore and drag-to-resize.
-- **Settings window** - configure recording mode, max recording duration, and microphone device directly from the system tray. All settings are persisted across restarts.
+- **Settings window** - configure recording mode, max recording duration, keyboard shortcuts, and microphone device directly from the system tray. All settings are persisted across restarts.
+- **Customizable hotkeys** - reassign dictation and assistant keys from the Settings window. Blocked keys (Enter, Space, letters) are rejected, and duplicate detection prevents conflicts.
 - **Microphone selection** - choose your input device from a dropdown in Settings. Supports hot-plug detection with a refresh button - no restart needed.
 - **Modern UI** - built with CustomTkinter and a unified "Pandora Blackboard" theme (pure black + bright white) defined in a single `theme.py` file.
 - **Multi-language** - ships with English and Italian; easy to add more via the `locales.py` string table.
@@ -192,7 +196,7 @@ Writher appears in the system tray. Hold `AltGr` to dictate, hold `Ctrl+R` for a
 All settings live in **`config.py`**:
 
 ```python
-# Hotkeys
+# Hotkeys (defaults — can be changed from Settings at runtime)
 HOTKEY = Key.alt_gr            # Dictation
 ASSISTANT_HOTKEY = Key.ctrl_r  # Assistant
 
@@ -219,7 +223,7 @@ OLLAMA_MODEL = "llama3.1:8b"
 APPOINTMENT_REMIND_MINUTES = 15
 ```
 
-> **Note:** `HOLD_TO_RECORD`, `MAX_RECORD_SECONDS`, and `MIC_DEVICE_INDEX` can also be changed at runtime from the **Settings** window in the system tray. Changes made there are persisted in the database and override `config.py` defaults.
+> **Note:** `HOLD_TO_RECORD`, `MAX_RECORD_SECONDS`, `MIC_DEVICE_INDEX`, `HOTKEY`, and `ASSISTANT_HOTKEY` can also be changed at runtime from the **Settings** window in the system tray. Changes made there are persisted in the database and override `config.py` defaults.
 
 ### Choosing a Whisper model
 
@@ -284,7 +288,7 @@ For CUDA acceleration, install `ctranslate2` with CUDA support and set `DEVICE =
 Right-click the tray icon to access:
 
 - **Notes & Agenda** - open the notes/appointments/reminders viewer
-- **Settings** - configure recording mode (hold vs toggle), max recording duration, and microphone device
+- **Settings** - configure recording mode (hold vs toggle), max recording duration, keyboard shortcuts, and microphone device
 - **Quit** - exit WritHer
 
 > **Tip:** Windows may hide the tray icon in the overflow area (the ^ arrow). To keep it always visible, go to **Settings → Personalization → Taskbar → Other system tray icons** and enable WritHer.
@@ -306,6 +310,7 @@ writher/
 ├── main.py              # Entry point and orchestrator
 ├── config.py            # All user-configurable settings
 ├── hotkey.py            # Dual-hotkey listener with hold/toggle modes (pynput)
+├── hotkey_util.py       # Hotkey serialisation, display names, and validation
 ├── recorder.py          # Microphone recording (sounddevice)
 ├── transcriber.py       # Speech-to-text (faster-whisper)
 ├── injector.py          # Clipboard paste into active app (Win32 API)

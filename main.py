@@ -56,6 +56,8 @@ _assist_timeout_timer = None
 
 def _load_settings():
     """Read settings from DB and apply them to config module."""
+    from hotkey_util import str_to_key
+
     hold = db.get_setting("hold_to_record", "")
     if hold != "":
         config.HOLD_TO_RECORD = hold == "1"
@@ -80,6 +82,18 @@ def _load_settings():
     lang = db.get_setting("language", "")
     if lang:
         config.LANGUAGE = lang
+
+    # Hotkeys
+    hk_dict = db.get_setting("hotkey_dictation", "")
+    if hk_dict:
+        parsed = str_to_key(hk_dict)
+        if parsed is not None:
+            config.HOTKEY = parsed
+    hk_assist = db.get_setting("hotkey_assistant", "")
+    if hk_assist:
+        parsed = str_to_key(hk_assist)
+        if parsed is not None:
+            config.ASSISTANT_HOTKEY = parsed
 
 
 # ── Toggle-mode timeout helpers ───────────────────────────────────────────
