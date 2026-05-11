@@ -55,7 +55,7 @@ WritHer sits quietly in your system tray and gives you two super-powers:
 | **Dictation** | `AltGr` | Transcribes your voice and pastes the text directly into whichever app has focus - editors, browsers, chat windows, anything. |
 | **Assistant** | `Ctrl+R` | Understands natural-language commands and saves notes, creates appointments, sets reminders, manages lists - all by voice. |
 
-Both hotkeys are **fully customizable** from the Settings window — click the ⌨ button next to each shortcut and press your preferred key. The change takes effect immediately, no restart required.
+Both hotkeys are **fully customizable** from the Settings window, click the ⌨ button next to each shortcut and press your preferred key. The change takes effect immediately, no restart required.
 
 Both hotkeys support two recording modes, configurable from the **Settings** window in the system tray:
 
