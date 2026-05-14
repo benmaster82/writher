@@ -9,6 +9,7 @@ Features:
 """
 
 import json
+import re
 import tkinter as tk
 from datetime import datetime
 
@@ -20,6 +21,21 @@ import database as db
 import locales
 from brand import make_title_bar_image
 import theme as T
+
+
+_SECONDS_RE = re.compile(r"\D\d{2}(?=\D*$)")
+
+
+def _format_dt_os(dt: datetime) -> str:
+    """Format a datetime using the OS locale's short date and time (no seconds).
+
+    Examples (time portion):
+        09:11:00     -> 09:11
+        9:11:00 AM   -> 9:11 AM
+        09.11.00     -> 09.11
+    """
+    return f"{dt.strftime('%x')}  {_SECONDS_RE.sub('', dt.strftime('%X'))}"
+
 
 _WIN_W, _WIN_H = 520, 600
 _MIN_W, _MIN_H = 380, 400
@@ -335,7 +351,7 @@ class NotesWindow:
             # Timestamp
             try:
                 ts = datetime.fromisoformat(note["updated_at"])
-                ts_str = ts.strftime("%d/%m/%Y  %H:%M")
+                ts_str = _format_dt_os(ts)
             except Exception:
                 ts_str = note["updated_at"]
             ctk.CTkLabel(inner, text=ts_str, font=T.FONT_SMALL,
@@ -398,7 +414,7 @@ class NotesWindow:
 
             try:
                 dt = datetime.fromisoformat(a["dt"])
-                dt_str = dt.strftime("%d/%m/%Y  %H:%M")
+                dt_str = _format_dt_os(dt)
             except Exception:
                 dt_str = a["dt"]
             ctk.CTkLabel(inner, text=f"📅  {dt_str}", font=T.FONT_BODY,
@@ -441,7 +457,7 @@ class NotesWindow:
 
             try:
                 dt = datetime.fromisoformat(r["remind_at"])
-                dt_str = dt.strftime("%d/%m/%Y  %H:%M")
+                dt_str = _format_dt_os(dt)
             except Exception:
                 dt_str = r["remind_at"]
             ctk.CTkLabel(inner, text=dt_str, font=T.FONT_SMALL,

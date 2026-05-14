@@ -1,4 +1,5 @@
 import ctypes
+import locale
 import queue
 import threading
 import time
@@ -13,6 +14,12 @@ except Exception:
         ctypes.windll.user32.SetProcessDPIAware()
     except Exception:
         pass
+
+# Use the OS locale for date/time formatting (%x, %X).
+try:
+    locale.setlocale(locale.LC_TIME, "")
+except locale.Error:
+    pass
 
 _STOP = object()  # sentinel to shut down pipeline workers
 
