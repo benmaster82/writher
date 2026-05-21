@@ -256,7 +256,16 @@ def _dispatch(fc: dict) -> str:
                 return locales.get("list_not_found", title=args.get("list_title", ""))
 
         elif name == "delete_note":
-            return db.delete_note(args.get("keyword", ""), args.get("confirmed", False))
+            keyword = args.get("keyword", "")
+            note = db.find_note_by_keyword(keyword)
+            if not note:
+                return locales.get("note_not_found", keyword=keyword)
+            if args.get("confirmed", False) is not True:
+                return f"__confirm_delete__:note:{note['id']}"
+            title = note["title"] or locales.get("default_note_title")
+            nid = note["id"]
+            db.delete_note(nid)
+            return locales.get("note_deleted", title=title, nid=nid)
 
         elif name == "create_appointment":
             aid = db.create_appointment(
