@@ -12,6 +12,7 @@ APPOINTMENT_KEYWORD = "short"
 REMINDER_MESSAGE = "Learn for test"
 REMINDER_DT = "2026-05-26T18:00"
 REMINDER_KEYWORD = "learn"
+NON_EXISTENT = "nonexistent"
 
 
 class TestDeleteDB(unittest.TestCase):
@@ -27,26 +28,38 @@ class TestDeleteDB(unittest.TestCase):
     def tearDown(self):
         self._patch.stop()
 
-    def test_find_note_by_keyword(self):
+    def test_find_note_by_keyword_found(self):
         self.db.save_note(NOTE_CONTENT, title=NOTE_TITLE)
         result = self.db.find_note_by_keyword(NOTE_KEYWORD)
         self.assertIsNotNone(result)
         self.assertEqual(result['title'], NOTE_TITLE)
         self.assertEqual(result['content'], NOTE_CONTENT)
+
+    def test_find_note_by_keyword_not_found(self):
+        result = self.db.find_note_by_keyword(NON_EXISTENT)
+        self.assertIsNone(result)
     
-    def test_find_appointment_by_keyword(self):
+    def test_find_appointment_by_keyword_found(self):
         self.db.create_appointment(APPOINTMENT_TITLE, APPOINTMENT_DT)
         result = self.db.find_appointment_by_keyword(APPOINTMENT_KEYWORD)
         self.assertIsNotNone(result)
         self.assertEqual(result['title'], APPOINTMENT_TITLE)
         self.assertEqual(result['dt'], APPOINTMENT_DT)
+
+    def test_find_appointment_by_keyword_not_found(self):
+        result = self.db.find_appointment_by_keyword(NON_EXISTENT)
+        self.assertIsNone(result)
     
-    def test_find_reminder_by_keyword(self):
+    def test_find_reminder_by_keyword_found(self):
         self.db.set_reminder(REMINDER_MESSAGE, REMINDER_DT)
         result = self.db.find_reminder_by_keyword(REMINDER_KEYWORD)
         self.assertIsNotNone(result)
         self.assertEqual(result['message'], REMINDER_MESSAGE)
         self.assertEqual(result['remind_at'], REMINDER_DT)
+
+    def test_find_reminder_by_keyword_not_found(self):
+        result = self.db.find_reminder_by_keyword(NON_EXISTENT)
+        self.assertIsNone(result)
 
 
 class TestDeleteDispatch(unittest.TestCase):
