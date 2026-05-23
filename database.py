@@ -234,6 +234,24 @@ def get_appointments(from_dt: str | None = None, to_dt: str | None = None) -> li
     return [dict(r) for r in rows]
 
 
+def find_appointment_by_keyword(keyword: str) -> dict | None:
+    """Find an appointment by fuzzy title/description match. Returns dict or None."""
+    target = keyword.strip().lower()
+    if not target:
+        return None
+    keyword_pattern = f"%{target}%"
+    with _lock:
+        c = _conn()
+        row = c.execute(
+            "SELECT * FROM appointments"
+            " WHERE lower(title) LIKE ? OR lower(description) LIKE ?"
+            " ORDER BY dt ASC",
+            (keyword_pattern, keyword_pattern),
+        ).fetchone()
+        c.close()
+    return dict(row) if row else None
+
+
 def delete_appointment(aid: int):
     with _lock:
         c = _conn()

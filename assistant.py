@@ -87,6 +87,22 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "delete_appointment",
+            "description": "Delete a saved appointment, found by keyword.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "keyword": {"type": "string", "description": "Keyword from the appointment title or description"},
+                    "confirmed": {"type": "boolean", "description": "True only after the user confirmed deletion",
+                                  "default": False},
+                },
+                "required": ["keyword"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "create_appointment",
             "description": "Create a calendar appointment with date and time.",
             "parameters": {
@@ -267,6 +283,18 @@ def _dispatch(fc: dict) -> str:
             db.delete_note(nid)
             return locales.get("note_deleted", title=title, nid=nid)
 
+        elif name == "delete_appointment":
+            keyword = args.get("keyword", "")
+            appointment = db.find_appointment_by_keyword(keyword)
+            if not appointment:
+                return locales.get("appointment_not_found", keyword=keyword)
+            if args.get("confirmed", False) is not True:
+                return f"__confirm_delete__:appointment:{appointment['id']}"
+            title = appointment["title"]
+            aid = appointment["id"]
+            db.delete_appointment(aid)
+            return locales.get("appointment_deleted", title=title, aid=aid)
+        
         elif name == "create_appointment":
             aid = db.create_appointment(
                 title=args.get("title", ""),
