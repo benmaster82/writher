@@ -9,9 +9,11 @@ To add a new language, add a new entry to ``_STRINGS`` with the same keys.
 
 import config
 
+LocaleValue = str | tuple[str, ...]
+
 # ── String tables ─────────────────────────────────────────────────────────
 
-_STRINGS: dict[str, dict[str, str]] = {
+_STRINGS: dict[str, dict[str, LocaleValue]] = {
     "en": {
         # assistant.py — dispatch confirmations
         "note_saved":           "Note saved (#{nid})",
@@ -29,6 +31,16 @@ _STRINGS: dict[str, dict[str, str]] = {
         "unknown_command":      "Unknown command: {name}",
         "error":                "Error: {detail}",
         "not_understood":       "I didn't understand the command",
+        "delete_confirmations": (
+            "yes", "yeah", "yep", "yup", "sure", "ok", "okay",
+            "confirm", "confirmed", "please do", "do it", "go ahead",
+            "delete", "delete it",
+        ),
+        "delete_rejections": (
+            "no", "nope", "nah", "cancel", "stop", "abort", "do not",
+            "don't", "dont", "keep it", "never mind", "nevermind",
+            "leave it",
+        ),
 
         # assistant.py — system prompt fragments
         "system_prompt": (
@@ -114,6 +126,16 @@ _STRINGS: dict[str, dict[str, str]] = {
         "unknown_command":      "Comando sconosciuto: {name}",
         "error":                "Errore: {detail}",
         "not_understood":       "Non ho capito il comando",
+        "delete_confirmations": (
+            "si", "sì", "certo", "certamente", "ok", "okay",
+            "va bene", "confermo", "conferma", "procedi",
+            "elimina", "eliminalo", "cancella", "cancellalo",
+        ),
+        "delete_rejections": (
+            "no", "nope", "annulla", "stop", "ferma", "fermati",
+            "aspetta", "lascia", "lascia stare", "lascia perdere",
+            "non eliminare", "non cancellare", "mantieni",
+        ),
 
         "system_prompt": (
             "You are Writher, a voice assistant for productivity. "
@@ -184,17 +206,35 @@ _FALLBACK = "en"
 
 # ── Public API ────────────────────────────────────────────────────────────
 
+def _lookup(key: str) -> LocaleValue:
+    lang = getattr(config, "LANGUAGE", _FALLBACK)
+    table = _STRINGS.get(lang, _STRINGS[_FALLBACK])
+    return table.get(key, _STRINGS[_FALLBACK].get(key, key))
+
+
 def get(key: str, **kwargs) -> str:
     """Return the localised string for *key*, formatted with *kwargs*.
 
     Falls back to English if the key is missing in the active language.
     """
-    lang = getattr(config, "LANGUAGE", _FALLBACK)
-    table = _STRINGS.get(lang, _STRINGS[_FALLBACK])
-    template = table.get(key, _STRINGS[_FALLBACK].get(key, key))
+    template = _lookup(key)
+    if not isinstance(template, str):
+        return key
     if kwargs:
         try:
             return template.format(**kwargs)
         except (KeyError, IndexError):
             return template
     return template
+
+
+def get_choices(key: str) -> tuple[str, ...]:
+    """Return the localised choice list for *key*.
+
+    Use this for non-display locale entries, such as spoken confirmation
+    variants for destructive actions.
+    """
+    choices = _lookup(key)
+    if isinstance(choices, tuple):
+        return choices
+    return (choices,)
