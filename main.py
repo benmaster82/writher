@@ -54,7 +54,7 @@ hotkey_listener = None
 
 _rec_start  = 0.0
 _MIN_DURATION = 0.5
-_DELETE_CONFIRM_SECONDS = 5.0
+_DELETE_CONFIRM_SECONDS = 15.0
 _DELETE_CONFIRM_TOKEN = re.compile(r"^__confirm_delete__:(note|appointment|reminder):(\d+)$")
 _pending_delete = None
 
@@ -246,6 +246,10 @@ def _parse_delete_token(result: str):
         return None
     return m.group(1), int(m.group(2))
 
+def _run_on_ui_thread(func):
+    """Schedule a Tk/CustomTkinter operation on the Tk main thread."""
+    if root:
+        root.after(0, func)
 
 def _set_pending_delete(kind: str, item_id: int):
     global _pending_delete
@@ -254,12 +258,49 @@ def _set_pending_delete(kind: str, item_id: int):
         "id": item_id,
         "expires_at": time.monotonic() + _DELETE_CONFIRM_SECONDS,
     }
-    log.info("Pending delete set: %s #%d (expires in %.1fs)", kind, item_id, _DELETE_CONFIRM_SECONDS)
 
+    def _open_dialog():
+        try:
+            if not notes_win:
+                return
+
+            if not (notes_win._win and notes_win._win.winfo_exists()):
+                notes_win.show("notes")
+
+            notes_win.show_voice_delete_confirmation(kind, item_id)
+            log.info("Pending delete dialog opened: %s #%d", kind, item_id)
+
+        except Exception as exc:
+            log.error("Could not open voice delete dialog: %s", exc)
+
+    _run_on_ui_thread(_open_dialog)
+
+    log.info(
+        "Pending delete set: %s #%d (expires in %.1fs)",
+        kind,
+        item_id,
+        _DELETE_CONFIRM_SECONDS,
+    )
 
 def _clear_pending_delete():
     global _pending_delete
     _pending_delete = None
+
+def _close_voice_delete_dialog():
+    """Close/hide the voice delete dialog on the Tk main thread."""
+    if not root:
+        return
+
+    def _close():
+        try:
+            if notes_win and notes_win._voice_delete_dialog:
+                dialog = notes_win._voice_delete_dialog
+                notes_win._voice_delete_dialog = None
+                notes_win._safe_destroy_dialog(dialog)
+        except Exception as exc:
+            log.error("Could not close voice delete dialog: %s", exc)
+
+    root.after(0, _close)
 
 
 def _matches_locale_choice(text: str, key: str) -> bool:
@@ -340,16 +381,19 @@ def _handle_pending_delete_confirmation(text: str):
     now = time.monotonic()
     if now > _pending_delete["expires_at"]:
         log.info("Pending delete expired.")
+        _close_voice_delete_dialog()
         _clear_pending_delete()
         return "__delete_confirm_timeout__"
 
     if _is_affirmative(text):
         kind = _pending_delete["kind"]
         item_id = _pending_delete["id"]
+        _close_voice_delete_dialog()
         _clear_pending_delete()
         return _delete_by_pending(kind, item_id)
 
     if _is_negative(text):
+        _close_voice_delete_dialog()
         _clear_pending_delete()
         return "__delete_cancelled__"
 

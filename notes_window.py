@@ -54,6 +54,7 @@ class NotesWindow:
         self._title_eye_tk = None
         self._tab_buttons = {}
         self._scroll_frame = None
+        self._voice_delete_dialog = None
 
     def show(self, tab: str = "notes"):
         if self._win is not None:
@@ -249,6 +250,11 @@ class NotesWindow:
     def _close(self):
         if self._win:
             try:
+                if self._voice_delete_dialog and self._voice_delete_dialog.winfo_exists():
+                    self._safe_destroy_dialog(self._voice_delete_dialog)
+            except Exception:
+                pass
+            try:
                 self._win.destroy()
             except Exception:
                 pass
@@ -256,6 +262,31 @@ class NotesWindow:
             self._maximized = False
             self._tab_buttons = {}
 
+    def _safe_destroy_dialog(self, dialog):
+        """Hide a CustomTkinter dialog safely.
+
+        Important:
+        We do NOT destroy this dialog here, because CustomTkinter can still have
+        pending draw callbacks for CTkButton canvases.
+        """
+        if not dialog:
+            return
+
+        try:
+            if not dialog.winfo_exists():
+                return
+        except Exception:
+            return
+
+        try:
+            dialog.grab_release()
+        except Exception:
+            pass
+
+        try:
+            dialog.withdraw()
+        except Exception:
+            pass
     # ── Tabs ──────────────────────────────────────────────────────────────
 
     def _switch_tab(self, tab: str):
@@ -387,7 +418,249 @@ class NotesWindow:
         self._refresh()
 
     def _delete_note(self, note_id: int):
-        db.delete_note(note_id)
+        note = None
+        for n in db.get_all_notes():
+            if n["id"] == note_id:
+                note = n
+                break
+        if note:
+            self._show_delete_confirmation_dialog("note", note_id, note)
+
+    # ── Delete Confirmation Dialog ────────────────────────────────────────
+
+    def _show_delete_confirmation_dialog(self, item_type: str, item_id: int, item_data: dict, voice_mode: bool = False, on_voice_confirm=None):
+        """Show a modal confirmation dialog before deleting an item.
+        
+        Args:
+            item_type: "note", "appointment", or "reminder"
+            item_id: ID of the item to delete
+            item_data: Dictionary with item information
+            voice_mode: If True, dialog is waiting for voice confirmation
+            on_voice_confirm: Callback function for voice confirmation
+        """
+        # Create modal dialog window, falling back to root if main window is not yet available
+        parent = self._win if self._win and self._win.winfo_exists() else self._root
+        dialog = ctk.CTkToplevel(parent)
+        dialog.overrideredirect(True)
+        dialog.attributes("-topmost", True)
+        dialog.resizable(False, False)
+        
+        # Configure style
+        dialog.configure(fg_color=T.BG_DEEP)
+        
+        # Dialog size and position (centered over main window)
+        dialog_w, dialog_h = 400, 300 if not voice_mode else 320
+        try:
+            mx = self._win.winfo_x() + self._win.winfo_width() // 2
+            my = self._win.winfo_y() + self._win.winfo_height() // 2
+        except:
+            mx = self._win.winfo_screenwidth() // 2
+            my = self._win.winfo_screenheight() // 2
+        
+        dialog.geometry(f"{dialog_w}x{dialog_h}+{mx - dialog_w//2}+{my - dialog_h//2}")
+        
+        # Outer border frame
+        outer = ctk.CTkFrame(dialog, fg_color=T.BG_DEEP, border_color=T.BORDER,
+                             border_width=1, corner_radius=8)
+        outer.pack(fill="both", expand=True, padx=0, pady=0)
+        
+        # Title
+        title_map = {
+            "note": locales.get("delete_item_note"),
+            "appointment": locales.get("delete_item_appointment"),
+            "reminder": locales.get("delete_item_reminder"),
+        }
+        title_text = locales.get("confirm_delete_title", item=title_map.get(item_type, item_type))
+        
+        title_lbl = ctk.CTkLabel(
+            outer, text=title_text, font=(T.FONT_FAMILY, 14, "bold"),
+            text_color=T.FG
+        )
+        title_lbl.pack(pady=(16, 12), padx=16)
+        
+        # Content frame
+        content = ctk.CTkFrame(outer, fg_color="transparent")
+        content.pack(fill="both", expand=True, padx=16, pady=12)
+        
+        # Build info lines
+        info_lines = []
+        
+        # Name
+        if item_type == "note":
+            name = item_data.get("title") or locales.get("default_note_title")
+            info_lines.append((locales.get("field_name", default="Name"), name))
+        elif item_type == "appointment":
+            name = item_data.get("title", "")
+            info_lines.append((locales.get("field_name", default="Name"), name))
+        elif item_type == "reminder":
+            name = item_data.get("message", "")
+            info_lines.append((locales.get("field_name", default="Name"), name))
+        
+        # Created date
+        created_at = item_data.get("created_at", "")
+        if created_at:
+            try:
+                created_dt = datetime.fromisoformat(created_at)
+                created_str = _format_dt_os(created_dt)
+            except:
+                created_str = created_at
+            info_lines.append((locales.get("field_created", default="Created"), created_str))
+        
+        # Event date (for appointment and reminder)
+        if item_type == "appointment":
+            event_at = item_data.get("dt", "")
+            if event_at:
+                try:
+                    event_dt = datetime.fromisoformat(event_at)
+                    event_str = _format_dt_os(event_dt)
+                except:
+                    event_str = event_at
+                info_lines.append((locales.get("field_event", default="Event"), event_str))
+        elif item_type == "reminder":
+            remind_at = item_data.get("remind_at", "")
+            if remind_at:
+                try:
+                    remind_dt = datetime.fromisoformat(remind_at)
+                    remind_str = _format_dt_os(remind_dt)
+                except:
+                    remind_str = remind_at
+                info_lines.append((locales.get("field_remind", default="Remind At"), remind_str))
+        
+        # Display info lines
+        for label, value in info_lines:
+            row = ctk.CTkFrame(content, fg_color="transparent")
+            row.pack(fill="x", pady=4)
+            
+            lbl = ctk.CTkLabel(row, text=f"{label}:", font=T.FONT_SMALL,
+                              text_color=T.FG_DIM, width=80, anchor="w")
+            lbl.pack(side="left", padx=(0, 8))
+            
+            val = ctk.CTkLabel(row, text=str(value), font=T.FONT_BODY,
+                              text_color=T.FG, anchor="w", wraplength=250)
+            val.pack(side="left", fill="x", expand=True)
+        
+        # Voice mode indicator
+        if voice_mode:
+            voice_lbl = ctk.CTkLabel(
+                content, text="🎤  " + locales.get("listening_for_confirm", default="Listening for voice confirmation..."),
+                font=T.FONT_SMALL, text_color=T.ACCENT, wraplength=350
+            )
+            voice_lbl.pack(pady=(8, 0))
+        
+        # Warning
+        warning = ctk.CTkLabel(
+            content, text=locales.get("confirm_delete_warning", default="This action cannot be undone."),
+            font=T.FONT_SMALL, text_color=T.RED, wraplength=350
+        )
+        warning.pack(pady=(8, 0))
+        
+        # Button frame
+        btn_frame = ctk.CTkFrame(outer, fg_color="transparent")
+        btn_frame.pack(fill="x", padx=16, pady=12)
+        
+        # Cancel button
+        def close_dialog():
+            if on_voice_confirm:
+                on_voice_confirm(False)  # Signal cancellation
+            else:
+                self._safe_destroy_dialog(dialog)
+        cancel_btn = tk.Button(
+            btn_frame, 
+            text=locales.get("btn_cancel", default="Cancel"),
+            bg=T.BG,
+            fg=T.FG,
+            activebackground=T.BG_HOVER,
+            activeforeground=T.FG,
+            relief="flat",
+            bd=0,
+            font=T.FONT_BODY,
+            command=close_dialog,
+        )
+        cancel_btn.pack(side="left", fill="x", expand=True, padx=(0, 8))
+        
+        # Delete button
+        def confirm_delete():
+            if on_voice_confirm:
+                on_voice_confirm(True)  # Signal confirmation
+            else:
+                self._safe_destroy_dialog(dialog)
+                self._confirm_delete(item_type, item_id)
+        
+        delete_btn = tk.Button(
+            btn_frame,
+            text=locales.get("btn_delete", default="Delete"),
+            bg=T.RED,
+            fg=T.FG,
+            activebackground=T.RED_HOVER,
+            activeforeground=T.FG,
+            relief="flat",
+            bd=0,
+            font=T.FONT_BODY,
+            command=confirm_delete,
+        )
+        delete_btn.pack(side="left", fill="x", expand=True, padx=(8, 0))
+        
+        # Make dialog modal
+        dialog.grab_set()
+        dialog.focus()
+        
+        # Store reference for voice mode
+        if voice_mode:
+            self._voice_delete_dialog = dialog
+    
+    def show_voice_delete_confirmation(self, item_type: str, item_id: int):
+        """Show delete confirmation dialog in voice mode (called from main.py).
+        
+        Returns callback function for voice confirmation.
+        """
+        # Get item data
+        item_data = None
+        
+        if item_type == "note":
+            for note in db.get_all_notes():
+                if note["id"] == item_id:
+                    item_data = note
+                    break
+        elif item_type == "appointment":
+            for appt in db.get_appointments():
+                if appt["id"] == item_id:
+                    item_data = appt
+                    break
+        elif item_type == "reminder":
+            for rem in db.get_all_reminders(include_notified=True):
+                if rem["id"] == item_id:
+                    item_data = rem
+                    break
+        
+        if not item_data:
+            return None
+        
+        def on_voice_confirm(confirmed: bool):
+            dialog = self._voice_delete_dialog
+            self._voice_delete_dialog = None
+
+            if dialog:
+                self._safe_destroy_dialog(dialog)
+
+            if confirmed:
+                self._confirm_delete(item_type, item_id)
+        
+        self._show_delete_confirmation_dialog(
+            item_type, item_id, item_data, 
+            voice_mode=True, 
+            on_voice_confirm=on_voice_confirm
+        )
+        
+        return on_voice_confirm
+
+    def _confirm_delete(self, item_type: str, item_id: int):
+        """Execute the deletion after confirmation."""
+        if item_type == "note":
+            db.delete_note(item_id)
+        elif item_type == "appointment":
+            db.delete_appointment(item_id)
+        elif item_type == "reminder":
+            db.delete_reminder(item_id)
         self._refresh()
 
     # ── Appointments ──────────────────────────────────────────────────────
@@ -427,8 +700,13 @@ class NotesWindow:
                              justify="left").pack(fill="x", pady=(T.PAD_S, 0))
 
     def _delete_appt(self, aid: int):
-        db.delete_appointment(aid)
-        self._refresh()
+        appointment = None
+        for a in db.get_appointments():
+            if a["id"] == aid:
+                appointment = a
+                break
+        if appointment:
+            self._show_delete_confirmation_dialog("appointment", aid, appointment)
 
     # ── Reminders ─────────────────────────────────────────────────────────
 
@@ -465,5 +743,10 @@ class NotesWindow:
                          pady=(T.PAD_M, 0))
 
     def _delete_rem(self, rid: int):
-        db.delete_reminder(rid)
-        self._refresh()
+        reminder = None
+        for r in db.get_all_reminders(include_notified=True):
+            if r["id"] == rid:
+                reminder = r
+                break
+        if reminder:
+            self._show_delete_confirmation_dialog("reminder", rid, reminder)
