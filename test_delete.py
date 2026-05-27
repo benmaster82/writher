@@ -82,6 +82,12 @@ class TestDeleteDispatch(unittest.TestCase):
         result = self._dispatch({"function": "delete_note",
                                  "arguments": {"keyword": NOTE_KEYWORD}})
         self.assertTrue(result.startswith("__confirm_delete__:note:"))
+    
+    def test_delete_note_ignores_confirmed_flag_and_still_requires_confirmation(self):
+        self.db.save_note(NOTE_CONTENT, title=NOTE_TITLE)
+        result = self._dispatch({"function": "delete_note",
+                                 "arguments": {"keyword": NOTE_KEYWORD, "confirmed": True}})
+        self.assertTrue(result.startswith("__confirm_delete__:note:"))
 
     def test_delete_appointment_returns_confirmation(self):
         self.db.create_appointment(APPOINTMENT_TITLE, APPOINTMENT_DT)
@@ -89,10 +95,22 @@ class TestDeleteDispatch(unittest.TestCase):
                                  "arguments": {"keyword": APPOINTMENT_KEYWORD}})
         self.assertTrue(result.startswith("__confirm_delete__:appointment:"))
 
+    def test_delete_appointment_ignores_confirmed_flag_and_still_requires_confirmation(self):
+        self.db.create_appointment(APPOINTMENT_TITLE, APPOINTMENT_DT)
+        result = self._dispatch({"function": "delete_appointment",
+                                 "arguments": {"keyword": APPOINTMENT_KEYWORD, "confirmed": True}})
+        self.assertTrue(result.startswith("__confirm_delete__:appointment:"))
+
     def test_delete_reminder_returns_confirmation(self):
         self.db.set_reminder(REMINDER_MESSAGE, REMINDER_DT)
         result = self._dispatch({"function": "delete_reminder",
                                  "arguments": {"keyword": REMINDER_KEYWORD}})
+        self.assertTrue(result.startswith("__confirm_delete__:reminder:"))
+
+    def test_delete_reminder_ignores_confirmed_flag_and_still_requires_confirmation(self):
+        self.db.set_reminder(REMINDER_MESSAGE, REMINDER_DT)
+        result = self._dispatch({"function": "delete_reminder",
+                                 "arguments": {"keyword": REMINDER_KEYWORD, "confirmed": True}})
         self.assertTrue(result.startswith("__confirm_delete__:reminder:"))
 
 
