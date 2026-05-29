@@ -162,6 +162,24 @@ def find_list_by_title(title: str) -> dict | None:
     return None
 
 
+def find_note_by_keyword(keyword: str) -> dict | None:
+    """Find a note by fuzzy title/content match. Returns dict or None."""
+    target = keyword.strip().lower()
+    if not target:
+        return None
+    keyword_pattern = f"%{target}%"
+    with _lock:
+        c = _conn()
+        row = c.execute(
+            "SELECT * FROM notes"
+            " WHERE lower(title) LIKE ? OR lower(content) LIKE ?"
+            " ORDER BY updated_at DESC",
+            (keyword_pattern, keyword_pattern),
+        ).fetchone()
+        c.close()
+    return dict(row) if row else None
+
+
 def get_all_notes() -> list[dict]:
     with _lock:
         c = _conn()
@@ -214,6 +232,24 @@ def get_appointments(from_dt: str | None = None, to_dt: str | None = None) -> li
         rows = c.execute(q, params).fetchall()
         c.close()
     return [dict(r) for r in rows]
+
+
+def find_appointment_by_keyword(keyword: str) -> dict | None:
+    """Find an appointment by fuzzy title/description match. Returns dict or None."""
+    target = keyword.strip().lower()
+    if not target:
+        return None
+    keyword_pattern = f"%{target}%"
+    with _lock:
+        c = _conn()
+        row = c.execute(
+            "SELECT * FROM appointments"
+            " WHERE lower(title) LIKE ? OR lower(description) LIKE ?"
+            " ORDER BY dt ASC",
+            (keyword_pattern, keyword_pattern),
+        ).fetchone()
+        c.close()
+    return dict(row) if row else None
 
 
 def delete_appointment(aid: int):
@@ -290,6 +326,24 @@ def get_pending_reminders() -> list[dict]:
         ).fetchall()
         c.close()
     return [dict(r) for r in rows]
+
+
+def find_reminder_by_keyword(keyword: str) -> dict | None:
+    """Find a reminder by fuzzy message match. Returns dict or None."""
+    target = keyword.strip().lower()
+    if not target:
+        return None
+    keyword_pattern = f"%{target}%"
+    with _lock:
+        c = _conn()
+        row = c.execute(
+            "SELECT * FROM reminders"
+            " WHERE lower(message) LIKE ?"
+            " ORDER BY remind_at ASC",
+            (keyword_pattern,)
+        ).fetchone()
+        c.close()
+    return dict(row) if row else None
 
 
 def mark_reminder_notified(rid: int):
