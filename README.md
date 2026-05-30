@@ -26,6 +26,7 @@
 
 ## 🆕 What's New
 
+- 🗑️ **Delete by voice** - say "delete the dentist appointment" or "remove the shopping list" and WritHer finds and removes it. Voice confirmation required before any deletion (15s timeout).
 - ⌨️ **Customizable hotkeys** - change dictation and assistant shortcuts from Settings. Press the ⌨ button, hit any key, done. No restart needed.
 - 🎙️ **Microphone selection** - pick your input device from Settings, with hot-plug refresh
 - 🔄 **Toggle recording mode** - press once to start, press again to stop (alternative to hold)
@@ -71,7 +72,8 @@ Everything runs **locally**: speech recognition via [faster-whisper](https://git
 ## Features
 
 - **Real-time dictation** - speak and text appears. Supports both hold-to-record and toggle (press to start/stop) modes. Clipboard is saved and restored automatically.
-- **Voice-controlled assistant** - save notes, create shopping/todo lists, schedule appointments, set reminders, all through natural speech.
+- **Voice-controlled assistant** - save notes, create shopping/todo lists, schedule appointments, set reminders, and delete items by voice. All through natural speech.
+- **Voice delete with confirmation** - say "delete the shopping list" or "remove the dentist appointment". WritHer finds the item by keyword and asks for voice confirmation before deleting. 15-second timeout for safety.
 - **Smart date parsing** - say *"remind me tomorrow at 9"* or *"meeting next Monday at 3pm"* and the LLM converts relative times to absolute datetimes.
 - **Toast notifications** - get Windows notifications when reminders fire or appointments are approaching.
 - **Animated floating widget** - a minimal pill-shaped overlay with expressive "Pandora Blackboard" eyes that react to state (listening, thinking, happy, error, etc.).
@@ -282,6 +284,9 @@ For CUDA acceleration, install `ctranslate2` with CUDA support and set `DEVICE =
 - *"Remind me to call Marco in one hour"*
 - *"Show me my notes"*
 - *"Show my agenda"*
+- *"Delete the dentist appointment"*
+- *"Remove the shopping list"*
+- *"Delete the reminder about Marco"*
 
 ### System tray
 
@@ -326,6 +331,7 @@ writher/
 ├── locales.py           # i18n string tables (EN, IT)
 ├── logger.py            # Rotating file + console logger
 ├── debug_keys.py        # Key event debugger utility
+├── test_delete.py       # Unit tests for voice-delete feature
 ├── requirements.txt     # Python dependencies
 ├── img/
 │   └── logo_writher.png # Logo for README
