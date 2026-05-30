@@ -9,20 +9,55 @@ To add a new language, add a new entry to ``_STRINGS`` with the same keys.
 
 import config
 
+LocaleValue = str | tuple[str, ...]
+
 # ── String tables ─────────────────────────────────────────────────────────
 
-_STRINGS: dict[str, dict[str, str]] = {
+_STRINGS: dict[str, dict[str, LocaleValue]] = {
     "en": {
         # assistant.py — dispatch confirmations
         "note_saved":           "Note saved (#{nid})",
         "list_saved":           "List '{title}' saved ({count} items)",
         "added_to_list":        "Added to '{title}'",
         "list_not_found":       "List '{title}' not found",
+        "note_not_found":       "Note matching '{keyword}' not found",
+        "note_deleted":         "Note '{title}' deleted (#{nid})",
         "appointment_created":  "Appointment created: {title} ({dt})",
+        "appointment_not_found": "Appointment matching '{keyword}' not found",
+        "appointment_deleted":   "Appointment '{title}' deleted (#{aid})",
+        "reminder_not_found":   "Reminder matching '{keyword}' not found",
+        "reminder_deleted":     "Reminder '{message}' deleted (#{rid})",
         "reminder_set":         "Reminder set: {dt}",
+        "delete_confirm_prompt": "Say yes within {seconds}s to delete this {item}",
+        "delete_confirm_repeat": "Please say yes or no ({seconds}s left)",
+        "delete_confirm_timeout": "Delete confirmation timed out",
+        "delete_cancelled":      "Delete cancelled",
+        "delete_item_missing":   "{item} was not found",
+        "delete_item_note":      "note",
+        "delete_item_appointment": "appointment",
+        "delete_item_reminder":  "reminder",
+        "confirm_delete_title":  "Confirm delete {item}",
+        "field_name":            "Name",
+        "field_created":         "Created",
+        "field_event":           "Event",
+        "field_remind":          "Remind At",
+        "confirm_delete_warning": "This action cannot be undone.",
+        "btn_cancel":            "Cancel",
+        "btn_delete":            "Delete",
+        "listening_for_confirm": "Listening for voice confirmation...",
         "unknown_command":      "Unknown command: {name}",
         "error":                "Error: {detail}",
         "not_understood":       "I didn't understand the command",
+        "delete_confirmations": (
+            "yes", "yeah", "yep", "yup", "sure", "ok", "okay",
+            "confirm", "confirmed", "please do", "do it", "go ahead",
+            "delete", "delete it",
+        ),
+        "delete_rejections": (
+            "no", "nope", "nah", "cancel", "stop", "abort", "do not",
+            "don't", "dont", "keep it", "never mind", "nevermind",
+            "leave it",
+        ),
 
         # assistant.py — system prompt fragments
         "system_prompt": (
@@ -97,11 +132,44 @@ _STRINGS: dict[str, dict[str, str]] = {
         "list_saved":           "Lista '{title}' salvata ({count} elementi)",
         "added_to_list":        "Aggiunto a '{title}'",
         "list_not_found":       "Lista '{title}' non trovata",
+        "note_not_found":       "Nota con '{keyword}' non trovata",
+        "note_deleted":         "Nota '{title}' eliminata (#{nid})",
         "appointment_created":  "Appuntamento creato: {title} ({dt})",
+        "appointment_not_found": "Appuntamento con '{keyword}' non trovato",
+        "appointment_deleted":   "Appuntamento '{title}' eliminato (#{aid})",
+        "reminder_not_found":   "Reminder con '{keyword}' non trovato",
+        "reminder_deleted":     "Reminder '{message}' eliminato (#{rid})",
         "reminder_set":         "Reminder impostato: {dt}",
+        "delete_confirm_prompt": "Di' si entro {seconds}s per eliminare questo {item}",
+        "delete_confirm_repeat": "Di' si o no ({seconds}s rimasti)",
+        "delete_confirm_timeout": "Conferma eliminazione scaduta",
+        "delete_cancelled":      "Eliminazione annullata",
+        "delete_item_missing":   "{item} non trovato",
+        "delete_item_note":      "nota",
+        "delete_item_appointment": "appuntamento",
+        "delete_item_reminder":  "reminder",
+        "confirm_delete_title":  "Conferma eliminazione {item}",
+        "field_name":            "Nome",
+        "field_created":         "Creato",
+        "field_event":           "Evento",
+        "field_remind":          "Ricorda il",
+        "confirm_delete_warning": "Questa azione non può essere annullata.",
+        "btn_cancel":            "Annulla",
+        "btn_delete":            "Elimina",
+        "listening_for_confirm": "In ascolto della conferma vocale...",
         "unknown_command":      "Comando sconosciuto: {name}",
         "error":                "Errore: {detail}",
         "not_understood":       "Non ho capito il comando",
+        "delete_confirmations": (
+            "si", "sì", "certo", "certamente", "ok", "okay",
+            "va bene", "confermo", "conferma", "procedi",
+            "elimina", "eliminalo", "cancella", "cancellalo",
+        ),
+        "delete_rejections": (
+            "no", "nope", "annulla", "stop", "ferma", "fermati",
+            "aspetta", "lascia", "lascia stare", "lascia perdere",
+            "non eliminare", "non cancellare", "mantieni",
+        ),
 
         "system_prompt": (
             "You are Writher, a voice assistant for productivity. "
@@ -172,17 +240,35 @@ _FALLBACK = "en"
 
 # ── Public API ────────────────────────────────────────────────────────────
 
+def _lookup(key: str) -> LocaleValue:
+    lang = getattr(config, "LANGUAGE", _FALLBACK)
+    table = _STRINGS.get(lang, _STRINGS[_FALLBACK])
+    return table.get(key, _STRINGS[_FALLBACK].get(key, key))
+
+
 def get(key: str, **kwargs) -> str:
     """Return the localised string for *key*, formatted with *kwargs*.
 
     Falls back to English if the key is missing in the active language.
     """
-    lang = getattr(config, "LANGUAGE", _FALLBACK)
-    table = _STRINGS.get(lang, _STRINGS[_FALLBACK])
-    template = table.get(key, _STRINGS[_FALLBACK].get(key, key))
+    template = _lookup(key)
+    if not isinstance(template, str):
+        return key
     if kwargs:
         try:
             return template.format(**kwargs)
         except (KeyError, IndexError):
             return template
     return template
+
+
+def get_choices(key: str) -> tuple[str, ...]:
+    """Return the localised choice list for *key*.
+
+    Use this for non-display locale entries, such as spoken confirmation
+    variants for destructive actions.
+    """
+    choices = _lookup(key)
+    if isinstance(choices, tuple):
+        return choices
+    return (choices,)

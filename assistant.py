@@ -71,6 +71,54 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "delete_note",
+            "description": "Delete a saved note, found by keyword.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "keyword": {"type": "string", "description": "Keyword from the note title or content"},
+                    "confirmed": {"type": "boolean", "description": "True only after the user confirmed deletion",
+                                  "default": False},
+                },
+                "required": ["keyword"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "delete_appointment",
+            "description": "Delete a saved appointment, found by keyword.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "keyword": {"type": "string", "description": "Keyword from the appointment title or description"},
+                    "confirmed": {"type": "boolean", "description": "True only after the user confirmed deletion",
+                                  "default": False},
+                },
+                "required": ["keyword"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "delete_reminder",
+            "description": "Delete a saved reminder, found by keyword.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "keyword": {"type": "string", "description": "Keyword from the reminder message"},
+                    "confirmed": {"type": "boolean", "description": "True only after the user confirmed deletion",
+                                  "default": False},
+                },
+                "required": ["keyword"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "create_appointment",
             "description": "Create a calendar appointment with date and time.",
             "parameters": {
@@ -239,6 +287,27 @@ def _dispatch(fc: dict) -> str:
             else:
                 return locales.get("list_not_found", title=args.get("list_title", ""))
 
+        elif name == "delete_note":
+            keyword = args.get("keyword", "")
+            note = db.find_note_by_keyword(keyword)
+            if not note:
+                return locales.get("note_not_found", keyword=keyword)
+            return f"__confirm_delete__:note:{note['id']}"
+
+        elif name == "delete_appointment":
+            keyword = args.get("keyword", "")
+            appointment = db.find_appointment_by_keyword(keyword)
+            if not appointment:
+                return locales.get("appointment_not_found", keyword=keyword)
+            return f"__confirm_delete__:appointment:{appointment['id']}"
+
+        elif name == "delete_reminder":
+            keyword = args.get("keyword", "")
+            reminder = db.find_reminder_by_keyword(keyword)
+            if not reminder:
+                return locales.get("reminder_not_found", keyword=keyword)
+            return f"__confirm_delete__:reminder:{reminder['id']}"
+        
         elif name == "create_appointment":
             aid = db.create_appointment(
                 title=args.get("title", ""),
