@@ -453,7 +453,7 @@ class NotesWindow:
         try:
             mx = self._win.winfo_x() + self._win.winfo_width() // 2
             my = self._win.winfo_y() + self._win.winfo_height() // 2
-        except:
+        except Exception:
             mx = self._win.winfo_screenwidth() // 2
             my = self._win.winfo_screenheight() // 2
         
@@ -502,7 +502,7 @@ class NotesWindow:
             try:
                 created_dt = datetime.fromisoformat(created_at)
                 created_str = _format_dt_os(created_dt)
-            except:
+            except Exception:
                 created_str = created_at
             info_lines.append((locales.get("field_created", default="Created"), created_str))
         
@@ -513,7 +513,7 @@ class NotesWindow:
                 try:
                     event_dt = datetime.fromisoformat(event_at)
                     event_str = _format_dt_os(event_dt)
-                except:
+                except Exception:
                     event_str = event_at
                 info_lines.append((locales.get("field_event", default="Event"), event_str))
         elif item_type == "reminder":
@@ -522,7 +522,7 @@ class NotesWindow:
                 try:
                     remind_dt = datetime.fromisoformat(remind_at)
                     remind_str = _format_dt_os(remind_dt)
-                except:
+                except Exception:
                     remind_str = remind_at
                 info_lines.append((locales.get("field_remind", default="Remind At"), remind_str))
         
@@ -564,16 +564,13 @@ class NotesWindow:
                 on_voice_confirm(False)  # Signal cancellation
             else:
                 self._safe_destroy_dialog(dialog)
-        cancel_btn = tk.Button(
-            btn_frame, 
+        cancel_btn = ctk.CTkButton(
+            btn_frame,
             text=locales.get("btn_cancel", default="Cancel"),
-            bg=T.BG,
-            fg=T.FG,
-            activebackground=T.BG_HOVER,
-            activeforeground=T.FG,
-            relief="flat",
-            bd=0,
-            font=T.FONT_BODY,
+            font=T.FONT_BODY, height=36, corner_radius=6,
+            fg_color=T.BG_CARD, hover_color=T.BG_HOVER,
+            border_color=T.BORDER, border_width=1,
+            text_color=T.FG,
             command=close_dialog,
         )
         cancel_btn.pack(side="left", fill="x", expand=True, padx=(0, 8))
@@ -586,16 +583,13 @@ class NotesWindow:
                 self._safe_destroy_dialog(dialog)
                 self._confirm_delete(item_type, item_id)
         
-        delete_btn = tk.Button(
+        delete_btn = ctk.CTkButton(
             btn_frame,
             text=locales.get("btn_delete", default="Delete"),
-            bg=T.RED,
-            fg=T.FG,
-            activebackground=T.RED_HOVER,
-            activeforeground=T.FG,
-            relief="flat",
-            bd=0,
-            font=T.FONT_BODY,
+            font=T.FONT_BODY, height=36, corner_radius=6,
+            fg_color=T.RED, hover_color=T.RED_HOVER,
+            border_color=T.RED, border_width=1,
+            text_color=T.FG,
             command=confirm_delete,
         )
         delete_btn.pack(side="left", fill="x", expand=True, padx=(8, 0))

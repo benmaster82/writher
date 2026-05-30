@@ -72,13 +72,11 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "delete_note",
-            "description": "Delete a saved note, found by keyword.",
+            "description": "Delete a saved note, found by keyword. The user will always be asked for voice confirmation before deletion.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "keyword": {"type": "string", "description": "Keyword from the note title or content"},
-                    "confirmed": {"type": "boolean", "description": "True only after the user confirmed deletion",
-                                  "default": False},
                 },
                 "required": ["keyword"],
             },
@@ -88,13 +86,11 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "delete_appointment",
-            "description": "Delete a saved appointment, found by keyword.",
+            "description": "Delete a saved appointment, found by keyword. The user will always be asked for voice confirmation before deletion.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "keyword": {"type": "string", "description": "Keyword from the appointment title or description"},
-                    "confirmed": {"type": "boolean", "description": "True only after the user confirmed deletion",
-                                  "default": False},
                 },
                 "required": ["keyword"],
             },
@@ -104,13 +100,11 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "delete_reminder",
-            "description": "Delete a saved reminder, found by keyword.",
+            "description": "Delete a saved reminder, found by keyword. The user will always be asked for voice confirmation before deletion.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "keyword": {"type": "string", "description": "Keyword from the reminder message"},
-                    "confirmed": {"type": "boolean", "description": "True only after the user confirmed deletion",
-                                  "default": False},
                 },
                 "required": ["keyword"],
             },
