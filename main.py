@@ -231,6 +231,7 @@ def _dictation_worker():
             log.info("Transcribing (dictation)...")
             text = transcriber.transcribe(item)
             if text:
+                log.debug("Raw: %r", text)
                 text = apply_symbols(text)
                 log.info("Transcribed: %r", text)
                 inject(text)

@@ -15,7 +15,7 @@ ASSISTANT_HOTKEY = (frozenset({"ctrl", "alt"}), KeyCode.from_vk(82))
 LANGUAGE = "en"
 
 # ── Whisper ───────────────────────────────────────────────────────────────
-MODEL_SIZE = "base"
+MODEL_SIZE = "small"
 SAMPLE_RATE = 16000
 DEVICE = "cpu"
 COMPUTE_TYPE = "int8"
