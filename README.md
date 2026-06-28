@@ -396,7 +396,34 @@ Windows 11 hides new tray icons by default. Go to **Settings → Personalization
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE) for the full text.
+
+This project is a fork of the original [WritHer](https://github.com/benmaster82/writher) by **benmaster82**. The MIT licence allows you to use, modify, and redistribute this software (including compiled binaries) freely, as long as the `LICENSE` file is kept intact in any distribution. The software is provided **as-is, without any warranty**.
+
+---
+
+## Credits & Acknowledgements
+
+This project is built on the original **WritHer** created by [benmaster82](https://github.com/benmaster82). All core architecture — voice dictation pipeline, Ollama assistant integration, floating widget, notes/agenda/reminders, and the tray icon — originates from that work.
+
+Additional contributions to the upstream repository were made by:
+
+| Contributor | Contribution |
+|---|---|
+| [LeikeBaus](https://github.com/LeikeBaus) | Unit test structure and coverage |
+| [LikeARealGinger](https://github.com/LikeARealGinger) | Voice-delete by keyword, localized confirmations |
+| [Steven Ohád](https://github.com/steven-ohad) | Appointment and reminder voice deletion, delete confirmation popup |
+| [Marcel Alsleben](https://github.com/marcelal94) | Assistant dispatcher refactoring, pending delete handling |
+| [Aaron Dutton](https://github.com/aarondutton) | OS-locale date/time formatting |
+
+New features added in this fork ([rusty-bit/writher](https://github.com/rusty-bit/writher)):
+- Spoken symbol & number substitution (`symbols.py`)
+- Ollama auto-download and lifecycle management (`ollama_manager.py`)
+- Combo hotkeys (`Ctrl+Alt+R`) with live key capture
+- Per-mode colour themes (cyan / violet)
+- Single-instance lock (prevents double-paste)
+- German language support
+- Log viewer in Settings window
 
 ---
 
