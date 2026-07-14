@@ -418,13 +418,13 @@ Windows 11 hides new tray icons by default. Go to **Settings → Personalization
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for the full text.
+MIT - see [LICENSE](LICENSE) for the full text.
 
 ---
 
 ## Credits & Acknowledgements
 
-Core architecture — voice dictation pipeline, Ollama assistant integration, floating widget, notes/agenda/reminders, tray icon — is by **benmaster82** (this repository).
+Core architecture - voice dictation pipeline, Ollama assistant integration, floating widget, notes/agenda/reminders, tray icon -  is by **benmaster82** (this repository).
 
 Contributions to upstream via pull request:
 
