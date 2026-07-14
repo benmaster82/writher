@@ -118,6 +118,7 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "setting_ollama_model":     "Ollama model",
         "setting_ollama_url":       "Ollama URL",
         "setting_whisper_model":    "Whisper model",
+        "setting_whisper_hint":     "Recommended: 'small' or larger for reliable Symbol & spelling mode phrases",
         "setting_language":         "Language",
         "setting_restart_required": "Restart required to apply",
 
@@ -230,6 +231,7 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "setting_ollama_model":     "Modello Ollama",
         "setting_ollama_url":       "URL Ollama",
         "setting_whisper_model":    "Modello Whisper",
+        "setting_whisper_hint":     "Consigliato: 'small' o superiore per frasi affidabili della modalità Simboli e ortografia",
         "setting_language":         "Lingua",
         "setting_restart_required": "Riavvio necessario per applicare",
 
@@ -339,6 +341,7 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "setting_ollama_model":     "Ollama-Modell",
         "setting_ollama_url":       "Ollama-URL",
         "setting_whisper_model":    "Whisper-Modell",
+        "setting_whisper_hint":     "Empfohlen: 'small' oder größer für zuverlässige Phrasen im Symbol- & Buchstabiermodus",
         "setting_language":         "Sprache",
         "setting_restart_required": "Neustart erforderlich",
 

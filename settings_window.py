@@ -331,6 +331,14 @@ class SettingsWindow:
         )
         self._whisper_dropdown.pack(fill="x", pady=(0, T.PAD_M))
 
+        # Whisper hint (accuracy recommendation)
+        self._whisper_hint = ctk.CTkLabel(
+            pad, text=locales.get("setting_whisper_hint"),
+            font=T.FONT_TINY, text_color=T.FG_DIM, anchor="w",
+            wraplength=_WIN_W - 3 * T.PAD_L, justify="left",
+        )
+        self._whisper_hint.pack(fill="x")
+
         # Whisper change note
         self._whisper_note = ctk.CTkLabel(
             pad, text="", font=T.FONT_TINY, text_color=T.FG_DIM, anchor="w",
