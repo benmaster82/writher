@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>WritHer FAQ — Free Offline Voice Dictation for Windows</title>
+  <meta name="description" content="Frequently asked questions about WritHer: is it really free, does it work offline, which languages are supported, can you dictate code by voice, privacy, system requirements and more." />
+
+  <link rel="canonical" href="https://getwrither.com/faq/" />
+  <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  <meta property="og:type"         content="website" />
+  <meta property="og:url"          content="https://getwrither.com/faq/" />
+  <meta property="og:site_name"    content="WritHer" />
+  <meta property="og:title"        content="WritHer FAQ — Free Offline Voice Dictation for Windows" />
+  <meta property="og:description"  content="Everything people ask about WritHer: pricing (it's free), offline use, privacy, languages, code dictation, requirements." />
+  <meta property="og:image"        content="https://getwrither.com/og-image.png" />
+  <meta property="og:image:width"  content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt"    content="WritHer — free offline voice dictation for Windows" />
+  <meta property="og:locale"       content="en_US" />
+
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="WritHer FAQ — Free Offline Voice Dictation for Windows" />
+  <meta name="twitter:description" content="Everything people ask about WritHer: pricing (it's free), offline use, privacy, languages, code dictation, requirements." />
+  <meta name="twitter:image"       content="https://getwrither.com/og-image.png" />
+
+  <meta name="theme-color" content="#050508" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-deep: #000000;
+      --bg: #050508;
+      --surface: #0a0a0f;
+      --bg-hover: #111118;
+      --border: #1a1a24;
+      --border-glow: #2a2a3a;
+      --white: #ffffff;
+      --fg-accent: #ccccdd;
+      --muted: #a0a0b0;
+      --accent-dim: #666678;
+      --accent-hover: #ddddee;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--fg-accent);
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.2rem 2.5rem;
+      background: rgba(5, 5, 8, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 1.2rem;
+      color: var(--white); letter-spacing: -.02em; text-decoration: none;
+    }
+
+    .nav-links { display: flex; gap: 2rem; }
+
+    .nav-links a {
+      color: var(--accent-dim); text-decoration: none; font-size: .75rem;
+      letter-spacing: .08em; text-transform: uppercase; transition: color .2s;
+    }
+
+    .nav-links a:hover { color: var(--white); }
+
+    .nav-cta {
+      background: var(--white); color: #000; padding: .5rem 1.2rem; border-radius: 4px;
+      font-size: .75rem; font-weight: 500; text-decoration: none; letter-spacing: .05em;
+    }
+
+    main { max-width: 800px; margin: 0 auto; padding: 8.5rem 2rem 4rem; }
+
+    h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(2.2rem, 5vw, 3.2rem);
+      font-weight: 800; line-height: 1.08; letter-spacing: -.03em;
+      color: var(--white); margin-bottom: 1rem;
+    }
+
+    .lead { font-size: .95rem; line-height: 1.8; color: var(--muted); margin-bottom: 3rem; }
+    .lead a { color: var(--fg-accent); }
+
+    details {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+      margin-bottom: .8rem; overflow: hidden;
+    }
+
+    details[open] { border-color: var(--border-glow); }
+
+    summary {
+      cursor: pointer; list-style: none;
+      padding: 1.1rem 1.4rem;
+      font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: .95rem;
+      color: var(--white);
+      display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+    }
+
+    summary::-webkit-details-marker { display: none; }
+
+    summary::after { content: '+'; color: var(--accent-dim); font-size: 1.2rem; flex-shrink: 0; }
+    details[open] summary::after { content: '–'; }
+
+    .answer { padding: 0 1.4rem 1.2rem; }
+
+    .answer p, .answer li { font-size: .85rem; line-height: 1.8; color: var(--muted); margin-bottom: .8rem; }
+    .answer ul { padding-left: 1.2rem; }
+    .answer a { color: var(--fg-accent); }
+    .answer strong { color: var(--fg-accent); }
+    .answer code {
+      font-family: 'JetBrains Mono', monospace; font-size: .78rem;
+      background: var(--bg-deep); border: 1px solid var(--border);
+      border-radius: 4px; padding: .1rem .4rem;
+    }
+
+    .cta-row { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 3rem; }
+
+    .btn-primary {
+      display: inline-block; background: var(--white); color: #000;
+      padding: .8rem 2rem; border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace; font-size: .8rem; font-weight: 500;
+      text-decoration: none; letter-spacing: .04em; transition: background .2s;
+    }
+
+    .btn-primary:hover { background: var(--accent-hover); }
+
+    .btn-ghost {
+      display: inline-block; background: transparent; color: var(--muted);
+      border: 1px solid var(--border); padding: .8rem 2rem; border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace; font-size: .8rem;
+      text-decoration: none; letter-spacing: .04em;
+    }
+
+    .btn-ghost:hover { border-color: var(--border-glow); color: var(--white); }
+
+    footer {
+      border-top: 1px solid var(--border); padding: 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 1rem; max-width: 1100px; margin: 3rem auto 0;
+    }
+
+    footer p { font-size: .7rem; color: var(--muted); margin: 0; }
+    footer a { color: var(--fg-accent); text-decoration: none; }
+
+    @media (max-width: 768px) {
+      nav { padding: 1rem 1.5rem; }
+      .nav-links { display: none; }
+      main { padding: 7rem 1.5rem 3rem; }
+      footer { flex-direction: column; text-align: center; gap: 0.5rem; }
+    }
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Is WritHer really free?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. WritHer is free and open source under the MIT license. There are no word limits, no premium tier, no trial period and no account. You can read, audit and fork the full source code on GitHub."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does WritHer work offline?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, 100%. Speech recognition runs locally with faster-whisper, the assistant uses a local LLM via Ollama, and data is stored in a local SQLite database. Internet is only needed once, on first launch, to download the Whisper speech model (about 250 MB for the default model). After that, everything works with the network unplugged."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How is WritHer different from Wispr Flow?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Wispr Flow is a paid cloud service ($12–15/month, free tier capped at 2,000 words per week) available on Mac, Windows, iPhone and Android. WritHer is free, open source and processes everything on your own Windows PC — nothing is sent to any server. WritHer also adds a local voice assistant for notes, reminders and appointments, and an opt-in mode for dictating symbols and code. Wispr Flow is better if you need macOS or mobile apps, or AI-powered rewriting of your text."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What do I need to run WritHer?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Windows 10 or 11, a working microphone, and an internet connection on first launch to download the Whisper model. No GPU is required: the default small model runs on a normal CPU. For assistant mode only, you also need Ollama installed with a local LLM such as llama3.1:8b."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Do I need Ollama to use WritHer?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Only for assistant mode (voice commands for notes, reminders and appointments). Dictation works completely without Ollama — if all you want is speech-to-text into any app, just install WritHer and go."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Which languages does WritHer support?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Speech recognition is powered by Whisper, which understands about 90 languages. You can leave recognition on Auto (detects the language of each clip) or pin it to English, Italian or German from Settings. The user interface ships in English, Italian and German, and adding a new UI language is a single entry in locales.py."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I dictate code and symbols by voice?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes — this is one of WritHer's unique features. Enable the opt-in Symbol & spelling mode in Settings, then say 'forward slash', 'semicolon', 'open bracket' or number words to get the actual characters. You can spell identifiers letter by letter: saying 'W H forward slash F A T' types WH/FAT. Normal prose and contractions like don't are never mangled."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is my voice data private?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Your audio never leaves your computer: transcription and intent parsing run locally, notes are stored in a local SQLite file, and WritHer contains no telemetry, analytics or account system. Because the code is open source, this is verifiable rather than a promise."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does dictation work in every application?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "WritHer pastes transcribed text into whatever window has focus using the clipboard, so it works in virtually any app that accepts Ctrl+V: editors, browsers, chat apps, IDEs, terminals. Your previous clipboard content is saved and restored automatically. If an app blocks paste injection, the text is saved to a recovery file so nothing is lost."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How accurate is the transcription?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Accuracy depends on the Whisper model you choose in Settings. The default small model (244 MB) is a good balance and handles symbol phrases reliably. If your machine is fast, medium or large-v3 give noticeably better accuracy; tiny and base are faster but weaker. A custom vocabulary and priming terms can further improve recognition of names and jargon."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is there a macOS or Linux version?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Not yet — WritHer currently supports Windows 10 and 11. macOS and Linux ports are the top items on the contribution wishlist, and the project welcomes contributors. If you need cross-platform open-source dictation today, Handy and OpenWhispr are honest alternatives (without WritHer's assistant and symbol mode)."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I install WritHer?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Download the latest WritHer zip from GitHub Releases, extract it anywhere and run WritHer.exe — the speech model downloads automatically on first launch. Prefer source? Clone the repository and run main.py with Python 3.11+. Full instructions are in the README."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "WritHer", "item": "https://getwrither.com/" },
+      { "@type": "ListItem", "position": 2, "name": "FAQ", "item": "https://getwrither.com/faq/" }
+    ]
+  }
+  </script>
+</head>
+
+<body>
+
+  <nav>
+    <a class="nav-logo" href="/">Writher</a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/#features">Features</a>
+      <a href="/#compare">Compare</a>
+      <a href="/wispr-flow-alternative/">vs Wispr Flow</a>
+    </div>
+    <a class="nav-cta" href="https://github.com/benmaster82/writher" target="_blank">View on GitHub →</a>
+  </nav>
+
+  <main>
+    <h1>Frequently asked questions</h1>
+    <p class="lead">
+      Everything people ask about WritHer, the free offline voice dictation app for Windows.
+      Something missing? <a href="https://github.com/benmaster82/writher/issues">Open an issue</a> on GitHub.
+    </p>
+
+    <details open>
+      <summary>Is WritHer really free?</summary>
+      <div class="answer">
+        <p>Yes. WritHer is free and open source under the <strong>MIT license</strong>. There are no word limits,
+        no premium tier, no trial period and no account. You can read, audit and fork the full
+        <a href="https://github.com/benmaster82/writher">source code on GitHub</a>.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Does WritHer work offline?</summary>
+      <div class="answer">
+        <p>Yes, <strong>100%</strong>. Speech recognition runs locally with faster-whisper, the assistant uses a
+        local LLM via Ollama, and data is stored in a local SQLite database. Internet is only needed once, on
+        first launch, to download the Whisper speech model (about 250&nbsp;MB for the default model). After that,
+        everything works with the network unplugged.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>How is WritHer different from Wispr Flow?</summary>
+      <div class="answer">
+        <p>Wispr Flow is a paid cloud service ($12–15/month, free tier capped at 2,000 words per week) available
+        on Mac, Windows, iPhone and Android. WritHer is free, open source and processes everything on your own
+        Windows PC — nothing is sent to any server. WritHer also adds a local voice assistant for notes,
+        reminders and appointments, and an opt-in mode for dictating symbols and code. Wispr Flow is better if
+        you need macOS or mobile apps, or AI-powered rewriting of your text.</p>
+        <p>Read the full <a href="/wispr-flow-alternative/">WritHer vs Wispr Flow comparison</a>.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>What do I need to run WritHer?</summary>
+      <div class="answer">
+        <p>Windows 10 or 11, a working microphone, and an internet connection on first launch to download the
+        Whisper model. <strong>No GPU is required</strong>: the default <code>small</code> model runs on a normal
+        CPU. For assistant mode only, you also need <a href="https://ollama.com">Ollama</a> installed with a
+        local LLM such as <code>llama3.1:8b</code>.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Do I need Ollama to use WritHer?</summary>
+      <div class="answer">
+        <p>Only for <strong>assistant mode</strong> (voice commands for notes, reminders and appointments).
+        Dictation works completely without Ollama — if all you want is speech-to-text into any app, just install
+        WritHer and go.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Which languages does WritHer support?</summary>
+      <div class="answer">
+        <p>Speech recognition is powered by Whisper, which understands about <strong>90 languages</strong>. You
+        can leave recognition on <code>Auto</code> (detects the language of each clip) or pin it to English,
+        Italian or German from Settings. The user interface ships in English, Italian and German, and adding a
+        new UI language is a single entry in <code>locales.py</code>.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Can I dictate code and symbols by voice?</summary>
+      <div class="answer">
+        <p>Yes — this is one of WritHer's unique features. Enable the opt-in <strong>Symbol &amp; spelling
+        mode</strong> in Settings, then say "forward slash", "semicolon", "open bracket" or number words to get
+        the actual characters. You can spell identifiers letter by letter: saying <em>"W H forward slash F A
+        T"</em> types <code>WH/FAT</code>. Normal prose and contractions like <code>don't</code> are never
+        mangled.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Is my voice data private?</summary>
+      <div class="answer">
+        <p>Yes. Your audio never leaves your computer: transcription and intent parsing run locally, notes are
+        stored in a local SQLite file, and WritHer contains <strong>no telemetry, analytics or account
+        system</strong>. Because the code is open source, this is verifiable rather than a promise.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Does dictation work in every application?</summary>
+      <div class="answer">
+        <p>WritHer pastes transcribed text into whatever window has focus using the clipboard, so it works in
+        virtually any app that accepts <code>Ctrl+V</code>: editors, browsers, chat apps, IDEs, terminals. Your
+        previous clipboard content is saved and restored automatically. If an app blocks paste injection, the
+        text is saved to a recovery file so nothing is lost.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>How accurate is the transcription?</summary>
+      <div class="answer">
+        <p>Accuracy depends on the Whisper model you choose in Settings. The default <code>small</code> model
+        (244&nbsp;MB) is a good balance and handles symbol phrases reliably. If your machine is fast,
+        <code>medium</code> or <code>large-v3</code> give noticeably better accuracy; <code>tiny</code> and
+        <code>base</code> are faster but weaker. A custom vocabulary and priming terms can further improve
+        recognition of names and jargon.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Is there a macOS or Linux version?</summary>
+      <div class="answer">
+        <p>Not yet — WritHer currently supports Windows 10 and 11. macOS and Linux ports are the top items on the
+        <a href="https://github.com/benmaster82/writher#contributing">contribution wishlist</a>, and the project
+        welcomes contributors. If you need cross-platform open-source dictation today, Handy and OpenWhispr are
+        honest alternatives (without WritHer's assistant and symbol mode).</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>How do I install WritHer?</summary>
+      <div class="answer">
+        <p>Download the latest WritHer zip from
+        <a href="https://github.com/benmaster82/writher/releases/latest">GitHub Releases</a>, extract it anywhere
+        and run <code>WritHer.exe</code> — the speech model downloads automatically on first launch. Prefer
+        source? Clone the repository and run <code>main.py</code> with Python 3.11+. Full instructions are in the
+        <a href="https://github.com/benmaster82/writher#installation">README</a>.</p>
+      </div>
+    </details>
+
+    <div class="cta-row">
+      <a class="btn-primary" href="https://github.com/benmaster82/writher/releases/latest" target="_blank">⬇ Download for Windows — free</a>
+      <a class="btn-ghost" href="/wispr-flow-alternative/">Compare with Wispr Flow</a>
+    </div>
+  </main>
+
+  <footer>
+    <p>Writher — MIT License — <a href="https://github.com/benmaster82/writher">github.com/benmaster82/writher</a></p>
+    <p><a href="/">Home</a> · <a href="/faq/">FAQ</a> · <a href="/wispr-flow-alternative/">vs Wispr Flow</a></p>
+  </footer>
+
+</body>
+
+</html>

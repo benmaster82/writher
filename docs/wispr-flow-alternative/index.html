@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Wispr Flow Alternative: Free &amp; Open Source — WritHer (Offline, Windows)</title>
+  <meta name="description" content="Looking for a Wispr Flow alternative? WritHer is free, open-source and 100% offline voice dictation for Windows. Honest comparison of price, privacy and features — plus every other open-source option worth knowing." />
+
+  <link rel="canonical" href="https://getwrither.com/wispr-flow-alternative/" />
+  <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  <meta property="og:type"         content="article" />
+  <meta property="og:url"          content="https://getwrither.com/wispr-flow-alternative/" />
+  <meta property="og:site_name"    content="WritHer" />
+  <meta property="og:title"        content="Wispr Flow Alternative: Free &amp; Open Source — WritHer" />
+  <meta property="og:description"  content="Honest comparison: WritHer vs Wispr Flow vs Dragon vs open-source dictation tools. Free, offline, no subscription." />
+  <meta property="og:image"        content="https://getwrither.com/og-image.png" />
+  <meta property="og:image:width"  content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt"    content="WritHer — free offline voice dictation for Windows, open-source Wispr Flow alternative" />
+  <meta property="og:locale"       content="en_US" />
+
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="Wispr Flow Alternative: Free &amp; Open Source — WritHer" />
+  <meta name="twitter:description" content="Honest comparison: WritHer vs Wispr Flow vs Dragon vs open-source dictation tools." />
+  <meta name="twitter:image"       content="https://getwrither.com/og-image.png" />
+
+  <meta name="theme-color" content="#050508" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-deep: #000000;
+      --bg: #050508;
+      --surface: #0a0a0f;
+      --bg-hover: #111118;
+      --border: #1a1a24;
+      --border-glow: #2a2a3a;
+      --white: #ffffff;
+      --fg-accent: #ccccdd;
+      --muted: #a0a0b0;
+      --accent-dim: #666678;
+      --accent-hover: #ddddee;
+      --green: #55cc77;
+      --red: #ff4444;
+      --yellow: #ffaa00;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--fg-accent);
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.2rem 2.5rem;
+      background: rgba(5, 5, 8, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 1.2rem;
+      color: var(--white); letter-spacing: -.02em; text-decoration: none;
+    }
+
+    .nav-links { display: flex; gap: 2rem; }
+
+    .nav-links a {
+      color: var(--accent-dim); text-decoration: none; font-size: .75rem;
+      letter-spacing: .08em; text-transform: uppercase; transition: color .2s;
+    }
+
+    .nav-links a:hover { color: var(--white); }
+
+    .nav-cta {
+      background: var(--white); color: #000; padding: .5rem 1.2rem; border-radius: 4px;
+      font-size: .75rem; font-weight: 500; text-decoration: none; letter-spacing: .05em;
+    }
+
+    main { max-width: 900px; margin: 0 auto; padding: 8.5rem 2rem 4rem; }
+
+    h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(2.2rem, 5vw, 3.6rem);
+      font-weight: 800; line-height: 1.08; letter-spacing: -.03em;
+      color: var(--white); margin-bottom: 1.2rem;
+    }
+
+    h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      font-weight: 800; letter-spacing: -.02em;
+      color: var(--white); margin: 3.5rem 0 1rem;
+    }
+
+    h3 {
+      font-family: 'Space Grotesk', sans-serif; font-size: 1.05rem;
+      color: var(--white); margin: 1.8rem 0 .5rem;
+    }
+
+    p, li { font-size: .9rem; line-height: 1.8; color: var(--muted); margin-bottom: 1rem; }
+
+    ul { padding-left: 1.2rem; }
+    li { margin-bottom: .4rem; }
+
+    strong { color: var(--fg-accent); }
+
+    a { color: var(--fg-accent); }
+
+    .lead { font-size: 1rem; color: var(--fg-accent); }
+
+    .verdict {
+      background: var(--surface); border: 1px solid var(--border-glow); border-radius: 8px;
+      padding: 1.5rem 1.8rem; margin: 2rem 0;
+    }
+
+    .verdict p { margin-bottom: 0; }
+
+    .btn-primary {
+      display: inline-block; background: var(--white); color: #000;
+      padding: .8rem 2rem; border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace; font-size: .8rem; font-weight: 500;
+      text-decoration: none; letter-spacing: .04em; transition: background .2s;
+    }
+
+    .btn-primary:hover { background: var(--accent-hover); }
+
+    .btn-ghost {
+      display: inline-block; background: transparent; color: var(--muted);
+      border: 1px solid var(--border); padding: .8rem 2rem; border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace; font-size: .8rem;
+      text-decoration: none; letter-spacing: .04em;
+    }
+
+    .btn-ghost:hover { border-color: var(--border-glow); color: var(--white); }
+
+    .cta-row { display: flex; gap: 1rem; flex-wrap: wrap; margin: 2rem 0; }
+
+    .compare-wrap {
+      overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); margin: 1.5rem 0 2rem;
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+
+    thead th {
+      background: var(--surface); padding: 1rem 1.2rem; text-align: left;
+      font-weight: 500; letter-spacing: .04em; border-bottom: 1px solid var(--border);
+      white-space: nowrap; color: var(--muted);
+    }
+
+    thead th.writher-col { color: var(--white); background: rgba(255, 255, 255, 0.04); }
+
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
+
+    tbody td { padding: .9rem 1.2rem; color: var(--muted); }
+    tbody td:first-child { color: var(--fg-accent); font-size: .74rem; }
+
+    .writher-col { background: rgba(255, 255, 255, 0.02); }
+
+    .check { color: var(--green); }
+    .cross { color: var(--red); }
+    .partial { color: var(--yellow); }
+
+    .alt-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+      padding: 1.4rem 1.6rem; margin-bottom: 1rem;
+    }
+
+    .alt-card h3 { margin-top: 0; }
+    .alt-card p { margin-bottom: 0; font-size: .82rem; }
+
+    .tag {
+      display: inline-block; font-size: .65rem; letter-spacing: .06em;
+      border: 1px solid var(--border-glow); border-radius: 4px;
+      padding: .15rem .5rem; margin-left: .5rem; color: var(--muted);
+      vertical-align: middle; text-transform: uppercase;
+    }
+
+    .sources { font-size: .7rem; color: var(--accent-dim); }
+    .sources a { color: var(--accent-dim); }
+
+    footer {
+      border-top: 1px solid var(--border); padding: 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 1rem; max-width: 1100px; margin: 0 auto;
+    }
+
+    footer p { font-size: .7rem; color: var(--muted); margin: 0; }
+    footer a { color: var(--fg-accent); text-decoration: none; }
+
+    @media (max-width: 768px) {
+      nav { padding: 1rem 1.5rem; }
+      .nav-links { display: none; }
+      main { padding: 7rem 1.5rem 3rem; }
+      footer { flex-direction: column; text-align: center; gap: 0.5rem; }
+    }
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Wispr Flow Alternative: Free & Open Source — WritHer",
+    "description": "An honest comparison of WritHer, a free open-source offline dictation app for Windows, against Wispr Flow, Dragon Professional and other open-source alternatives.",
+    "image": "https://getwrither.com/og-image.png",
+    "datePublished": "2026-07-14",
+    "dateModified": "2026-07-14",
+    "author": {
+      "@type": "Person",
+      "name": "benmaster82",
+      "url": "https://github.com/benmaster82"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "WritHer",
+      "url": "https://getwrither.com/"
+    },
+    "mainEntityOfPage": "https://getwrither.com/wispr-flow-alternative/"
+  }
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "WritHer", "item": "https://getwrither.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Wispr Flow Alternative", "item": "https://getwrither.com/wispr-flow-alternative/" }
+    ]
+  }
+  </script>
+</head>
+
+<body>
+
+  <nav>
+    <a class="nav-logo" href="/">Writher</a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/#features">Features</a>
+      <a href="/#compare">Compare</a>
+      <a href="/faq/">FAQ</a>
+    </div>
+    <a class="nav-cta" href="https://github.com/benmaster82/writher" target="_blank">View on GitHub →</a>
+  </nav>
+
+  <main>
+    <h1>The free, open-source<br>Wispr Flow alternative</h1>
+
+    <p class="lead">
+      Wispr Flow is a genuinely good product — fast, polished, and available on every platform.
+      It is also <strong>$12–15/month forever</strong>, requires an account, and sends your voice to the cloud.
+      WritHer takes the opposite trade: <strong>free, open source (MIT), and 100% offline on Windows</strong>.
+      This page compares them honestly, including the things Wispr Flow does better.
+    </p>
+
+    <div class="verdict">
+      <p>
+        <strong>TL;DR</strong> — Choose <strong>WritHer</strong> if you work on Windows and want unlimited,
+        private, offline dictation (plus a local AI assistant) for $0.
+        Choose <strong>Wispr Flow</strong> if you need macOS/iPhone/Android, want AI tone-matching and
+        auto-editing, or prefer a managed cloud product with zero setup.
+      </p>
+    </div>
+
+    <div class="cta-row">
+      <a class="btn-primary" href="https://github.com/benmaster82/writher/releases/latest" target="_blank">⬇ Download WritHer free</a>
+      <a class="btn-ghost" href="https://github.com/benmaster82/writher" target="_blank">★ Star on GitHub</a>
+    </div>
+
+    <h2>What the subscription actually costs</h2>
+    <p>
+      Wispr Flow Pro costs <strong>$15/month billed monthly, or $12/month billed annually ($144/year)</strong>.
+      The free tier is capped at <strong>2,000 words per week</strong> — roughly 15 minutes of normal speech —
+      after which dictation stops until the week resets. Over three years, Pro adds up to
+      <strong>$432–540</strong>. Dragon Professional 16, the classic desktop alternative, is a
+      <strong>$699 one-time license</strong>.
+    </p>
+    <p>
+      WritHer is <strong>$0 with no word limits, no account and no tiers</strong>. It's MIT-licensed:
+      you can read the code, fork it, and it can never be discontinued out from under you.
+    </p>
+
+    <h2>WritHer vs Wispr Flow, feature by feature</h2>
+
+    <div class="compare-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th class="writher-col">WritHer</th>
+            <th>Wispr Flow</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Price</td>
+            <td class="writher-col"><span class="check">✓</span> Free forever (MIT)</td>
+            <td><span class="cross">✗</span> $12–15/mo (free: 2,000 words/week)</td>
+          </tr>
+          <tr>
+            <td>Works offline</td>
+            <td class="writher-col"><span class="check">✓</span> 100% (after model download)</td>
+            <td><span class="cross">✗</span> Internet required</td>
+          </tr>
+          <tr>
+            <td>Voice data stays on device</td>
+            <td class="writher-col"><span class="check">✓</span> Never leaves your PC</td>
+            <td><span class="cross">✗</span> Processed in the cloud</td>
+          </tr>
+          <tr>
+            <td>Account required</td>
+            <td class="writher-col"><span class="check">✓</span> None</td>
+            <td><span class="cross">✗</span> Sign-up required</td>
+          </tr>
+          <tr>
+            <td>Open source</td>
+            <td class="writher-col"><span class="check">✓</span> MIT license</td>
+            <td><span class="cross">✗</span> Proprietary</td>
+          </tr>
+          <tr>
+            <td>Dictate into any app</td>
+            <td class="writher-col"><span class="check">✓</span></td>
+            <td><span class="check">✓</span></td>
+          </tr>
+          <tr>
+            <td>Dictate symbols &amp; code (say "forward slash" → /)</td>
+            <td class="writher-col"><span class="check">✓</span> Opt-in Symbol mode</td>
+            <td><span class="partial">⚠</span> Auto-formatting, less explicit control</td>
+          </tr>
+          <tr>
+            <td>Custom vocabulary</td>
+            <td class="writher-col"><span class="check">✓</span></td>
+            <td><span class="check">✓</span></td>
+          </tr>
+          <tr>
+            <td>Voice assistant (notes, reminders, appointments)</td>
+            <td class="writher-col"><span class="check">✓</span> Local LLM via Ollama</td>
+            <td><span class="cross">✗</span></td>
+          </tr>
+          <tr>
+            <td>AI tone-matching &amp; auto-editing of text</td>
+            <td class="writher-col"><span class="cross">✗</span></td>
+            <td><span class="check">✓</span> AI Commands (Pro)</td>
+          </tr>
+          <tr>
+            <td>Platforms</td>
+            <td class="writher-col"><span class="partial">⚠</span> Windows 10/11 only</td>
+            <td><span class="check">✓</span> Mac, Windows, iPhone, Android</td>
+          </tr>
+          <tr>
+            <td>Setup</td>
+            <td class="writher-col"><span class="partial">⚠</span> Model download; Ollama for assistant</td>
+            <td><span class="check">✓</span> Install and go</td>
+          </tr>
+          <tr>
+            <td>Speed on low-end hardware</td>
+            <td class="writher-col"><span class="partial">⚠</span> Depends on your CPU/GPU</td>
+            <td><span class="check">✓</span> Cloud GPUs, consistent</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>What Wispr Flow does better — honestly</h2>
+    <ul>
+      <li><strong>Cross-platform.</strong> Mac, iPhone and Android apps. WritHer is Windows-only today (macOS/Linux ports are open <a href="https://github.com/benmaster82/writher/blob/main/README.md#contributing">contribution areas</a>).</li>
+      <li><strong>AI editing.</strong> Flow's AI Commands can rewrite, adjust tone, and match your writing style. WritHer transcribes what you say — it does not rewrite it.</li>
+      <li><strong>Zero setup.</strong> No model downloads, no Ollama. WritHer's first launch downloads a ~250&nbsp;MB Whisper model, and assistant mode needs Ollama installed.</li>
+      <li><strong>Consistent latency.</strong> Cloud GPUs transcribe fast regardless of your hardware. WritHer's speed depends on your machine (it runs well on a modern CPU with the default <code>small</code> model).</li>
+    </ul>
+
+    <h2>What WritHer does better</h2>
+    <ul>
+      <li><strong>Price.</strong> Free and unlimited vs $144+/year. No word caps, no trial clocks.</li>
+      <li><strong>Privacy.</strong> Speech recognition (faster-whisper), intent parsing (Ollama) and storage (SQLite) all run on your machine. Nothing is uploaded, ever — verifiable in the source code.</li>
+      <li><strong>Offline.</strong> Planes, trains, air-gapped machines, confidential work: dictation keeps working with the network cable unplugged.</li>
+      <li><strong>Symbols &amp; code.</strong> Opt-in Symbol mode turns "open bracket", "semicolon" and spelled-out letters into real characters — <em>"W H forward slash F A T"</em> → <code>WH/FAT</code>.</li>
+      <li><strong>A real voice assistant.</strong> "Remind me to call Marco in one hour", "shopping list: bread, eggs, butter" — parsed by a local LLM into structured notes, reminders and appointments with Windows toast notifications.</li>
+      <li><strong>Open source.</strong> MIT license. Audit it, fork it, extend it. It can't be acquired, paywalled or shut down.</li>
+    </ul>
+
+    <h2>Other alternatives worth knowing</h2>
+    <p>We'd rather you pick the right tool than pick us blindly. Here's the honest landscape:</p>
+
+    <div class="alt-card">
+      <h3>Handy <span class="tag">open source</span><span class="tag">Win / Mac / Linux</span></h3>
+      <p>MIT-licensed push-to-talk dictation that runs fully local, on all three desktop platforms. Actively
+      maintained. If you need macOS or Linux, this is the one to try. No voice assistant, no symbol/code mode.</p>
+    </div>
+
+    <div class="alt-card">
+      <h3>OpenWhispr <span class="tag">open source</span><span class="tag">Win / Mac / Linux</span></h3>
+      <p>Hotkey dictation with a choice of fully local models (Whisper, NVIDIA Parakeet) or bring-your-own-key
+      cloud processing. Flexible, cross-platform. No local LLM assistant.</p>
+    </div>
+
+    <div class="alt-card">
+      <h3>WhisperWriter <span class="tag">open source</span><span class="tag">Win / Linux</span></h3>
+      <p>A minimal Python tool that wraps Whisper in a press-speak-release hotkey. Great if you want something
+      tiny and scriptable; barebones by design.</p>
+    </div>
+
+    <div class="alt-card">
+      <h3>Dragon Professional 16 <span class="tag">$699 one-time</span><span class="tag">Windows</span></h3>
+      <p>The decades-old professional standard, popular in legal and medical work. Runs locally and offline, with
+      deep voice-command macros. Excellent but expensive, and heavyweight for everyday dictation.</p>
+    </div>
+
+    <div class="alt-card">
+      <h3>Windows Voice Typing (Win+H) <span class="tag">free</span><span class="tag">built-in</span></h3>
+      <p>Already on your PC and worth trying first. Requires Microsoft's online speech services for dictation on
+      most setups, offers limited punctuation/symbol control, and has no vocabulary customization or assistant.</p>
+    </div>
+
+    <div class="alt-card">
+      <h3>VoiceInk <span class="tag">open source</span><span class="tag">macOS only</span></h3>
+      <p>Polished local dictation for Apple Silicon Macs with per-app modes and a personal dictionary,
+      sold as a one-time purchase with public source. Not available for Windows.</p>
+    </div>
+
+    <h2>Bottom line</h2>
+    <p>
+      If you dictate more than 2,000 words a week on Windows, Wispr Flow's free tier won't hold you and Pro costs
+      $144+/year. WritHer gives you unlimited offline dictation, symbol &amp; code input and a local voice
+      assistant for exactly $0 — and you can read every line of the code that touches your voice.
+    </p>
+
+    <div class="cta-row">
+      <a class="btn-primary" href="https://github.com/benmaster82/writher/releases/latest" target="_blank">⬇ Download for Windows — free</a>
+      <a class="btn-ghost" href="/faq/">Read the FAQ</a>
+    </div>
+
+    <p class="sources">
+      Pricing verified July 2026 from <a href="https://wisprflow.ai/pricing" rel="nofollow">wisprflow.ai/pricing</a>
+      and Nuance resellers (Dragon Professional v16 perpetual license). If anything here is outdated or unfair,
+      <a href="https://github.com/benmaster82/writher/issues">open an issue</a> and we'll fix it.
+    </p>
+  </main>
+
+  <footer>
+    <p>Writher — MIT License — <a href="https://github.com/benmaster82/writher">github.com/benmaster82/writher</a></p>
+    <p><a href="/">Home</a> · <a href="/faq/">FAQ</a> · <a href="/wispr-flow-alternative/">vs Wispr Flow</a></p>
+  </footer>
+
+</body>
+
+</html>
