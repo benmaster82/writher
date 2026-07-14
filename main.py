@@ -74,6 +74,9 @@ def _load_settings():
     hold = db.get_setting("hold_to_record", "")
     if hold != "":
         config.HOLD_TO_RECORD = hold == "1"
+    keep_clip = db.get_setting("keep_transcript_in_clipboard", "")
+    if keep_clip != "":
+        config.KEEP_TRANSCRIPT_IN_CLIPBOARD = keep_clip == "1"
     max_sec = db.get_setting("max_record_seconds", "")
     if max_sec != "":
         try:

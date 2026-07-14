@@ -28,6 +28,12 @@ MIC_DEVICE_NAME = None
 OLLAMA_URL = "http://localhost:11434"
 OLLAMA_MODEL = "llama3.1:8b"
 
+# ── Clipboard ─────────────────────────────────────────────────────────────
+# True  = leave the transcript in the clipboard after paste
+#         (skip the save/restore round-trip).
+# False = save the user's clipboard before paste and restore it after.
+KEEP_TRANSCRIPT_IN_CLIPBOARD = False
+
 # ── Recording mode ────────────────────────────────────────────────────────
 # True = hold key to record (release stops).  False = toggle (press start, press stop).
 HOLD_TO_RECORD = True

@@ -133,6 +133,8 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "setting_log":              "Log",
 
         # settings_window.py — replacements
+        "setting_keep_clipboard":       "Keep transcript in clipboard",
+        "setting_keep_clipboard_hint":  "When on, skip restoring the previous clipboard so the transcribed text stays available for re-paste.",
         "setting_symbol_mode":      "Symbol & spelling mode",
         "setting_symbol_mode_hint": "When on, spoken symbols and digits are substituted and letter-by-letter spelling is glued.",
         "setting_vocabulary":       "Custom vocabulary",
@@ -257,6 +259,8 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         # settings_window.py — log viewer
         "setting_log":              "Log",
 
+        "setting_keep_clipboard":       "Mantieni la trascrizione negli appunti",
+        "setting_keep_clipboard_hint":  "Se attivo, salta il ripristino degli appunti precedenti così il testo trascritto rimane disponibile per essere reincollato.",
         "setting_symbol_mode":      "Modalità Simboli e ortografia",
         "setting_symbol_mode_hint": "Se attiva, i simboli parlati e le cifre vengono sostituiti e la scansione lettera per lettera viene unita.",
         "setting_vocabulary":       "Vocabolario personalizzato",
@@ -376,6 +380,8 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
 
         "setting_log":              "Log",
 
+        "setting_keep_clipboard":       "Transkript in der Zwischenablage behalten",
+        "setting_keep_clipboard_hint":  "Wenn aktiv, wird der vorherige Inhalt der Zwischenablage nicht wiederhergestellt — der transkribierte Text bleibt zum erneuten Einfügen verfügbar.",
         "setting_symbol_mode":      "Symbol- & Buchstabiermodus",
         "setting_symbol_mode_hint": "Wenn aktiv, werden gesprochene Symbole und Zahlen ersetzt und einzelne Buchstaben zusammengefügt.",
         "setting_vocabulary":       "Benutzerdefiniertes Vokabular",

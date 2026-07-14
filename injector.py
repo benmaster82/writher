@@ -13,6 +13,7 @@ import time
 from pynput.keyboard import Controller, Key
 from logger import log
 from paths import RECOVERY_PATH
+import config
 
 _MAX_RECOVERY_SIZE = 512_000  # 500 KB max before rotation
 
@@ -141,6 +142,11 @@ def inject(text: str):
 
     Every transcription is saved to recovery_notes.txt as a safety net,
     so dictated content is never lost even if the paste target ignores Ctrl+V.
+
+    By default the user's clipboard contents are captured before the paste
+    and restored afterwards. Setting ``config.KEEP_TRANSCRIPT_IN_CLIPBOARD``
+    to True skips the restore step so the transcribed text stays available
+    for re-pasting.
     """
     if not text:
         return
@@ -148,16 +154,20 @@ def inject(text: str):
     # Always save to recovery file — paste target may silently ignore Ctrl+V
     _save_recovery(text)
 
-    if not _set_clipboard_text(text):
-        log.error("Failed to set clipboard text (already saved to recovery)")
-        return
-    time.sleep(0.05)
+    keep = getattr(config, "KEEP_TRANSCRIPT_IN_CLIPBOARD", False)
+    original = None if keep else _get_clipboard_text()
 
-    # Simulate Ctrl+V to paste into the active app.
-    # The transcribed text intentionally stays in the clipboard afterwards
-    # so the user can paste it again anywhere without re-transcribing.
-    with _keyboard.pressed(Key.ctrl):
-        _keyboard.press("v")
-        _keyboard.release("v")
+    try:
+        if not _set_clipboard_text(text):
+            log.error("Failed to set clipboard text (already saved to recovery)")
+            return
+        time.sleep(0.05)
 
-    time.sleep(0.10)
+        with _keyboard.pressed(Key.ctrl):
+            _keyboard.press("v")
+            _keyboard.release("v")
+
+        time.sleep(0.10)
+    finally:
+        if not keep and original is not None:
+            _set_clipboard_text(original)

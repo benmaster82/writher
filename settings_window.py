@@ -83,6 +83,9 @@ class SettingsWindow:
         self._log_box = None
         self._log_refresh_btn = None
         self._log_refresh_job = None
+        # Clipboard retention toggle
+        self._keep_clip_switch_var = None
+        self._keep_clip_switch = None
         # Symbol mode toggle
         self._symbol_switch_var = None
         self._symbol_switch = None
@@ -377,6 +380,29 @@ class SettingsWindow:
             pad, text="", font=T.FONT_TINY, text_color=T.FG_DIM, anchor="w",
         )
         self._lang_note.pack(fill="x")
+
+        self._build_separator(pad)
+
+        # ── 6b. Clipboard retention ──────────────────────────────────
+        self._build_section_label(pad, locales.get("setting_keep_clipboard"))
+
+        self._keep_clip_switch_var = tk.StringVar(
+            value="1" if db.get_setting(
+                "keep_transcript_in_clipboard", "0") == "1" else "0")
+        self._keep_clip_switch = ctk.CTkSwitch(
+            pad, text="", variable=self._keep_clip_switch_var,
+            onvalue="1", offvalue="0",
+            command=self._on_keep_clipboard_toggle,
+            fg_color=T.BG_INPUT, progress_color=T.ACCENT,
+            button_color=T.FG, button_hover_color=T.ACCENT_HOVER,
+        )
+        self._keep_clip_switch.pack(anchor="w", pady=(0, T.PAD_S))
+
+        ctk.CTkLabel(
+            pad, text=locales.get("setting_keep_clipboard_hint"),
+            font=T.FONT_TINY, text_color=T.FG_DIM, anchor="w",
+            wraplength=_WIN_W - 3 * T.PAD_L, justify="left",
+        ).pack(fill="x", pady=(0, T.PAD_M))
 
         self._build_separator(pad)
 
@@ -688,6 +714,15 @@ class SettingsWindow:
                 if self._cb_language_change:
                     self._cb_language_change(code)
                 return
+
+    # ── Clipboard retention ───────────────────────────────────────────────
+
+    def _on_keep_clipboard_toggle(self):
+        enabled = self._keep_clip_switch_var.get() == "1"
+        config.KEEP_TRANSCRIPT_IN_CLIPBOARD = enabled
+        db.save_setting("keep_transcript_in_clipboard", "1" if enabled else "0")
+        log.info("Keep transcript in clipboard: %s",
+                 "ON" if enabled else "OFF")
 
     # ── Symbol mode / vocabulary / priming ────────────────────────────────
 
