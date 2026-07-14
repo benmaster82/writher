@@ -39,7 +39,7 @@ import notifier
 from notifier import ReminderScheduler
 from notes_window import NotesWindow
 from settings_window import SettingsWindow
-from symbols import apply_symbols
+from replacements import apply_replacements
 
 _pipeline_queue   = queue.Queue()
 _assistant_queue  = queue.Queue()
@@ -232,7 +232,7 @@ def _dictation_worker():
             text = transcriber.transcribe(item)
             if text:
                 log.debug("Raw: %r", text)
-                text = apply_symbols(text)
+                text = apply_replacements(text)
                 log.info("Transcribed: %r", text)
                 inject(text)
             else:

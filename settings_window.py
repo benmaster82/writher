@@ -26,7 +26,7 @@ from hotkey_util import (key_to_str, str_to_key, key_display_name, is_blocked,
                          canonical_modifier, hotkeys_equal)
 import theme as T
 
-_WIN_W, _WIN_H = 460, 580
+_WIN_W, _WIN_H = 460, 680
 _TITLE_H = 40
 
 # Whisper model options
@@ -83,6 +83,15 @@ class SettingsWindow:
         self._log_box = None
         self._log_refresh_btn = None
         self._log_refresh_job = None
+        # Symbol mode toggle
+        self._symbol_switch_var = None
+        self._symbol_switch = None
+        # Vocabulary editor
+        self._vocab_spoken_entry = None
+        self._vocab_written_entry = None
+        self._vocab_list_frame = None
+        # Priming terms
+        self._priming_entry = None
         # Callbacks
         self._cb_language_change = on_language_change
         self._cb_whisper_change = on_whisper_change
@@ -331,13 +340,13 @@ class SettingsWindow:
         )
         self._whisper_dropdown.pack(fill="x", pady=(0, T.PAD_M))
 
-        # Whisper hint (accuracy recommendation)
+        # Whisper hint (accuracy recommendation, only visible when
+        # Symbol & spelling mode is enabled — set by _sync_ui).
         self._whisper_hint = ctk.CTkLabel(
             pad, text=locales.get("setting_whisper_hint"),
             font=T.FONT_TINY, text_color=T.FG_DIM, anchor="w",
             wraplength=_WIN_W - 3 * T.PAD_L, justify="left",
         )
-        self._whisper_hint.pack(fill="x")
 
         # Whisper change note
         self._whisper_note = ctk.CTkLabel(
@@ -371,7 +380,91 @@ class SettingsWindow:
 
         self._build_separator(pad)
 
-        # ── 7. Log viewer ────────────────────────────────────────────
+        # ── 7. Symbol & spelling mode ────────────────────────────────
+        self._build_section_label(pad, locales.get("setting_symbol_mode"))
+
+        self._symbol_switch_var = tk.StringVar(
+            value="1" if db.get_setting("symbol_mode", "0") == "1" else "0")
+        self._symbol_switch = ctk.CTkSwitch(
+            pad, text="", variable=self._symbol_switch_var,
+            onvalue="1", offvalue="0",
+            command=self._on_symbol_mode_toggle,
+            fg_color=T.BG_INPUT, progress_color=T.ACCENT,
+            button_color=T.FG, button_hover_color=T.ACCENT_HOVER,
+        )
+        self._symbol_switch.pack(anchor="w", pady=(0, T.PAD_S))
+
+        ctk.CTkLabel(
+            pad, text=locales.get("setting_symbol_mode_hint"),
+            font=T.FONT_TINY, text_color=T.FG_DIM, anchor="w",
+            wraplength=_WIN_W - 3 * T.PAD_L, justify="left",
+        ).pack(fill="x", pady=(0, T.PAD_M))
+
+        self._build_separator(pad)
+
+        # ── 8. Custom vocabulary (Layer A) ───────────────────────────
+        self._build_section_label(pad, locales.get("setting_vocabulary"))
+
+        vocab_input_row = ctk.CTkFrame(pad, fg_color="transparent")
+        vocab_input_row.pack(fill="x", pady=(0, T.PAD_S))
+
+        self._vocab_spoken_entry = ctk.CTkEntry(
+            vocab_input_row, font=T.FONT_SMALL, height=32,
+            corner_radius=6, fg_color=T.BG_CARD, border_color=T.BORDER,
+            text_color=T.FG,
+            placeholder_text=locales.get("setting_vocab_spoken"),
+        )
+        self._vocab_spoken_entry.pack(side="left", fill="x", expand=True,
+                                      padx=(0, T.PAD_S))
+
+        self._vocab_written_entry = ctk.CTkEntry(
+            vocab_input_row, font=T.FONT_SMALL, height=32,
+            corner_radius=6, fg_color=T.BG_CARD, border_color=T.BORDER,
+            text_color=T.FG,
+            placeholder_text=locales.get("setting_vocab_written"),
+        )
+        self._vocab_written_entry.pack(side="left", fill="x", expand=True,
+                                       padx=(0, T.PAD_S))
+
+        ctk.CTkButton(
+            vocab_input_row, text=locales.get("setting_vocab_add"),
+            width=64, height=32, corner_radius=6,
+            fg_color=T.BG_CARD, hover_color=T.BG_HOVER,
+            border_color=T.BORDER, border_width=1, text_color=T.FG,
+            font=T.FONT_SMALL, command=self._on_vocab_add,
+        ).pack(side="right")
+
+        self._vocab_list_frame = ctk.CTkFrame(pad, fg_color="transparent")
+        self._vocab_list_frame.pack(fill="x", pady=(0, T.PAD_M))
+        self._refresh_vocab_list()
+
+        self._build_separator(pad)
+
+        # ── 9. Priming terms ─────────────────────────────────────────
+        self._build_section_label(pad, locales.get("setting_priming"))
+
+        self._priming_entry = ctk.CTkTextbox(
+            pad, height=60, font=T.FONT_SMALL,
+            fg_color=T.BG_CARD, text_color=T.FG,
+            border_color=T.BORDER, border_width=1,
+            corner_radius=6, wrap="word",
+        )
+        self._priming_entry.pack(fill="x", pady=(0, T.PAD_S))
+        # Preload existing terms
+        existing = ", ".join(db.list_priming_terms())
+        if existing:
+            self._priming_entry.insert("1.0", existing)
+        self._priming_entry.bind("<FocusOut>", lambda e: self._on_priming_save())
+
+        ctk.CTkLabel(
+            pad, text=locales.get("setting_priming_hint"),
+            font=T.FONT_TINY, text_color=T.FG_DIM, anchor="w",
+            wraplength=_WIN_W - 3 * T.PAD_L, justify="left",
+        ).pack(fill="x", pady=(0, T.PAD_M))
+
+        self._build_separator(pad)
+
+        # ── 10. Log viewer ───────────────────────────────────────────
         log_header = ctk.CTkFrame(pad, fg_color="transparent")
         log_header.pack(fill="x", pady=(0, T.PAD_S))
 
@@ -484,6 +577,10 @@ class SettingsWindow:
         if self._hk_assist_btn:
             self._hk_assist_btn.configure(text=key_display_name(config.ASSISTANT_HOTKEY))
 
+        # Symbol mode hint visibility follows the toggle state
+        symbol_on = db.get_setting("symbol_mode", "0") == "1"
+        self._update_whisper_hint_visibility(symbol_on)
+
     def _fetch_and_update_ollama_models(self):
         """Fetch Ollama models in background thread, update dropdown on main thread."""
         models = _fetch_ollama_models()
@@ -591,6 +688,74 @@ class SettingsWindow:
                 if self._cb_language_change:
                     self._cb_language_change(code)
                 return
+
+    # ── Symbol mode / vocabulary / priming ────────────────────────────────
+
+    def _on_symbol_mode_toggle(self):
+        enabled = self._symbol_switch_var.get() == "1"
+        db.save_setting("symbol_mode", "1" if enabled else "0")
+        log.info("Symbol & spelling mode: %s", "ON" if enabled else "OFF")
+        self._update_whisper_hint_visibility(enabled)
+
+    def _update_whisper_hint_visibility(self, enabled: bool):
+        if not self._whisper_hint:
+            return
+        if enabled:
+            self._whisper_hint.pack(fill="x")
+        else:
+            self._whisper_hint.pack_forget()
+
+    def _on_vocab_add(self):
+        spoken = self._vocab_spoken_entry.get().strip()
+        written = self._vocab_written_entry.get().strip()
+        if not spoken or not written:
+            return
+        db.save_vocabulary_entry(spoken, written)
+        log.info("Vocabulary entry saved: %r → %r", spoken, written)
+        self._vocab_spoken_entry.delete(0, "end")
+        self._vocab_written_entry.delete(0, "end")
+        self._refresh_vocab_list()
+
+    def _refresh_vocab_list(self):
+        if not self._vocab_list_frame:
+            return
+        for child in self._vocab_list_frame.winfo_children():
+            child.destroy()
+        entries = db.list_vocabulary()
+        if not entries:
+            ctk.CTkLabel(
+                self._vocab_list_frame,
+                text=locales.get("setting_vocab_empty"),
+                font=T.FONT_TINY, text_color=T.FG_DIM, anchor="w",
+            ).pack(fill="x")
+            return
+        for spoken, written in sorted(entries):
+            row = ctk.CTkFrame(self._vocab_list_frame, fg_color="transparent")
+            row.pack(fill="x", pady=1)
+            ctk.CTkLabel(
+                row, text=f"{spoken}  →  {written}",
+                font=T.FONT_SMALL, text_color=T.FG, anchor="w",
+            ).pack(side="left", fill="x", expand=True)
+            ctk.CTkButton(
+                row, text="✕", width=28, height=24, corner_radius=4,
+                fg_color="transparent", hover_color=T.CLOSE_HOVER,
+                border_color=T.BORDER, border_width=1,
+                text_color=T.FG_DIM, font=(T.FONT_FAMILY, 12),
+                command=lambda s=spoken: self._on_vocab_delete(s),
+            ).pack(side="right")
+
+    def _on_vocab_delete(self, spoken: str):
+        db.delete_vocabulary_entry(spoken)
+        log.info("Vocabulary entry deleted: %r", spoken)
+        self._refresh_vocab_list()
+
+    def _on_priming_save(self):
+        if not self._priming_entry:
+            return
+        raw = self._priming_entry.get("1.0", "end").strip()
+        terms = [t.strip() for t in raw.split(",") if t.strip()]
+        db.replace_priming_terms(terms)
+        log.info("Priming terms saved (%d).", len(terms))
 
     # ── Hotkey capture ────────────────────────────────────────────────────
 

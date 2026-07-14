@@ -2,6 +2,7 @@ import numpy as np
 from faster_whisper import WhisperModel
 import config
 from logger import log
+from replacements import get_initial_prompt
 
 
 class Transcriber:
@@ -20,6 +21,7 @@ class Transcriber:
             language=config.LANGUAGE,
             beam_size=5,
             vad_filter=True,
+            initial_prompt=get_initial_prompt(),
         )
         text = " ".join(seg.text.strip() for seg in segments)
         return text.strip()

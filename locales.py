@@ -131,6 +131,18 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
 
         # settings_window.py — log viewer
         "setting_log":              "Log",
+
+        # settings_window.py — replacements
+        "setting_symbol_mode":      "Symbol & spelling mode",
+        "setting_symbol_mode_hint": "When on, spoken symbols and digits are substituted and letter-by-letter spelling is glued.",
+        "setting_vocabulary":       "Custom vocabulary",
+        "setting_vocab_spoken":     "Spoken form",
+        "setting_vocab_written":    "Written form",
+        "setting_vocab_add":        "Add",
+        "setting_vocab_delete":     "Delete",
+        "setting_vocab_empty":      "No entries yet",
+        "setting_priming":          "Priming terms (best-effort)",
+        "setting_priming_hint":     "Comma-separated hints joined into faster-whisper's initial prompt. Best-effort.",
     },
 
     "it": {
@@ -244,6 +256,17 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
 
         # settings_window.py — log viewer
         "setting_log":              "Log",
+
+        "setting_symbol_mode":      "Modalità Simboli e ortografia",
+        "setting_symbol_mode_hint": "Se attiva, i simboli parlati e le cifre vengono sostituiti e la scansione lettera per lettera viene unita.",
+        "setting_vocabulary":       "Vocabolario personalizzato",
+        "setting_vocab_spoken":     "Forma parlata",
+        "setting_vocab_written":    "Forma scritta",
+        "setting_vocab_add":        "Aggiungi",
+        "setting_vocab_delete":     "Elimina",
+        "setting_vocab_empty":      "Nessuna voce",
+        "setting_priming":          "Termini di priming (best-effort)",
+        "setting_priming_hint":     "Suggerimenti separati da virgola inseriti nell'initial prompt di faster-whisper. Best-effort.",
     },
 
     "de": {
@@ -352,6 +375,17 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "setting_hotkey_conflict":  "Bereits belegt",
 
         "setting_log":              "Log",
+
+        "setting_symbol_mode":      "Symbol- & Buchstabiermodus",
+        "setting_symbol_mode_hint": "Wenn aktiv, werden gesprochene Symbole und Zahlen ersetzt und einzelne Buchstaben zusammengefügt.",
+        "setting_vocabulary":       "Benutzerdefiniertes Vokabular",
+        "setting_vocab_spoken":     "Gesprochene Form",
+        "setting_vocab_written":    "Geschriebene Form",
+        "setting_vocab_add":        "Hinzufügen",
+        "setting_vocab_delete":     "Löschen",
+        "setting_vocab_empty":      "Noch keine Einträge",
+        "setting_priming":          "Priming-Begriffe (best-effort)",
+        "setting_priming_hint":     "Komma-getrennte Hinweise für faster-whispers initial_prompt. Best-effort.",
     },
 }
 
