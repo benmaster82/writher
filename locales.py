@@ -77,6 +77,8 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "show_appointments":    "📅 Here is your agenda",
         "show_reminders":       "⏰ Here are your reminders",
         "assistant_error":      "Assistant error",
+        "ollama_unreachable_title": "Writher — assistant unavailable",
+        "ollama_unreachable_body":  "Ollama is not running — assistant mode unavailable",
 
         # tray_icon.py
         "tray_idle":            "Writher — idle",
@@ -116,6 +118,10 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "setting_ollama_model":     "Ollama model",
         "setting_ollama_url":       "Ollama URL",
         "setting_whisper_model":    "Whisper model",
+        "setting_whisper_hint":     "Recommended: 'small' or larger for reliable Symbol & spelling mode phrases",
+        "setting_recognition_lang": "Recognition language",
+        "setting_recognition_auto": "Auto",
+        "setting_recognition_hint": "Symbol phrases are English-only; enabling Symbol & spelling mode with a non-English recognition language may miss substitutions.",
         "setting_language":         "Language",
         "setting_restart_required": "Restart required to apply",
 
@@ -125,6 +131,23 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "setting_hotkey_assistant": "Assistant",
         "setting_hotkey_press":     "Press a key...",
         "setting_hotkey_conflict":  "Already in use",
+
+        # settings_window.py — log viewer
+        "setting_log":              "Log",
+
+        # settings_window.py — replacements
+        "setting_keep_clipboard":       "Keep transcript in clipboard",
+        "setting_keep_clipboard_hint":  "When on, skip restoring the previous clipboard so the transcribed text stays available for re-paste.",
+        "setting_symbol_mode":      "Symbol & spelling mode",
+        "setting_symbol_mode_hint": "When on, spoken symbols and digits are substituted and letter-by-letter spelling is glued.",
+        "setting_vocabulary":       "Custom vocabulary",
+        "setting_vocab_spoken":     "Spoken form",
+        "setting_vocab_written":    "Written form",
+        "setting_vocab_add":        "Add",
+        "setting_vocab_delete":     "Delete",
+        "setting_vocab_empty":      "No entries yet",
+        "setting_priming":          "Priming terms (best-effort)",
+        "setting_priming_hint":     "Comma-separated hints joined into faster-whisper's initial prompt. Best-effort.",
     },
 
     "it": {
@@ -187,6 +210,8 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "show_appointments":    "📅 Ecco l'agenda",
         "show_reminders":       "⏰ Ecco i reminder",
         "assistant_error":      "Errore assistente",
+        "ollama_unreachable_title": "Writher — assistente non disponibile",
+        "ollama_unreachable_body":  "Ollama non è in esecuzione — modalità assistente non disponibile",
 
         "tray_idle":            "Writher — inattivo",
         "tray_recording":       "Writher — registrazione...",
@@ -223,6 +248,10 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "setting_ollama_model":     "Modello Ollama",
         "setting_ollama_url":       "URL Ollama",
         "setting_whisper_model":    "Modello Whisper",
+        "setting_whisper_hint":     "Consigliato: 'small' o superiore per frasi affidabili della modalità Simboli e ortografia",
+        "setting_recognition_lang": "Lingua di riconoscimento",
+        "setting_recognition_auto": "Auto",
+        "setting_recognition_hint": "Le frasi dei simboli sono solo in inglese; attivando la modalità Simboli e ortografia con un'altra lingua di riconoscimento potrebbero mancare delle sostituzioni.",
         "setting_language":         "Lingua",
         "setting_restart_required": "Riavvio necessario per applicare",
 
@@ -232,6 +261,146 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "setting_hotkey_assistant": "Assistente",
         "setting_hotkey_press":     "Premi un tasto...",
         "setting_hotkey_conflict":  "Già in uso",
+
+        # settings_window.py — log viewer
+        "setting_log":              "Log",
+
+        "setting_keep_clipboard":       "Mantieni la trascrizione negli appunti",
+        "setting_keep_clipboard_hint":  "Se attivo, salta il ripristino degli appunti precedenti così il testo trascritto rimane disponibile per essere reincollato.",
+        "setting_symbol_mode":      "Modalità Simboli e ortografia",
+        "setting_symbol_mode_hint": "Se attiva, i simboli parlati e le cifre vengono sostituiti e la scansione lettera per lettera viene unita.",
+        "setting_vocabulary":       "Vocabolario personalizzato",
+        "setting_vocab_spoken":     "Forma parlata",
+        "setting_vocab_written":    "Forma scritta",
+        "setting_vocab_add":        "Aggiungi",
+        "setting_vocab_delete":     "Elimina",
+        "setting_vocab_empty":      "Nessuna voce",
+        "setting_priming":          "Termini di priming (best-effort)",
+        "setting_priming_hint":     "Suggerimenti separati da virgola inseriti nell'initial prompt di faster-whisper. Best-effort.",
+    },
+
+    "de": {
+        "note_saved":           "Notiz gespeichert (#{nid})",
+        "list_saved":           "Liste '{title}' gespeichert ({count} Einträge)",
+        "added_to_list":        "Zu '{title}' hinzugefügt",
+        "list_not_found":       "Liste '{title}' nicht gefunden",
+        "note_not_found":       "Notiz mit '{keyword}' nicht gefunden",
+        "note_deleted":         "Notiz '{title}' gelöscht (#{nid})",
+        "appointment_created":  "Termin erstellt: {title} ({dt})",
+        "appointment_not_found": "Termin mit '{keyword}' nicht gefunden",
+        "appointment_deleted":   "Termin '{title}' gelöscht (#{aid})",
+        "reminder_not_found":   "Erinnerung mit '{keyword}' nicht gefunden",
+        "reminder_deleted":     "Erinnerung '{message}' gelöscht (#{rid})",
+        "reminder_set":         "Erinnerung gesetzt: {dt}",
+        "delete_confirm_prompt": "Sagen Sie ja innerhalb von {seconds}s, um dieses {item} zu löschen",
+        "delete_confirm_repeat": "Bitte sagen Sie ja oder nein ({seconds}s verbleiben)",
+        "delete_confirm_timeout": "Löschbestätigung abgelaufen",
+        "delete_cancelled":      "Löschen abgebrochen",
+        "delete_item_missing":   "{item} wurde nicht gefunden",
+        "delete_item_note":      "Notiz",
+        "delete_item_appointment": "Termin",
+        "delete_item_reminder":  "Erinnerung",
+        "confirm_delete_title":  "{item} löschen bestätigen",
+        "field_name":            "Name",
+        "field_created":         "Erstellt",
+        "field_event":           "Ereignis",
+        "field_remind":          "Erinnern am",
+        "confirm_delete_warning": "Diese Aktion kann nicht rückgängig gemacht werden.",
+        "btn_cancel":            "Abbrechen",
+        "btn_delete":            "Löschen",
+        "listening_for_confirm": "Warte auf Sprachbestätigung...",
+        "unknown_command":      "Unbekannter Befehl: {name}",
+        "error":                "Fehler: {detail}",
+        "not_understood":       "Ich habe den Befehl nicht verstanden",
+        "delete_confirmations": (
+            "ja", "jep", "jo", "klar", "ok", "okay",
+            "bestätigen", "bestätigt", "mach es", "los", "weiter",
+            "löschen", "lösch es",
+        ),
+        "delete_rejections": (
+            "nein", "nope", "nö", "abbrechen", "stopp", "halt",
+            "nicht löschen", "behalten", "egal", "vergiss es",
+        ),
+
+        "system_prompt": (
+            "You are Writher, a voice assistant for productivity. "
+            "Current date and time: {now} ({weekday}). "
+            "The user speaks in {lang_name}. "
+            "Interpret their request and call the appropriate function. "
+            "When the user says relative times like 'morgen', 'in einer Stunde', "
+            "'nächsten Montag', convert them to absolute ISO datetimes. "
+            "Always respond by calling a function — never reply with plain text "
+            "unless no function fits."
+        ),
+        "lang_name": "German",
+
+        "show_notes":           "📝 Hier sind Ihre Notizen",
+        "show_appointments":    "📅 Hier ist Ihre Agenda",
+        "show_reminders":       "⏰ Hier sind Ihre Erinnerungen",
+        "assistant_error":      "Assistentenfehler",
+        "ollama_unreachable_title": "Writher — Assistent nicht verfügbar",
+        "ollama_unreachable_body":  "Ollama läuft nicht — Assistentenmodus nicht verfügbar",
+
+        "tray_idle":            "Writher — bereit",
+        "tray_recording":       "Writher — Aufnahme...",
+        "tray_ollama_down":     "Writher — Ollama nicht erreichbar",
+        "tray_notes_agenda":    "Notizen & Agenda",
+        "tray_quit":            "Beenden",
+
+        "no_notes":             "Keine Notizen",
+        "no_appointments":      "Keine Termine",
+        "no_reminders":         "Keine Erinnerungen",
+        "tab_notes":            "📝  Notizen",
+        "tab_agenda":           "📅  Agenda",
+        "tab_reminders":        "⏰  Erinnerungen",
+        "default_list_title":   "Liste",
+        "default_note_title":   "Notiz",
+
+        "reminder_toast_title":     "Writher Erinnerung",
+        "appointment_toast_title":  "Writher Termin",
+        "appointment_toast_body":   "📅 {title} — in {minutes} Min.",
+        "appointment_toast_now":    "📅 {title} — jetzt!",
+
+        "tray_settings":            "Einstellungen",
+
+        "settings_title":           "Einstellungen",
+        "setting_record_mode":      "Aufnahmemodus",
+        "setting_hold":             "Halten zum Aufnehmen",
+        "setting_toggle":           "Drücken zum Starten / Stoppen",
+        "setting_max_duration":     "Max. Aufnahmedauer (Sekunden)",
+        "setting_saved":            "Einstellungen gespeichert",
+        "setting_microphone":       "Mikrofon",
+        "setting_mic_default":      "Systemstandard",
+        "setting_ollama_model":     "Ollama-Modell",
+        "setting_ollama_url":       "Ollama-URL",
+        "setting_whisper_model":    "Whisper-Modell",
+        "setting_whisper_hint":     "Empfohlen: 'small' oder größer für zuverlässige Phrasen im Symbol- & Buchstabiermodus",
+        "setting_recognition_lang": "Erkennungssprache",
+        "setting_recognition_auto": "Auto",
+        "setting_recognition_hint": "Symbol-Phrasen sind nur auf Englisch verfügbar; im Symbol- & Buchstabiermodus mit einer anderen Erkennungssprache können Ersetzungen fehlen.",
+        "setting_language":         "Sprache",
+        "setting_restart_required": "Neustart erforderlich",
+
+        "setting_hotkeys":          "Tastenkürzel",
+        "setting_hotkey_dictation": "Diktat",
+        "setting_hotkey_assistant": "Assistent",
+        "setting_hotkey_press":     "Taste drücken...",
+        "setting_hotkey_conflict":  "Bereits belegt",
+
+        "setting_log":              "Log",
+
+        "setting_keep_clipboard":       "Transkript in der Zwischenablage behalten",
+        "setting_keep_clipboard_hint":  "Wenn aktiv, wird der vorherige Inhalt der Zwischenablage nicht wiederhergestellt — der transkribierte Text bleibt zum erneuten Einfügen verfügbar.",
+        "setting_symbol_mode":      "Symbol- & Buchstabiermodus",
+        "setting_symbol_mode_hint": "Wenn aktiv, werden gesprochene Symbole und Zahlen ersetzt und einzelne Buchstaben zusammengefügt.",
+        "setting_vocabulary":       "Benutzerdefiniertes Vokabular",
+        "setting_vocab_spoken":     "Gesprochene Form",
+        "setting_vocab_written":    "Geschriebene Form",
+        "setting_vocab_add":        "Hinzufügen",
+        "setting_vocab_delete":     "Löschen",
+        "setting_vocab_empty":      "Noch keine Einträge",
+        "setting_priming":          "Priming-Begriffe (best-effort)",
+        "setting_priming_hint":     "Komma-getrennte Hinweise für faster-whispers initial_prompt. Best-effort.",
     },
 }
 

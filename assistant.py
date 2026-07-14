@@ -343,7 +343,7 @@ def ping_ollama() -> bool:
     if requests is None:
         return False
     try:
-        resp = requests.get(f"{config.OLLAMA_URL}/api/tags", timeout=5)
+        resp = requests.get(f"{config.OLLAMA_URL}/api/tags", timeout=2)
         return resp.status_code == 200
     except Exception:
         return False

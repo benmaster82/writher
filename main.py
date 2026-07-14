@@ -35,9 +35,11 @@ import assistant
 import config
 import database as db
 import locales
+import notifier
 from notifier import ReminderScheduler
 from notes_window import NotesWindow
 from settings_window import SettingsWindow
+from replacements import apply_replacements
 
 _pipeline_queue   = queue.Queue()
 _assistant_queue  = queue.Queue()
@@ -72,6 +74,9 @@ def _load_settings():
     hold = db.get_setting("hold_to_record", "")
     if hold != "":
         config.HOLD_TO_RECORD = hold == "1"
+    keep_clip = db.get_setting("keep_transcript_in_clipboard", "")
+    if keep_clip != "":
+        config.KEEP_TRANSCRIPT_IN_CLIPBOARD = keep_clip == "1"
     max_sec = db.get_setting("max_record_seconds", "")
     if max_sec != "":
         try:
@@ -93,6 +98,9 @@ def _load_settings():
     lang = db.get_setting("language", "")
     if lang:
         config.LANGUAGE = lang
+    wlang = db.get_setting("whisper_language", "")
+    if wlang != "":
+        config.WHISPER_LANGUAGE = None if wlang == "auto" else wlang
 
     # Hotkeys
     hk_dict = db.get_setting("hotkey_dictation", "")
@@ -229,6 +237,8 @@ def _dictation_worker():
             log.info("Transcribing (dictation)...")
             text = transcriber.transcribe(item)
             if text:
+                log.debug("Raw: %r", text)
+                text = apply_replacements(text)
                 log.info("Transcribed: %r", text)
                 inject(text)
             else:
@@ -419,6 +429,18 @@ def _assistant_worker():
             log.info("Assistant heard: %r", text)
             result = _handle_pending_delete_confirmation(text)
             if result is None:
+                if not assistant.ping_ollama():
+                    log.warning("Ollama unreachable at %s — aborting assistant call.",
+                                config.OLLAMA_URL)
+                    notifier.notify(
+                        locales.get("ollama_unreachable_title"),
+                        locales.get("ollama_unreachable_body"),
+                    )
+                    if widget:
+                        widget.set_expression("error")
+                        widget.show_message(
+                            locales.get("ollama_unreachable_body"), 3000)
+                    continue
                 result = assistant.process(text)
             log.info("Assistant result: %s", result)
 
@@ -546,9 +568,21 @@ def _destroy_root():
         pass
 
 
+def _acquire_instance_lock():
+    """Return a Win32 mutex handle if this is the first instance, else exit."""
+    import ctypes
+    mutex = ctypes.windll.kernel32.CreateMutexW(None, True, "Local\\WritHerSingleInstance")
+    if ctypes.windll.kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
+        log.error("Another instance of WritHer is already running. Exiting.")
+        raise SystemExit(1)
+    return mutex  # keep reference so it isn't garbage-collected
+
+
 def main():
     global transcriber, tray, widget, root, notes_win, settings_win, scheduler
     global hotkey_listener
+
+    _mutex = _acquire_instance_lock()
 
     db.init()
     _load_settings()
@@ -566,11 +600,7 @@ def main():
     tray = TrayIcon(on_quit=_quit, on_show_notes=_show_notes,
                     on_show_settings=_show_settings)
     tray.start()
-
-    # Check Ollama connectivity at startup
-    if not assistant.ping_ollama():
-        log.warning("Ollama is not reachable at %s", config.OLLAMA_URL)
-        tray.set_tooltip(locales.get("tray_ollama_down"))
+    tray.set_tooltip(locales.get("tray_idle"))
 
     transcriber = Transcriber()
 
@@ -590,7 +620,7 @@ def main():
     )
     hotkey_listener.start()
 
-    log.info("Ready. AltGr=dictate, Ctrl+R=assistant.")
+    log.info("Ready. AltGr=dictate, Ctrl+Alt+R=assistant.")
     root.mainloop()
 
 

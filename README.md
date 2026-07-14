@@ -5,7 +5,7 @@
 <h1 align="center">WritHer</h1>
 
 <p align="center">
-  <strong>Offline voice assistant & dictation tool for Windows (Python) - dictate text anywhere or manage notes, appointments and reminders hands-free.</strong>
+  <strong>Offline voice dictation &amp; voice assistant for Windows — paste text anywhere, manage notes &amp; reminders hands-free, and speak symbols &amp; code directly (say <em>forward slash</em>, <em>dash</em>, <em>one two three</em> → <code>/</code> <code>-</code> <code>123</code>).</strong>
 </p>
 
 <p align="center">
@@ -26,6 +26,14 @@
 
 ## 🆕 What's New
 
+- 📚 **Custom vocabulary** — teach WritHer to render your spoken jargon or acronyms as their written form. Case-insensitive whole-word matching, multi-word spoken forms supported. Priming terms also feed faster-whisper's `initial_prompt` to nudge recognition.
+- 🔢 **Symbol & spelling mode (opt-in)** — enable in Settings and say "forward slash", "dash", "semicolon", or number words to get actual characters. Spell code letter-by-letter: *"W H forward slash F A T"* → `WH/FAT`. Contractions (`don't`, `we're`) stay intact and prose is never mangled.
+- 🌐 **Recognition language dropdown** — pick Whisper's language independently of the UI: `Auto` (default), `en`, `it`, `de`. The detected language is logged for every clip.
+- 📋 **Clipboard restore (default)** — your clipboard is saved before paste and restored after. Optional toggle keeps the transcript in the clipboard for re-pasting.
+- 🔒 **Single-instance lock (per-session)** — launching a second copy exits immediately. Now scoped to the current Windows user so it does not block other users on the same machine.
+- 🎨 **Per-mode colour themes** — dictation widget renders in cyan, assistant in violet.
+- ⌨️ **Combo hotkeys** — assistant hotkey is now `Ctrl+Alt+R` (avoids browser conflicts). Settings window captures live key combos.
+- 📜 **Log viewer in Settings** — tail the latest log lines directly from the Settings window.
 - 🗑️ **Delete by voice** - say "delete the dentist appointment" or "remove the shopping list" and WritHer finds and removes it. Voice confirmation required before any deletion (15s timeout).
 - ⌨️ **Customizable hotkeys** - change dictation and assistant shortcuts from Settings. Press the ⌨ button, hit any key, done. No restart needed.
 - 🎙️ **Microphone selection** - pick your input device from Settings, with hot-plug refresh
@@ -38,12 +46,12 @@
 - 🔌 **Reliable mic switching** - select any microphone (USB, Bluetooth, AirPods) from Settings and switch on the fly without restart. Tested with Bluetooth HFP devices.
 - 📦 **Standalone exe** - download and run, no Python installation required. Whisper model downloads automatically on first launch.
 - ⚙️ **Full Settings panel** - Ollama model/URL, Whisper model, language, microphone, recording mode - all configurable from the tray menu.
-- 🎯 **Toggle mode fix** - resolved issue where Ctrl+R required double-press to start recording. Added debounce to prevent key-repeat interference.
+- 🎯 **Toggle mode fix** - resolved issue where Ctrl+Alt+R required double-press to start recording. Added debounce to prevent key-repeat interference.
 - 🎤 **Sample rate fix** - microphones with 48kHz default (e.g. Logitech C310) now work correctly. Audio is recorded at 16kHz when possible, resampled if not.
 - 📁 **Portable data paths** - database, logs, and recovery files stored in %APPDATA%/WritHer when running as exe, preventing permission issues.
 - ✓ **Cleaner widget feedback** - assistant confirmations show minimal icons instead of long text that overflowed the widget.
 
-> 💬 **Feedback welcome!** If you test WritHer with different microphones or setups, please [open an issue](https://github.com/benmaster82/writher/issues) and let us know how it goes. Your feedback helps improve the app for everyone.
+> 💬 **Feedback welcome!** If you test WritHer with different microphones or setups, please [open an issue](https://github.com/rusty-bit/writher/issues) and let us know how it goes. Your feedback helps improve the app for everyone.
 
 ---
 
@@ -53,8 +61,8 @@ WritHer sits quietly in your system tray and gives you two super-powers:
 
 | Mode | Hotkey (default) | What it does |
 |---|---|---|
-| **Dictation** | `AltGr` | Transcribes your voice and pastes the text directly into whichever app has focus - editors, browsers, chat windows, anything. |
-| **Assistant** | `Ctrl+R` | Understands natural-language commands and saves notes, creates appointments, sets reminders, manages lists - all by voice. |
+| **Dictation** | `AltGr` | Transcribes your voice and pastes the text directly into whichever app has focus - editors, browsers, chat windows, anything. Optional Symbol & spelling mode substitutes spoken symbols and digits. |
+| **Assistant** | `Ctrl+Alt+R` | Understands natural-language commands and saves notes, creates appointments, sets reminders, manages lists - all by voice. |
 
 Both hotkeys are **fully customizable** from the Settings window, click the ⌨ button next to each shortcut and press your preferred key. The change takes effect immediately, no restart required.
 
@@ -71,18 +79,24 @@ Everything runs **locally**: speech recognition via [faster-whisper](https://git
 
 ## Features
 
-- **Real-time dictation** - speak and text appears. Supports both hold-to-record and toggle (press to start/stop) modes. Clipboard is saved and restored automatically.
+- **Real-time dictation** - speak and text appears. Supports both hold-to-record and toggle (press to start/stop) modes. Clipboard is saved and restored automatically (opt-in toggle to keep the transcript in the clipboard).
+- **Custom vocabulary** - a user-defined map of `spoken form → written form`, applied whole-word and case-insensitively before any symbol substitution. Multi-word spoken forms and longest-first precedence are supported. Editable from Settings and persisted in the SQLite DB.
+- **Priming terms** - a free-text list joined into faster-whisper's `initial_prompt` to bias recognition toward domain terms. Labelled best-effort in the UI hint.
+- **Symbol & spelling mode (opt-in)** - toggle in Settings. When ON, spoken symbol names and number words are substituted (*"W H forward slash F A T"* → `WH/FAT`, *"one two three"* → `123`, *"semicolon"* → `;`) and letter-by-letter spelling is glued. Contractions like `don't` are preserved and prose is never mangled: multi-character words on either side of a symbol block gluing.
+- **Recognition language** - independent of the UI language. Set to `Auto` (default) to let Whisper detect each clip, or pin to `en` / `it` / `de`.
 - **Voice-controlled assistant** - save notes, create shopping/todo lists, schedule appointments, set reminders, and delete items by voice. All through natural speech.
 - **Voice delete with confirmation** - say "delete the shopping list" or "remove the dentist appointment". WritHer finds the item by keyword and asks for voice confirmation before deleting. 15-second timeout for safety.
 - **Smart date parsing** - say *"remind me tomorrow at 9"* or *"meeting next Monday at 3pm"* and the LLM converts relative times to absolute datetimes.
 - **Toast notifications** - get Windows notifications when reminders fire or appointments are approaching.
-- **Animated floating widget** - a minimal pill-shaped overlay with expressive "Pandora Blackboard" eyes that react to state (listening, thinking, happy, error, etc.).
+- **Animated floating widget** - a minimal pill-shaped overlay with expressive "Pandora Blackboard" eyes that react to state (listening, thinking, happy, error, etc.). Cyan for dictation, violet for assistant.
 - **Notes & Agenda window** - a dark-themed resizable window to browse, check off list items, and delete notes/appointments/reminders. Supports maximize/restore and drag-to-resize.
 - **Settings window** - configure recording mode, max recording duration, keyboard shortcuts, and microphone device directly from the system tray. All settings are persisted across restarts.
-- **Customizable hotkeys** - reassign dictation and assistant keys from the Settings window. Blocked keys (Enter, Space, letters) are rejected, and duplicate detection prevents conflicts.
+- **Customizable combo hotkeys** - reassign dictation and assistant keys (including multi-key combos like `Ctrl+Alt+R`) from the Settings window. Blocked keys are rejected, duplicate detection prevents conflicts.
 - **Microphone selection** - choose your input device from a dropdown in Settings. Supports hot-plug detection with a refresh button - no restart needed.
+- **Single-instance protection** - a per-session mutex prevents two copies running at once, eliminating the double-paste bug.
 - **Modern UI** - built with CustomTkinter and a unified "Pandora Blackboard" theme (pure black + bright white) defined in a single `theme.py` file.
-- **Multi-language** - ships with English and Italian; easy to add more via the `locales.py` string table.
+- **Multi-language UI** - ships with English, Italian and German; easy to add more via the `locales.py` string table.
+- **Log viewer** - the Settings window tails the latest lines of `writher.log` for quick diagnostics.
 - **Fully offline** - no internet required after model download.
 
 ---
@@ -104,14 +118,14 @@ Everything runs **locally**: speech recognition via [faster-whisper](https://git
 │  │ (Whisper) │               │ (Whisper) │           │
 │  └─────┬─────┘               └─────┬─────┘           │
 │        ▼                           ▼                 │
-│   injector                    assistant              │
-│  (clipboard                  (Ollama LLM             │
-│   + Ctrl+V)                  + function calls)       │
-│                                    │                 │
-│                                    ▼                 │
-│                               database               │
-│                              (SQLite)                │
-│                                    │                 │
+│  replacements.py             assistant              │
+│  (user vocab +               (Ollama LLM             │
+│   opt-in symbols)            + function calls)       │
+│        │                           │                 │
+│        ▼                           ▼                 │
+│   injector                    database               │
+│  (clipboard                  (SQLite)                │
+│   + Ctrl+V)                        │                 │
 │                              notifier                │
 │                          (toast scheduler)            │
 └──────────────────────────────────────────────────────┘
@@ -122,9 +136,15 @@ Everything runs **locally**: speech recognition via [faster-whisper](https://git
 ## Requirements
 
 - **Windows 10/11**
-- **Ollama** running locally (for the assistant mode)
 - A working **microphone**
-- Internet connection on first launch (to download the Whisper speech model, ~74 MB)
+- Internet connection on first launch (to download the Whisper speech model)
+- **[Ollama](https://ollama.com)** installed and running locally (only required for assistant mode; dictation works without it)
+
+> **Ollama setup:** download and install from [ollama.com](https://ollama.com), then pull the configured model, for example:
+> ```
+> ollama pull llama3.1:8b
+> ```
+> Ollama runs as a background service on Windows. If the assistant hotkey is triggered while Ollama is not reachable, WritHer shows a toast notification and aborts the request — dictation is unaffected.
 
 ---
 
@@ -132,20 +152,19 @@ Everything runs **locally**: speech recognition via [faster-whisper](https://git
 
 ### Option A: Download the exe (recommended)
 
-1. Download `WritHer-v1.0.0-win64.zip` from the [latest release](https://github.com/benmaster82/writher/releases/latest)
+1. Download `WritHer-v1.2.0-win64.zip` from the [latest release](https://github.com/rusty-bit/writher/releases/latest)
 2. Extract to any folder
-3. Run `WritHer.exe`
-4. On first launch, the Whisper model will be downloaded automatically (you'll see the progress in the console window)
-5. Right-click the tray icon for **Settings** and **Notes & Agenda**
-
-> **Note:** Ollama must be installed and running for the voice assistant (Ctrl+R). Dictation (AltGr) works without Ollama.
+3. Install and start [Ollama](https://ollama.com) (only needed for assistant mode)
+4. Run `WritHer.exe`
+5. On first launch, the Whisper model is downloaded automatically
+6. Right-click the tray icon for **Settings** and **Notes & Agenda**
 
 ### Option B: Run from source
 
 #### 1. Clone the repository
 
 ```bash
-git clone https://github.com/benmaster82/writher.git
+git clone https://github.com/rusty-bit/writher.git
 cd writher
 ```
 
@@ -169,27 +188,13 @@ pip install faster-whisper numpy sounddevice pynput pystray Pillow requests wino
 > pip install plyer
 > ```
 
-### 4. Install and start Ollama
-
-Download from [ollama.com](https://ollama.com), then pull a model that supports function calling:
-
-```bash
-ollama pull llama3.1:8b
-```
-
-Update `config.py` with your model name:
-
-```python
-OLLAMA_MODEL = "llama3.1:8b"
-```
-
-### 5. Run
+#### 4. Run
 
 ```bash
 python main.py
 ```
 
-Writher appears in the system tray. Hold `AltGr` to dictate, hold `Ctrl+R` for assistant commands.
+Writher appears in the system tray. Hold `AltGr` to dictate, hold `Ctrl+Alt+R` for assistant commands. Make sure Ollama is running (`ollama serve` or the installed service) before invoking the assistant.
 
 ---
 
@@ -199,21 +204,27 @@ All settings live in **`config.py`**:
 
 ```python
 # Hotkeys (defaults — can be changed from Settings at runtime)
-HOTKEY = Key.alt_gr            # Dictation
-ASSISTANT_HOTKEY = Key.ctrl_r  # Assistant
+HOTKEY = Key.alt_gr                                          # Dictation
+ASSISTANT_HOTKEY = (frozenset({"ctrl", "alt"}), KeyCode.from_vk(82))  # Ctrl+Alt+R
 
-# Language ("en" or "it")
+# UI language ("en", "it" or "de") — controls interface strings only.
 LANGUAGE = "en"
+
+# Recognition language (Whisper). None = per-clip auto-detect.
+WHISPER_LANGUAGE = None
+
+# Clipboard behaviour after paste. False = restore previous clipboard.
+KEEP_TRANSCRIPT_IN_CLIPBOARD = False
 
 # Recording mode
 HOLD_TO_RECORD = True          # True = hold key, False = toggle (press/press)
 MAX_RECORD_SECONDS = 120       # Safety timeout for toggle mode (seconds)
 
 # Microphone
-MIC_DEVICE_INDEX = None        # None = system default, or device index (int)
+MIC_DEVICE_NAME = None         # None = system default, or device name (str)
 
 # Whisper
-MODEL_SIZE = "base"            # tiny, base, small, medium, large-v3
+MODEL_SIZE = "small"           # tiny, base, small (default), medium, large-v3
 DEVICE = "cpu"                 # "cpu" or "cuda"
 COMPUTE_TYPE = "int8"          # int8, float16, float32
 
@@ -225,17 +236,19 @@ OLLAMA_MODEL = "llama3.1:8b"
 APPOINTMENT_REMIND_MINUTES = 15
 ```
 
-> **Note:** `HOLD_TO_RECORD`, `MAX_RECORD_SECONDS`, `MIC_DEVICE_INDEX`, `HOTKEY`, and `ASSISTANT_HOTKEY` can also be changed at runtime from the **Settings** window in the system tray. Changes made there are persisted in the database and override `config.py` defaults.
+> **Note:** `HOLD_TO_RECORD`, `MAX_RECORD_SECONDS`, `MIC_DEVICE_NAME`, `HOTKEY`, and `ASSISTANT_HOTKEY` can also be changed at runtime from the **Settings** window in the system tray. Changes made there are persisted in the database and override `config.py` defaults.
 
 ### Choosing a Whisper model
 
 | Model | Size | Speed | Accuracy |
 |---|---|---|---|
 | `tiny` | 39 MB | ⚡ fastest | basic |
-| `base` | 74 MB | ⚡ fast | good (default) |
-| `small` | 244 MB | moderate | better |
+| `base` | 74 MB | ⚡ fast | good |
+| `small` | 244 MB | moderate | better **(default)** |
 | `medium` | 769 MB | slower | great |
 | `large-v3` | 1.5 GB | slowest | best |
+
+> The `small` model is the default because it handles symbol and code spelling (e.g. "forward slash") reliably. The `base` model can mishear multi-word phrases and is not recommended for code dictation.
 
 For CUDA acceleration, install `ctranslate2` with CUDA support and set `DEVICE = "cuda"`.
 
@@ -261,19 +274,47 @@ For CUDA acceleration, install `ctranslate2` with CUDA support and set `DEVICE =
 
 > In toggle mode, a safety timeout (configurable in Settings) will auto-stop the recording if you forget to press the key again.
 
+### Symbol & spelling mode
+
+Off by default. Enable the toggle in Settings to substitute spoken symbol names and number words, and to glue letter-by-letter spelling. Prose stays intact — the spacing compaction only fires when both neighbours of a symbol are single characters or digit sequences, so *"The 100 meter dash was thrilling"* becomes *"The 100 meter - was thrilling"* rather than gluing across words. Contractions like `don't` and `we're` are always preserved.
+
+| You say | You get |
+|---|---|
+| `forward slash` | `/` |
+| `back slash` | `\` |
+| `dash` / `hyphen` / `minus` | `-` |
+| `semicolon` | `;` |
+| `colon` | `:` |
+| `double colon` | `::` |
+| `underscore` | `_` |
+| `asterisk` | `*` |
+| `at sign` | `@` |
+| `hash sign` | `#` |
+| `open bracket` / `close bracket` | `(` / `)` |
+| `open curly` / `close curly` | `{` / `}` |
+| `open square` / `close square` | `[` / `]` |
+| `new line` | ↵ |
+| `one` `two` `three` … `nine` | `1` `2` `3` … `9` |
+
+Spell code identifiers letter-by-letter and spaces are removed automatically:
+
+- *"W H F A T"* → `WHFAT`
+- *"W H forward slash F A T"* → `WH/FAT`
+- *"one two three dash four five six"* → `123-456`
+
 ### Assistant mode
 
 **Hold mode** (default):
 
-1. **Hold** `Ctrl+R`
+1. **Hold** `Ctrl+Alt+R`
 2. Speak a command
 3. **Release** - Writher processes and confirms
 
 **Toggle mode:**
 
-1. **Press** `Ctrl+R` once to start recording
+1. **Press** `Ctrl+Alt+R` once to start recording
 2. Speak a command
-3. **Press** `Ctrl+R` again to stop - Writher processes and confirms
+3. **Press** `Ctrl+Alt+R` again to stop - Writher processes and confirms
 
 **Example commands:**
 
@@ -318,6 +359,7 @@ writher/
 ├── hotkey_util.py       # Hotkey serialisation, display names, and validation
 ├── recorder.py          # Microphone recording (sounddevice)
 ├── transcriber.py       # Speech-to-text (faster-whisper)
+├── replacements.py      # Two-layer post-processing (user vocab + opt-in symbols)
 ├── injector.py          # Clipboard paste into active app (Win32 API)
 ├── assistant.py         # Ollama LLM integration + function calling
 ├── database.py          # SQLite storage (notes, appointments, reminders, settings)
@@ -329,9 +371,12 @@ writher/
 ├── brand.py             # "Pandora Blackboard" icon renderer
 ├── theme.py             # Unified colour palette and font definitions
 ├── locales.py           # i18n string tables (EN, IT)
+├── paths.py             # Data-directory resolution (source vs frozen exe)
 ├── logger.py            # Rotating file + console logger
 ├── debug_keys.py        # Key event debugger utility
 ├── test_delete.py       # Unit tests for voice-delete feature
+├── test_replacements.py # Regression tests for the two-layer replacement engine
+├── test_hotkey.py       # Hotkey serialisation + conflict detection tests
 ├── requirements.txt     # Python dependencies
 ├── img/
 │   └── logo_writher.png # Logo for README
@@ -346,7 +391,7 @@ writher/
 Run `python debug_keys.py` to see exactly what pynput reports for your keyboard. Some keyboard layouts map AltGr differently.
 
 **Ollama not reachable?**
-Make sure Ollama is running (`ollama serve`) and the URL in `config.py` matches. The tray tooltip will show a warning if the connection fails at startup.
+WritHer expects Ollama to be running locally. Start it with `ollama serve` (or via the installed Windows service), then verify the URL in Settings matches. When you trigger assistant mode with Ollama down, WritHer shows a toast notification and flashes the widget in the error state — dictation continues to work.
 
 **No audio / microphone not found?**
 WritHer uses the system default input device unless you select a specific one in Settings. If the widget shows "🎤 No microphone detected", check your Windows sound settings. You can also open **Settings** from the tray and use the microphone dropdown to pick the correct device. Hit the ⟳ button to refresh the list if you just plugged in a new mic.
@@ -355,7 +400,13 @@ WritHer uses the system default input device unless you select a specific one in
 This usually means Whisper received audio but couldn't recognize speech. Common causes:
 - Wrong input device selected (e.g. "Stereo Mix" instead of your actual mic) - check the microphone dropdown in Settings
 - Microphone volume too low in Windows sound settings (aim for 70-80%)
-- Try switching to `MODEL_SIZE = "small"` in `config.py` for better accuracy with lower quality audio
+- The default `small` model requires ~244 MB download on first launch; check the console for progress
+
+**Symbol substitution not working / weird output?**
+Enable "Symbol & spelling mode" in Settings — it is off by default. For reliable multi-word phrases ("forward slash", "less than") set the Whisper model to `small` or larger; the `base` default is fast and accurate for prose but can mishear multi-word symbol names.
+
+**Custom vocabulary not applying?**
+Layer A runs case-insensitively and matches whole words. If your spoken form contains a symbol or punctuation, add it exactly as Whisper transcribes it. Layer A is applied before Symbol & spelling mode, so vocabulary entries always win over the built-in substitutions.
 
 **Text not pasting?**
 The injector uses `Ctrl+V` via the clipboard. Some apps with custom input handling may not respond. If injection fails, the text is saved to `recovery_notes.txt` so nothing is lost.
@@ -367,7 +418,32 @@ Windows 11 hides new tray icons by default. Go to **Settings → Personalization
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE) for the full text.
+
+---
+
+## Credits & Acknowledgements
+
+Core architecture — voice dictation pipeline, Ollama assistant integration, floating widget, notes/agenda/reminders, tray icon — is by **benmaster82** (this repository).
+
+Contributions to upstream via pull request:
+
+| Contributor | Contribution |
+|---|---|
+| [LeikeBaus](https://github.com/LeikeBaus) | Unit test structure and coverage |
+| [LikeARealGinger](https://github.com/LikeARealGinger) | Voice-delete by keyword, localized confirmations |
+| [Steven Ohád](https://github.com/steven-ohad) | Appointment and reminder voice deletion, delete confirmation popup |
+| [Marcel Alsleben](https://github.com/marcelal94) | Assistant dispatcher refactoring, pending delete handling |
+| [Aaron Dutton](https://github.com/aarondutton) | OS-locale date/time formatting |
+
+The following features originate from the fork by [@rusty-bit](https://github.com/rusty-bit/writher) and have been integrated into upstream — their commits are preserved in this repository's history:
+
+- Combo hotkeys with live key capture (default assistant hotkey now `Ctrl+Alt+R`)
+- Per-mode widget accent colours (cyan for dictation, violet for assistant)
+- Log viewer in the Settings window
+- German locale
+- Single-instance lock (adapted to a per-session `Local\` mutex here)
+- The spoken symbol / number substitution concept (redesigned here as the opt-in Layer B of `replacements.py`, with contraction safety and stricter spacing rules)
 
 ---
 

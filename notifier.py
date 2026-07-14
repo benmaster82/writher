@@ -86,6 +86,11 @@ def _ps_escape(s: str) -> str:
     return s.replace('"', '`"').replace("'", "`'").replace("\n", " ")
 
 
+def notify(title: str, message: str):
+    """Public wrapper to send a Windows toast from other modules."""
+    _send_toast(title, message)
+
+
 class ReminderScheduler:
     """Background thread that checks for due reminders and upcoming
     appointments every 30 seconds."""

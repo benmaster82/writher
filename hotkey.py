@@ -6,14 +6,43 @@ Supports two recording modes controlled by config.HOLD_TO_RECORD:
 
 Toggle mode includes a debounce (300ms) to prevent key-repeat and
 accidental double-press from stopping the recording prematurely.
+
+Hotkeys can be a single pynput Key/KeyCode or a combo tuple
+(frozenset_of_modifier_strings, trigger_key) — see hotkey_util.py.
 """
 
 import time
 from pynput import keyboard
 import config
 from logger import log
+from hotkey_util import canonical_modifier, keys_match
 
 _DEBOUNCE_SEC = 0.3  # minimum time between toggle actions
+
+
+# ── Hotkey matching helpers ───────────────────────────────────────────────
+
+def _is_hotkey_match(key, hotkey, held_mods: frozenset) -> bool:
+    """Return True if key+held_mods satisfies the configured hotkey.
+
+    Single-key hotkeys match regardless of held modifiers (backward compat).
+    Combo hotkeys require an exact modifier set match.
+    """
+    if isinstance(hotkey, tuple):
+        required_mods, trigger = hotkey
+        return required_mods == held_mods and keys_match(key, trigger)
+    return keys_match(key, hotkey)
+
+
+def _is_trigger_match(key, hotkey) -> bool:
+    """Return True if key matches the trigger part of a hotkey.
+
+    Used on key-release to fire the stop callback without re-checking modifiers.
+    """
+    if isinstance(hotkey, tuple):
+        _, trigger = hotkey
+        return keys_match(key, trigger)
+    return keys_match(key, hotkey)
 
 
 class HotkeyListener:
@@ -31,6 +60,8 @@ class HotkeyListener:
         # Debounce timestamps (toggle mode only)
         self._dict_last_toggle = 0.0
         self._assist_last_toggle = 0.0
+        # Currently held modifier keys (canonical names: "ctrl", "shift", etc.)
+        self._held_modifiers: set = set()
         self._listener = None
 
     def _is_hold_mode(self) -> bool:
@@ -39,13 +70,20 @@ class HotkeyListener:
     # ── press ─────────────────────────────────────────────────────────────
 
     def _handle_press(self, key):
-        if key == config.HOTKEY:
+        # Track modifier state first; modifiers alone never start recording.
+        mod = canonical_modifier(key)
+        if mod is not None:
+            self._held_modifiers.add(mod)
+            return
+
+        held = frozenset(self._held_modifiers)
+
+        if _is_hotkey_match(key, config.HOTKEY, held):
             if self._is_hold_mode():
                 if not self._dict_pressed:
                     self._dict_pressed = True
                     self._safe_call(self._on_press, "Dictation press")
             else:
-                # Toggle mode: use debounce only
                 now = time.monotonic()
                 if now - self._dict_last_toggle < _DEBOUNCE_SEC:
                     return
@@ -57,15 +95,12 @@ class HotkeyListener:
                     self._dict_recording = False
                     self._safe_call(self._on_release, "Dictation toggle-stop")
 
-        elif key == config.ASSISTANT_HOTKEY and self._on_assist_press:
+        elif _is_hotkey_match(key, config.ASSISTANT_HOTKEY, held) and self._on_assist_press:
             if self._is_hold_mode():
                 if not self._assist_pressed:
                     self._assist_pressed = True
                     self._safe_call(self._on_assist_press, "Assistant press")
             else:
-                # Toggle mode: use debounce only (not _assist_pressed flag)
-                # because Key.ctrl_r release may arrive as Key.ctrl,
-                # leaving _assist_pressed stuck at True.
                 now = time.monotonic()
                 if now - self._assist_last_toggle < _DEBOUNCE_SEC:
                     return
@@ -80,22 +115,27 @@ class HotkeyListener:
     # ── release ───────────────────────────────────────────────────────────
 
     def _handle_release(self, key):
-        if key == config.HOTKEY:
+        # Check trigger release before updating modifier state.
+        if _is_trigger_match(key, config.HOTKEY):
             if self._is_hold_mode():
                 if self._dict_pressed:
                     self._dict_pressed = False
                     self._safe_call(self._on_release, "Dictation release")
             else:
-                # Toggle mode: just reset the physical-key flag
                 self._dict_pressed = False
 
-        elif key == config.ASSISTANT_HOTKEY:
+        elif _is_trigger_match(key, config.ASSISTANT_HOTKEY):
             if self._is_hold_mode():
                 if self._assist_pressed and self._on_assist_release:
                     self._assist_pressed = False
                     self._safe_call(self._on_assist_release, "Assistant release")
             else:
                 self._assist_pressed = False
+
+        # Update modifier tracking after checking release.
+        mod = canonical_modifier(key)
+        if mod is not None:
+            self._held_modifiers.discard(mod)
 
     # ── public API to force-stop (used by timeout) ────────────────────────
 

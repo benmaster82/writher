@@ -22,17 +22,21 @@ import config
 import database as db
 import locales
 from brand import make_title_bar_image
-from hotkey_util import key_to_str, str_to_key, key_display_name, is_blocked
+from hotkey_util import (key_to_str, str_to_key, key_display_name, is_blocked,
+                         canonical_modifier, hotkeys_equal)
 import theme as T
 
-_WIN_W, _WIN_H = 460, 580
+_WIN_W, _WIN_H = 460, 680
 _TITLE_H = 40
 
 # Whisper model options
 _WHISPER_MODELS = ["tiny", "base", "small", "medium", "large-v3"]
 
 # Supported languages
-_LANGUAGES = [("en", "English"), ("it", "Italiano")]
+_LANGUAGES = [("en", "English"), ("it", "Italiano"), ("de", "Deutsch")]
+
+# Recognition (Whisper) language options — value None means auto-detect.
+_RECOGNITION_LANGS = [(None, "Auto"), ("en", "en"), ("it", "it"), ("de", "de")]
 
 
 def _fetch_ollama_models() -> list[str]:
@@ -71,6 +75,9 @@ class SettingsWindow:
         self._ollama_url_entry = None
         # Whisper
         self._whisper_dropdown = None
+        # Recognition language
+        self._recog_dropdown = None
+        self._recog_hint = None
         # Language
         self._lang_dropdown = None
         # Hotkey configuration
@@ -78,6 +85,22 @@ class SettingsWindow:
         self._hk_assist_btn = None
         self._hk_listener = None  # temporary listener for key capture
         self._hk_capturing = None  # "dictation" or "assistant" or None
+        # Log viewer
+        self._log_box = None
+        self._log_refresh_btn = None
+        self._log_refresh_job = None
+        # Clipboard retention toggle
+        self._keep_clip_switch_var = None
+        self._keep_clip_switch = None
+        # Symbol mode toggle
+        self._symbol_switch_var = None
+        self._symbol_switch = None
+        # Vocabulary editor
+        self._vocab_spoken_entry = None
+        self._vocab_written_entry = None
+        self._vocab_list_frame = None
+        # Priming terms
+        self._priming_entry = None
         # Callbacks
         self._cb_language_change = on_language_change
         self._cb_whisper_change = on_whisper_change
@@ -326,11 +349,46 @@ class SettingsWindow:
         )
         self._whisper_dropdown.pack(fill="x", pady=(0, T.PAD_M))
 
+        # Whisper hint (accuracy recommendation, only visible when
+        # Symbol & spelling mode is enabled — set by _sync_ui).
+        self._whisper_hint = ctk.CTkLabel(
+            pad, text=locales.get("setting_whisper_hint"),
+            font=T.FONT_TINY, text_color=T.FG_DIM, anchor="w",
+            wraplength=_WIN_W - 3 * T.PAD_L, justify="left",
+        )
+
         # Whisper change note
         self._whisper_note = ctk.CTkLabel(
             pad, text="", font=T.FONT_TINY, text_color=T.FG_DIM, anchor="w",
         )
         self._whisper_note.pack(fill="x")
+
+        self._build_separator(pad)
+
+        # ── 5b. Recognition language ────────────────────────────────
+        self._build_section_label(pad, locales.get("setting_recognition_lang"))
+
+        recog_labels = [
+            locales.get("setting_recognition_auto") if code is None else label
+            for code, label in _RECOGNITION_LANGS
+        ]
+        self._recog_dropdown = ctk.CTkComboBox(
+            pad, values=recog_labels, font=T.FONT_SMALL,
+            dropdown_font=T.FONT_SMALL,
+            fg_color=T.BG_CARD, border_color=T.BORDER,
+            button_color=T.BORDER_GLOW, button_hover_color=T.FG_DIM,
+            dropdown_fg_color=T.BG_CARD, dropdown_hover_color=T.BG_HOVER,
+            dropdown_text_color=T.FG, text_color=T.FG,
+            height=36, corner_radius=6,
+            command=self._on_recognition_change, state="readonly",
+        )
+        self._recog_dropdown.pack(fill="x", pady=(0, T.PAD_S))
+
+        self._recog_hint = ctk.CTkLabel(
+            pad, text=locales.get("setting_recognition_hint"),
+            font=T.FONT_TINY, text_color=T.FG_DIM, anchor="w",
+            wraplength=_WIN_W - 3 * T.PAD_L, justify="left",
+        )
 
         self._build_separator(pad)
 
@@ -356,6 +414,145 @@ class SettingsWindow:
         )
         self._lang_note.pack(fill="x")
 
+        self._build_separator(pad)
+
+        # ── 6b. Clipboard retention ──────────────────────────────────
+        self._build_section_label(pad, locales.get("setting_keep_clipboard"))
+
+        self._keep_clip_switch_var = tk.StringVar(
+            value="1" if db.get_setting(
+                "keep_transcript_in_clipboard", "0") == "1" else "0")
+        self._keep_clip_switch = ctk.CTkSwitch(
+            pad, text="", variable=self._keep_clip_switch_var,
+            onvalue="1", offvalue="0",
+            command=self._on_keep_clipboard_toggle,
+            fg_color=T.BG_INPUT, progress_color=T.ACCENT,
+            button_color=T.FG, button_hover_color=T.ACCENT_HOVER,
+        )
+        self._keep_clip_switch.pack(anchor="w", pady=(0, T.PAD_S))
+
+        ctk.CTkLabel(
+            pad, text=locales.get("setting_keep_clipboard_hint"),
+            font=T.FONT_TINY, text_color=T.FG_DIM, anchor="w",
+            wraplength=_WIN_W - 3 * T.PAD_L, justify="left",
+        ).pack(fill="x", pady=(0, T.PAD_M))
+
+        self._build_separator(pad)
+
+        # ── 7. Symbol & spelling mode ────────────────────────────────
+        self._build_section_label(pad, locales.get("setting_symbol_mode"))
+
+        self._symbol_switch_var = tk.StringVar(
+            value="1" if db.get_setting("symbol_mode", "0") == "1" else "0")
+        self._symbol_switch = ctk.CTkSwitch(
+            pad, text="", variable=self._symbol_switch_var,
+            onvalue="1", offvalue="0",
+            command=self._on_symbol_mode_toggle,
+            fg_color=T.BG_INPUT, progress_color=T.ACCENT,
+            button_color=T.FG, button_hover_color=T.ACCENT_HOVER,
+        )
+        self._symbol_switch.pack(anchor="w", pady=(0, T.PAD_S))
+
+        ctk.CTkLabel(
+            pad, text=locales.get("setting_symbol_mode_hint"),
+            font=T.FONT_TINY, text_color=T.FG_DIM, anchor="w",
+            wraplength=_WIN_W - 3 * T.PAD_L, justify="left",
+        ).pack(fill="x", pady=(0, T.PAD_M))
+
+        self._build_separator(pad)
+
+        # ── 8. Custom vocabulary (Layer A) ───────────────────────────
+        self._build_section_label(pad, locales.get("setting_vocabulary"))
+
+        vocab_input_row = ctk.CTkFrame(pad, fg_color="transparent")
+        vocab_input_row.pack(fill="x", pady=(0, T.PAD_S))
+
+        self._vocab_spoken_entry = ctk.CTkEntry(
+            vocab_input_row, font=T.FONT_SMALL, height=32,
+            corner_radius=6, fg_color=T.BG_CARD, border_color=T.BORDER,
+            text_color=T.FG,
+            placeholder_text=locales.get("setting_vocab_spoken"),
+        )
+        self._vocab_spoken_entry.pack(side="left", fill="x", expand=True,
+                                      padx=(0, T.PAD_S))
+
+        self._vocab_written_entry = ctk.CTkEntry(
+            vocab_input_row, font=T.FONT_SMALL, height=32,
+            corner_radius=6, fg_color=T.BG_CARD, border_color=T.BORDER,
+            text_color=T.FG,
+            placeholder_text=locales.get("setting_vocab_written"),
+        )
+        self._vocab_written_entry.pack(side="left", fill="x", expand=True,
+                                       padx=(0, T.PAD_S))
+
+        ctk.CTkButton(
+            vocab_input_row, text=locales.get("setting_vocab_add"),
+            width=64, height=32, corner_radius=6,
+            fg_color=T.BG_CARD, hover_color=T.BG_HOVER,
+            border_color=T.BORDER, border_width=1, text_color=T.FG,
+            font=T.FONT_SMALL, command=self._on_vocab_add,
+        ).pack(side="right")
+
+        self._vocab_list_frame = ctk.CTkFrame(pad, fg_color="transparent")
+        self._vocab_list_frame.pack(fill="x", pady=(0, T.PAD_M))
+        self._refresh_vocab_list()
+
+        self._build_separator(pad)
+
+        # ── 9. Priming terms ─────────────────────────────────────────
+        self._build_section_label(pad, locales.get("setting_priming"))
+
+        self._priming_entry = ctk.CTkTextbox(
+            pad, height=60, font=T.FONT_SMALL,
+            fg_color=T.BG_CARD, text_color=T.FG,
+            border_color=T.BORDER, border_width=1,
+            corner_radius=6, wrap="word",
+        )
+        self._priming_entry.pack(fill="x", pady=(0, T.PAD_S))
+        # Preload existing terms
+        existing = ", ".join(db.list_priming_terms())
+        if existing:
+            self._priming_entry.insert("1.0", existing)
+        self._priming_entry.bind("<FocusOut>", lambda e: self._on_priming_save())
+
+        ctk.CTkLabel(
+            pad, text=locales.get("setting_priming_hint"),
+            font=T.FONT_TINY, text_color=T.FG_DIM, anchor="w",
+            wraplength=_WIN_W - 3 * T.PAD_L, justify="left",
+        ).pack(fill="x", pady=(0, T.PAD_M))
+
+        self._build_separator(pad)
+
+        # ── 10. Log viewer ───────────────────────────────────────────
+        log_header = ctk.CTkFrame(pad, fg_color="transparent")
+        log_header.pack(fill="x", pady=(0, T.PAD_S))
+
+        ctk.CTkLabel(
+            log_header, text=locales.get("setting_log"),
+            font=T.FONT_TITLE, text_color=T.FG, anchor="w",
+        ).pack(side="left")
+
+        self._log_refresh_btn = ctk.CTkButton(
+            log_header, text="⟳", width=36, height=28,
+            fg_color=T.BG_CARD, hover_color=T.BG_HOVER,
+            border_color=T.BORDER, border_width=1,
+            text_color=T.FG, font=(T.FONT_FAMILY, 16),
+            corner_radius=6, command=self._refresh_log,
+        )
+        self._log_refresh_btn.pack(side="right")
+
+        self._log_box = ctk.CTkTextbox(
+            pad, height=180, font=("Courier New", 9),
+            fg_color=T.BG_CARD, text_color=T.FG_DIM,
+            border_color=T.BORDER, border_width=1,
+            corner_radius=6, wrap="none",
+            state="disabled",
+        )
+        self._log_box.pack(fill="x", pady=(0, T.PAD_M))
+
+        # Kick off initial load and auto-refresh
+        self._schedule_log_refresh()
+
     # ── Helpers ───────────────────────────────────────────────────────────
 
     def _build_section_label(self, parent, text: str):
@@ -379,6 +576,13 @@ class SettingsWindow:
             self._win.geometry(f"+{x}+{y}")
 
     def _close(self):
+        if self._log_refresh_job is not None:
+            try:
+                if self._win:
+                    self._win.after_cancel(self._log_refresh_job)
+            except Exception:
+                pass
+            self._log_refresh_job = None
         if self._win:
             try:
                 self._win.destroy()
@@ -418,6 +622,16 @@ class SettingsWindow:
         if self._whisper_dropdown:
             self._whisper_dropdown.set(config.MODEL_SIZE)
 
+        # Recognition language
+        if self._recog_dropdown:
+            current = config.WHISPER_LANGUAGE
+            for code, label in _RECOGNITION_LANGS:
+                if code == current:
+                    display = (locales.get("setting_recognition_auto")
+                               if code is None else label)
+                    self._recog_dropdown.set(display)
+                    break
+
         # Language
         if self._lang_dropdown:
             current_lang = config.LANGUAGE
@@ -431,6 +645,12 @@ class SettingsWindow:
             self._hk_dict_btn.configure(text=key_display_name(config.HOTKEY))
         if self._hk_assist_btn:
             self._hk_assist_btn.configure(text=key_display_name(config.ASSISTANT_HOTKEY))
+
+        # Symbol mode hint visibility follows the toggle state
+        symbol_on = db.get_setting("symbol_mode", "0") == "1"
+        self._update_whisper_hint_visibility(symbol_on)
+        # Recognition-language hint: only when non-English AND symbol mode ON
+        self._update_recognition_hint_visibility(symbol_on)
 
     def _fetch_and_update_ollama_models(self):
         """Fetch Ollama models in background thread, update dropdown on main thread."""
@@ -511,6 +731,31 @@ class SettingsWindow:
             threading.Thread(target=self._fetch_and_update_ollama_models,
                              daemon=True).start()
 
+    # ── Recognition-language callback ─────────────────────────────────────
+
+    def _on_recognition_change(self, selected: str):
+        auto_label = locales.get("setting_recognition_auto")
+        for code, label in _RECOGNITION_LANGS:
+            display = auto_label if code is None else label
+            if display == selected:
+                config.WHISPER_LANGUAGE = code
+                db.save_setting("whisper_language",
+                                "auto" if code is None else code)
+                log.info("Recognition language set to: %s",
+                         "auto" if code is None else code)
+                symbol_on = db.get_setting("symbol_mode", "0") == "1"
+                self._update_recognition_hint_visibility(symbol_on)
+                return
+
+    def _update_recognition_hint_visibility(self, symbol_on: bool):
+        if not self._recog_hint:
+            return
+        show = symbol_on and config.WHISPER_LANGUAGE not in (None, "en")
+        if show:
+            self._recog_hint.pack(fill="x")
+        else:
+            self._recog_hint.pack_forget()
+
     # ── Whisper callback ──────────────────────────────────────────────────
 
     def _on_whisper_change(self, value: str):
@@ -540,28 +785,127 @@ class SettingsWindow:
                     self._cb_language_change(code)
                 return
 
+    # ── Clipboard retention ───────────────────────────────────────────────
+
+    def _on_keep_clipboard_toggle(self):
+        enabled = self._keep_clip_switch_var.get() == "1"
+        config.KEEP_TRANSCRIPT_IN_CLIPBOARD = enabled
+        db.save_setting("keep_transcript_in_clipboard", "1" if enabled else "0")
+        log.info("Keep transcript in clipboard: %s",
+                 "ON" if enabled else "OFF")
+
+    # ── Symbol mode / vocabulary / priming ────────────────────────────────
+
+    def _on_symbol_mode_toggle(self):
+        enabled = self._symbol_switch_var.get() == "1"
+        db.save_setting("symbol_mode", "1" if enabled else "0")
+        log.info("Symbol & spelling mode: %s", "ON" if enabled else "OFF")
+        self._update_whisper_hint_visibility(enabled)
+        self._update_recognition_hint_visibility(enabled)
+
+    def _update_whisper_hint_visibility(self, enabled: bool):
+        if not self._whisper_hint:
+            return
+        if enabled:
+            self._whisper_hint.pack(fill="x")
+        else:
+            self._whisper_hint.pack_forget()
+
+    def _on_vocab_add(self):
+        spoken = self._vocab_spoken_entry.get().strip()
+        written = self._vocab_written_entry.get().strip()
+        if not spoken or not written:
+            return
+        db.save_vocabulary_entry(spoken, written)
+        log.info("Vocabulary entry saved: %r → %r", spoken, written)
+        self._vocab_spoken_entry.delete(0, "end")
+        self._vocab_written_entry.delete(0, "end")
+        self._refresh_vocab_list()
+
+    def _refresh_vocab_list(self):
+        if not self._vocab_list_frame:
+            return
+        for child in self._vocab_list_frame.winfo_children():
+            child.destroy()
+        entries = db.list_vocabulary()
+        if not entries:
+            ctk.CTkLabel(
+                self._vocab_list_frame,
+                text=locales.get("setting_vocab_empty"),
+                font=T.FONT_TINY, text_color=T.FG_DIM, anchor="w",
+            ).pack(fill="x")
+            return
+        for spoken, written in sorted(entries):
+            row = ctk.CTkFrame(self._vocab_list_frame, fg_color="transparent")
+            row.pack(fill="x", pady=1)
+            ctk.CTkLabel(
+                row, text=f"{spoken}  →  {written}",
+                font=T.FONT_SMALL, text_color=T.FG, anchor="w",
+            ).pack(side="left", fill="x", expand=True)
+            ctk.CTkButton(
+                row, text="✕", width=28, height=24, corner_radius=4,
+                fg_color="transparent", hover_color=T.CLOSE_HOVER,
+                border_color=T.BORDER, border_width=1,
+                text_color=T.FG_DIM, font=(T.FONT_FAMILY, 12),
+                command=lambda s=spoken: self._on_vocab_delete(s),
+            ).pack(side="right")
+
+    def _on_vocab_delete(self, spoken: str):
+        db.delete_vocabulary_entry(spoken)
+        log.info("Vocabulary entry deleted: %r", spoken)
+        self._refresh_vocab_list()
+
+    def _on_priming_save(self):
+        if not self._priming_entry:
+            return
+        raw = self._priming_entry.get("1.0", "end").strip()
+        terms = [t.strip() for t in raw.split(",") if t.strip()]
+        db.replace_priming_terms(terms)
+        log.info("Priming terms saved (%d).", len(terms))
+
     # ── Hotkey capture ────────────────────────────────────────────────────
 
     def _start_hotkey_capture(self, target: str):
-        """Enter key-capture mode for the given target ('dictation' or 'assistant')."""
+        """Enter key-capture mode for the given target ('dictation' or 'assistant').
+
+        Hold any combination of Ctrl/Shift/Alt/Win, then press the trigger key.
+        Press Escape to cancel without changing the hotkey.
+        """
         btn = self._hk_dict_btn if target == "dictation" else self._hk_assist_btn
         if not btn or not self._win:
             return
 
-        # Visual feedback: show "press a key" state
         btn.configure(
             text=locales.get("setting_hotkey_press"),
             fg_color=T.BORDER_GLOW, border_color=T.ACCENT,
         )
 
+        held_modifiers: set = set()
+
         def on_press(key):
-            # Ignore lone modifier presses that are part of combos
-            # Accept the key and stop listening
-            self._root.after(0, lambda: self._finish_hotkey_capture(target, key))
+            if key == kb.Key.esc:
+                self._root.after(0, lambda: self._reset_hotkey_btn(target))
+                return False  # cancel
+
+            mod = canonical_modifier(key)
+            if mod is not None:
+                held_modifiers.add(mod)
+                return  # keep listening — waiting for the trigger key
+
+            # Non-modifier pressed: form the hotkey and finish capture.
+            if held_modifiers:
+                hotkey = (frozenset(held_modifiers), key)
+            else:
+                hotkey = key
+            self._root.after(0, lambda: self._finish_hotkey_capture(target, hotkey))
             return False  # stop listener
 
-        # Start a temporary listener in a background thread
-        capture_listener = kb.Listener(on_press=on_press)
+        def on_release(key):
+            mod = canonical_modifier(key)
+            if mod is not None:
+                held_modifiers.discard(mod)
+
+        capture_listener = kb.Listener(on_press=on_press, on_release=on_release)
         capture_listener.start()
 
     def _finish_hotkey_capture(self, target: str, key):
@@ -582,7 +926,7 @@ class SettingsWindow:
 
         # Check for conflict with the other hotkey
         other_key = config.ASSISTANT_HOTKEY if target == "dictation" else config.HOTKEY
-        if key == other_key:
+        if hotkeys_equal(key, other_key):
             btn.configure(
                 text=locales.get("setting_hotkey_conflict"),
                 fg_color=T.RED, border_color=T.RED,
@@ -620,6 +964,30 @@ class SettingsWindow:
             fg_color=T.BG_CARD, border_color=T.BORDER,
             text_color=T.FG,
         )
+
+    # ── Log viewer ────────────────────────────────────────────────────────
+
+    def _refresh_log(self):
+        if not self._log_box or not self._win:
+            return
+        try:
+            from paths import LOG_PATH
+            with open(LOG_PATH, "r", encoding="utf-8", errors="replace") as f:
+                lines = f.readlines()
+            content = "".join(lines[-80:])
+        except Exception as exc:
+            content = f"(could not read log: {exc})"
+        self._log_box.configure(state="normal")
+        self._log_box.delete("1.0", "end")
+        self._log_box.insert("end", content)
+        self._log_box.see("end")
+        self._log_box.configure(state="disabled")
+
+    def _schedule_log_refresh(self):
+        if not self._win or not self._win.winfo_exists():
+            return
+        self._refresh_log()
+        self._log_refresh_job = self._win.after(2000, self._schedule_log_refresh)
 
     # ── Microphone helpers ────────────────────────────────────────────────
 

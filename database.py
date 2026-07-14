@@ -60,6 +60,22 @@ def init():
             )
         """)
 
+        # Custom vocabulary (Layer A of the replacement engine).
+        # spoken is the key; stored lowercase so lookups are case-insensitive.
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS vocabulary (
+                spoken  TEXT PRIMARY KEY,
+                written TEXT NOT NULL
+            )
+        """)
+
+        # Priming terms — joined into faster-whisper's initial_prompt.
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS priming_terms (
+                term TEXT PRIMARY KEY
+            )
+        """)
+
         c.commit()
         c.close()
 
@@ -393,6 +409,66 @@ def save_setting(key: str, value: str):
             "INSERT INTO settings (key, value) VALUES (?, ?)"
             " ON CONFLICT(key) DO UPDATE SET value=excluded.value",
             (key, value),
+        )
+        c.commit()
+        c.close()
+
+
+# ── Custom vocabulary (Layer A) ───────────────────────────────────────────
+
+def list_vocabulary() -> list[tuple[str, str]]:
+    """Return all vocabulary entries as [(spoken, written), ...]."""
+    with _lock:
+        c = _conn()
+        rows = c.execute("SELECT spoken, written FROM vocabulary").fetchall()
+        c.close()
+    return [(r["spoken"], r["written"]) for r in rows]
+
+
+def save_vocabulary_entry(spoken: str, written: str):
+    """Insert or update a vocabulary entry. Spoken is stored lowercase."""
+    key = spoken.strip().lower()
+    if not key:
+        return
+    with _lock:
+        c = _conn()
+        c.execute(
+            "INSERT INTO vocabulary (spoken, written) VALUES (?, ?)"
+            " ON CONFLICT(spoken) DO UPDATE SET written=excluded.written",
+            (key, written),
+        )
+        c.commit()
+        c.close()
+
+
+def delete_vocabulary_entry(spoken: str):
+    key = spoken.strip().lower()
+    with _lock:
+        c = _conn()
+        c.execute("DELETE FROM vocabulary WHERE spoken=?", (key,))
+        c.commit()
+        c.close()
+
+
+# ── Priming terms ─────────────────────────────────────────────────────────
+
+def list_priming_terms() -> list[str]:
+    with _lock:
+        c = _conn()
+        rows = c.execute("SELECT term FROM priming_terms ORDER BY term").fetchall()
+        c.close()
+    return [r["term"] for r in rows]
+
+
+def replace_priming_terms(terms: list[str]):
+    """Replace the full priming-term set with *terms*."""
+    normalized = [t.strip() for t in terms if t and t.strip()]
+    with _lock:
+        c = _conn()
+        c.execute("DELETE FROM priming_terms")
+        c.executemany(
+            "INSERT OR IGNORE INTO priming_terms (term) VALUES (?)",
+            [(t,) for t in normalized],
         )
         c.commit()
         c.close()

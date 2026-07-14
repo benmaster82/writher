@@ -100,6 +100,16 @@ _EYE_THEME = {
 _IDLE_STYLE = _STATE_STYLE["idle"]
 _IDLE_EYE   = _EYE_THEME["idle"]
 
+# ── per-mode accent colours ───────────────────────────────────────────────
+_DICTATION_ACCENT = (56, 189, 248)    # sky-blue / cyan  — dictation (AltGr)
+_ASSISTANT_ACCENT = (167, 139, 250)   # violet           — assistant (Ctrl+Alt+R)
+
+# Expressions that inherit the mode accent (semantic colours kept for the rest)
+_MODE_TINT_EXPRS = frozenset({
+    "idle", "listening", "recording", "thinking", "processing",
+    "assistant", "loading", "coding", "happy", "sad", "surprised", "wink",
+})
+
 
 # ── colour helpers ────────────────────────────────────────────────────────
 
@@ -195,6 +205,7 @@ class RecordingWidget:
         self._alpha      = _ALPHA_MIN
         self._fading     = None
         self._expression = "idle"
+        self._source_mode = "dictation"  # "dictation" | "assistant"
         # Avatar (PIL-rendered)
         self._ava_img_id = None
         self._ava_tk     = None
@@ -204,12 +215,17 @@ class RecordingWidget:
     # ── public API ────────────────────────────────────────────────────────
 
     def show_recording(self):
+        self._source_mode = "dictation"
         self._root.after(0, lambda: self._show(self.RECORDING))
 
     def show_processing(self):
+        # _source_mode intentionally not reset — carries through from the
+        # preceding show_recording() or show_assistant() call so the
+        # processing phase keeps the same colour theme.
         self._root.after(0, lambda: self._show(self.PROCESSING))
 
     def show_assistant(self):
+        self._source_mode = "assistant"
         self._root.after(0, lambda: self._show(self.ASSISTANT))
 
     def show_message(self, text: str, duration_ms: int = 3000):
@@ -227,6 +243,26 @@ class RecordingWidget:
         error, alert, surprised, wink, sleep, sad, love, loading"""
         if expr in _STATE_STYLE:
             self._expression = expr
+
+    # ── mode accent helpers ───────────────────────────────────────────────
+
+    def _get_accent(self) -> tuple:
+        return _ASSISTANT_ACCENT if self._source_mode == "assistant" else _DICTATION_ACCENT
+
+    def _resolved_style(self) -> dict:
+        base = _STATE_STYLE.get(self._expression, _IDLE_STYLE)
+        if self._expression not in _MODE_TINT_EXPRS:
+            return base
+        accent = self._get_accent()
+        return {**base, "accent": accent, "glow": accent, "border": accent,
+                "border_a": max(base["border_a"], 0.14)}
+
+    def _resolved_eye_theme(self) -> dict:
+        base = _EYE_THEME.get(self._expression, _IDLE_EYE)
+        if self._expression not in _MODE_TINT_EXPRS:
+            return base
+        accent = self._get_accent()
+        return {"eye": accent, "glow": accent}
 
     # ── fade transitions ──────────────────────────────────────────────────
 
@@ -392,7 +428,7 @@ class RecordingWidget:
     def _update_label(self):
         if self._label_id is None or self._canvas is None:
             return
-        style = _STATE_STYLE.get(self._expression, _IDLE_STYLE)
+        style = self._resolved_style()
         label = style["label"]
         accent = style["accent"]
 
@@ -415,9 +451,9 @@ class RecordingWidget:
             return
 
         expr = self._expression
-        style = _STATE_STYLE.get(expr, _IDLE_STYLE)
+        style = self._resolved_style()
 
-        cache_key = (expr, tuple(style["border"]), style["border_a"])
+        cache_key = (expr, tuple(style["border"]), style["border_a"], self._source_mode)
         if cache_key in self._pill_cache:
             self._bg_tk = self._pill_cache[cache_key]
         else:
@@ -458,7 +494,7 @@ class RecordingWidget:
         # ── Pill background ───────────────────────────────────────
         fill_rgb = _hex_to_rgb(_BG)
         ck_rgb   = _hex_to_rgb(_CHROMAKEY)
-        style = _STATE_STYLE.get(self._expression, _IDLE_STYLE)
+        style = self._resolved_style()
         bg_img = _render_pill(
             _W, _H, _RADIUS,
             fill_rgb=fill_rgb,
@@ -528,7 +564,7 @@ class RecordingWidget:
 
         t = self._tick
         expr = self._expression
-        eye_theme = _EYE_THEME.get(expr, _IDLE_EYE)
+        eye_theme = self._resolved_eye_theme()
 
         eye_rgb  = eye_theme["eye"]
         glow_rgb = eye_theme["glow"]
