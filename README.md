@@ -26,10 +26,14 @@
 
 ## 🆕 What's New
 
-- 🔢 **Symbol & code spelling** — say "forward slash", "dash", "semicolon", or number words and they type as actual characters. Spell code letter-by-letter: *"W H forward slash F A T"* → `WH/FAT`. Always active, no mode switch needed.
-- 🔒 **Single-instance lock** — launching a second copy exits immediately, preventing double-paste.
+- 📚 **Custom vocabulary** — teach WritHer to render your spoken jargon or acronyms as their written form. Case-insensitive whole-word matching, multi-word spoken forms supported. Priming terms also feed faster-whisper's `initial_prompt` to nudge recognition.
+- 🔢 **Symbol & spelling mode (opt-in)** — enable in Settings and say "forward slash", "dash", "semicolon", or number words to get actual characters. Spell code letter-by-letter: *"W H forward slash F A T"* → `WH/FAT`. Contractions (`don't`, `we're`) stay intact and prose is never mangled.
+- 🌐 **Recognition language dropdown** — pick Whisper's language independently of the UI: `Auto` (default), `en`, `it`, `de`. The detected language is logged for every clip.
+- 📋 **Clipboard restore (default)** — your clipboard is saved before paste and restored after. Optional toggle keeps the transcript in the clipboard for re-pasting.
+- 🔒 **Single-instance lock (per-session)** — launching a second copy exits immediately. Now scoped to the current Windows user so it does not block other users on the same machine.
 - 🎨 **Per-mode colour themes** — dictation widget renders in cyan, assistant in violet.
 - ⌨️ **Combo hotkeys** — assistant hotkey is now `Ctrl+Alt+R` (avoids browser conflicts). Settings window captures live key combos.
+- 📜 **Log viewer in Settings** — tail the latest log lines directly from the Settings window.
 - 🗑️ **Delete by voice** - say "delete the dentist appointment" or "remove the shopping list" and WritHer finds and removes it. Voice confirmation required before any deletion (15s timeout).
 - ⌨️ **Customizable hotkeys** - change dictation and assistant shortcuts from Settings. Press the ⌨ button, hit any key, done. No restart needed.
 - 🎙️ **Microphone selection** - pick your input device from Settings, with hot-plug refresh
@@ -57,7 +61,7 @@ WritHer sits quietly in your system tray and gives you two super-powers:
 
 | Mode | Hotkey (default) | What it does |
 |---|---|---|
-| **Dictation** | `AltGr` | Transcribes your voice and pastes the text directly into whichever app has focus - editors, browsers, chat windows, anything. Symbols and numbers are substituted automatically. |
+| **Dictation** | `AltGr` | Transcribes your voice and pastes the text directly into whichever app has focus - editors, browsers, chat windows, anything. Optional Symbol & spelling mode substitutes spoken symbols and digits. |
 | **Assistant** | `Ctrl+Alt+R` | Understands natural-language commands and saves notes, creates appointments, sets reminders, manages lists - all by voice. |
 
 Both hotkeys are **fully customizable** from the Settings window, click the ⌨ button next to each shortcut and press your preferred key. The change takes effect immediately, no restart required.
@@ -75,8 +79,11 @@ Everything runs **locally**: speech recognition via [faster-whisper](https://git
 
 ## Features
 
-- **Real-time dictation** - speak and text appears. Supports both hold-to-record and toggle (press to start/stop) modes.
-- **Symbol & code substitution** - always-on post-processing converts spoken symbol names and number words to characters before pasting. Say *"W H forward slash F A T"* → `WH/FAT`, *"one two three"* → `123`, *"semicolon"* → `;`. Consecutive single letters are merged automatically so spelling out code identifiers works naturally.
+- **Real-time dictation** - speak and text appears. Supports both hold-to-record and toggle (press to start/stop) modes. Clipboard is saved and restored automatically (opt-in toggle to keep the transcript in the clipboard).
+- **Custom vocabulary** - a user-defined map of `spoken form → written form`, applied whole-word and case-insensitively before any symbol substitution. Multi-word spoken forms and longest-first precedence are supported. Editable from Settings and persisted in the SQLite DB.
+- **Priming terms** - a free-text list joined into faster-whisper's `initial_prompt` to bias recognition toward domain terms. Labelled best-effort in the UI hint.
+- **Symbol & spelling mode (opt-in)** - toggle in Settings. When ON, spoken symbol names and number words are substituted (*"W H forward slash F A T"* → `WH/FAT`, *"one two three"* → `123`, *"semicolon"* → `;`) and letter-by-letter spelling is glued. Contractions like `don't` are preserved and prose is never mangled: multi-character words on either side of a symbol block gluing.
+- **Recognition language** - independent of the UI language. Set to `Auto` (default) to let Whisper detect each clip, or pin to `en` / `it` / `de`.
 - **Voice-controlled assistant** - save notes, create shopping/todo lists, schedule appointments, set reminders, and delete items by voice. All through natural speech.
 - **Voice delete with confirmation** - say "delete the shopping list" or "remove the dentist appointment". WritHer finds the item by keyword and asks for voice confirmation before deleting. 15-second timeout for safety.
 - **Smart date parsing** - say *"remind me tomorrow at 9"* or *"meeting next Monday at 3pm"* and the LLM converts relative times to absolute datetimes.
@@ -88,7 +95,8 @@ Everything runs **locally**: speech recognition via [faster-whisper](https://git
 - **Microphone selection** - choose your input device from a dropdown in Settings. Supports hot-plug detection with a refresh button - no restart needed.
 - **Single-instance protection** - a per-session mutex prevents two copies running at once, eliminating the double-paste bug.
 - **Modern UI** - built with CustomTkinter and a unified "Pandora Blackboard" theme (pure black + bright white) defined in a single `theme.py` file.
-- **Multi-language** - ships with English and Italian; easy to add more via the `locales.py` string table.
+- **Multi-language UI** - ships with English, Italian and German; easy to add more via the `locales.py` string table.
+- **Log viewer** - the Settings window tails the latest lines of `writher.log` for quick diagnostics.
 - **Fully offline** - no internet required after model download.
 
 ---
@@ -110,9 +118,9 @@ Everything runs **locally**: speech recognition via [faster-whisper](https://git
 │  │ (Whisper) │               │ (Whisper) │           │
 │  └─────┬─────┘               └─────┬─────┘           │
 │        ▼                           ▼                 │
-│   symbols.py                  assistant              │
-│  (symbol &                   (Ollama LLM             │
-│  number subs)                + function calls)       │
+│  replacements.py             assistant              │
+│  (user vocab +               (Ollama LLM             │
+│   opt-in symbols)            + function calls)       │
 │        │                           │                 │
 │        ▼                           ▼                 │
 │   injector                    database               │
@@ -199,8 +207,14 @@ All settings live in **`config.py`**:
 HOTKEY = Key.alt_gr                                          # Dictation
 ASSISTANT_HOTKEY = (frozenset({"ctrl", "alt"}), KeyCode.from_vk(82))  # Ctrl+Alt+R
 
-# Language ("en" or "it")
+# UI language ("en", "it" or "de") — controls interface strings only.
 LANGUAGE = "en"
+
+# Recognition language (Whisper). None = per-clip auto-detect.
+WHISPER_LANGUAGE = None
+
+# Clipboard behaviour after paste. False = restore previous clipboard.
+KEEP_TRANSCRIPT_IN_CLIPBOARD = False
 
 # Recording mode
 HOLD_TO_RECORD = True          # True = hold key, False = toggle (press/press)
@@ -260,9 +274,9 @@ For CUDA acceleration, install `ctranslate2` with CUDA support and set `DEVICE =
 
 > In toggle mode, a safety timeout (configurable in Settings) will auto-stop the recording if you forget to press the key again.
 
-### Symbol & code spelling
+### Symbol & spelling mode
 
-Symbols and number words are substituted automatically in every dictation. No special mode needed.
+Off by default. Enable the toggle in Settings to substitute spoken symbol names and number words, and to glue letter-by-letter spelling. Prose stays intact — the spacing compaction only fires when both neighbours of a symbol are single characters or digit sequences, so *"The 100 meter dash was thrilling"* becomes *"The 100 meter - was thrilling"* rather than gluing across words. Contractions like `don't` and `we're` are always preserved.
 
 | You say | You get |
 |---|---|
@@ -345,7 +359,7 @@ writher/
 ├── hotkey_util.py       # Hotkey serialisation, display names, and validation
 ├── recorder.py          # Microphone recording (sounddevice)
 ├── transcriber.py       # Speech-to-text (faster-whisper)
-├── symbols.py           # Post-processing: spoken symbols/numbers → characters
+├── replacements.py      # Two-layer post-processing (user vocab + opt-in symbols)
 ├── injector.py          # Clipboard paste into active app (Win32 API)
 ├── assistant.py         # Ollama LLM integration + function calling
 ├── database.py          # SQLite storage (notes, appointments, reminders, settings)
@@ -361,6 +375,8 @@ writher/
 ├── logger.py            # Rotating file + console logger
 ├── debug_keys.py        # Key event debugger utility
 ├── test_delete.py       # Unit tests for voice-delete feature
+├── test_replacements.py # Regression tests for the two-layer replacement engine
+├── test_hotkey.py       # Hotkey serialisation + conflict detection tests
 ├── requirements.txt     # Python dependencies
 ├── img/
 │   └── logo_writher.png # Logo for README
@@ -387,7 +403,10 @@ This usually means Whisper received audio but couldn't recognize speech. Common 
 - The default `small` model requires ~244 MB download on first launch; check the console for progress
 
 **Symbol substitution not working / weird output?**
-Make sure the Whisper model is set to `small` or larger in Settings. The `base` model can mishear multi-word phrases like "forward slash" as separate words, producing incorrect substitutions.
+Enable "Symbol & spelling mode" in Settings — it is off by default. For reliable multi-word phrases ("forward slash", "less than") set the Whisper model to `small` or larger; the `base` default is fast and accurate for prose but can mishear multi-word symbol names.
+
+**Custom vocabulary not applying?**
+Layer A runs case-insensitively and matches whole words. If your spoken form contains a symbol or punctuation, add it exactly as Whisper transcribes it. Layer A is applied before Symbol & spelling mode, so vocabulary entries always win over the built-in substitutions.
 
 **Text not pasting?**
 The injector uses `Ctrl+V` via the clipboard. Some apps with custom input handling may not respond. If injection fails, the text is saved to `recovery_notes.txt` so nothing is lost.
@@ -401,15 +420,13 @@ Windows 11 hides new tray icons by default. Go to **Settings → Personalization
 
 MIT — see [LICENSE](LICENSE) for the full text.
 
-This project is a fork of the original [WritHer](https://github.com/benmaster82/writher) by **benmaster82**. The MIT licence allows you to use, modify, and redistribute this software (including compiled binaries) freely, as long as the `LICENSE` file is kept intact in any distribution. The software is provided **as-is, without any warranty**.
-
 ---
 
 ## Credits & Acknowledgements
 
-This project is built on the original **WritHer** created by [benmaster82](https://github.com/benmaster82). All core architecture — voice dictation pipeline, Ollama assistant integration, floating widget, notes/agenda/reminders, and the tray icon — originates from that work.
+Core architecture — voice dictation pipeline, Ollama assistant integration, floating widget, notes/agenda/reminders, tray icon — is by **benmaster82** (this repository).
 
-Additional contributions to the upstream repository were made by:
+Contributions to upstream via pull request:
 
 | Contributor | Contribution |
 |---|---|
@@ -419,13 +436,14 @@ Additional contributions to the upstream repository were made by:
 | [Marcel Alsleben](https://github.com/marcelal94) | Assistant dispatcher refactoring, pending delete handling |
 | [Aaron Dutton](https://github.com/aarondutton) | OS-locale date/time formatting |
 
-New features added in this fork ([rusty-bit/writher](https://github.com/rusty-bit/writher)):
-- Spoken symbol & number substitution (`symbols.py`)
-- Combo hotkeys (`Ctrl+Alt+R`) with live key capture
-- Per-mode colour themes (cyan / violet)
-- Single-instance lock (prevents double-paste)
-- German language support
-- Log viewer in Settings window
+The following features originate from the fork by [@rusty-bit](https://github.com/rusty-bit/writher) and have been integrated into upstream — their commits are preserved in this repository's history:
+
+- Combo hotkeys with live key capture (default assistant hotkey now `Ctrl+Alt+R`)
+- Per-mode widget accent colours (cyan for dictation, violet for assistant)
+- Log viewer in the Settings window
+- German locale
+- Single-instance lock (adapted to a per-session `Local\` mutex here)
+- The spoken symbol / number substitution concept (redesigned here as the opt-in Layer B of `replacements.py`, with contraction safety and stricter spacing rules)
 
 ---
 
