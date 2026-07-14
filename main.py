@@ -98,6 +98,9 @@ def _load_settings():
     lang = db.get_setting("language", "")
     if lang:
         config.LANGUAGE = lang
+    wlang = db.get_setting("whisper_language", "")
+    if wlang != "":
+        config.WHISPER_LANGUAGE = None if wlang == "auto" else wlang
 
     # Hotkeys
     hk_dict = db.get_setting("hotkey_dictation", "")

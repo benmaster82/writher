@@ -35,6 +35,9 @@ _WHISPER_MODELS = ["tiny", "base", "small", "medium", "large-v3"]
 # Supported languages
 _LANGUAGES = [("en", "English"), ("it", "Italiano"), ("de", "Deutsch")]
 
+# Recognition (Whisper) language options — value None means auto-detect.
+_RECOGNITION_LANGS = [(None, "Auto"), ("en", "en"), ("it", "it"), ("de", "de")]
+
 
 def _fetch_ollama_models() -> list[str]:
     """Query Ollama /api/tags for installed models. Returns list of names."""
@@ -72,6 +75,9 @@ class SettingsWindow:
         self._ollama_url_entry = None
         # Whisper
         self._whisper_dropdown = None
+        # Recognition language
+        self._recog_dropdown = None
+        self._recog_hint = None
         # Language
         self._lang_dropdown = None
         # Hotkey configuration
@@ -359,6 +365,33 @@ class SettingsWindow:
 
         self._build_separator(pad)
 
+        # ── 5b. Recognition language ────────────────────────────────
+        self._build_section_label(pad, locales.get("setting_recognition_lang"))
+
+        recog_labels = [
+            locales.get("setting_recognition_auto") if code is None else label
+            for code, label in _RECOGNITION_LANGS
+        ]
+        self._recog_dropdown = ctk.CTkComboBox(
+            pad, values=recog_labels, font=T.FONT_SMALL,
+            dropdown_font=T.FONT_SMALL,
+            fg_color=T.BG_CARD, border_color=T.BORDER,
+            button_color=T.BORDER_GLOW, button_hover_color=T.FG_DIM,
+            dropdown_fg_color=T.BG_CARD, dropdown_hover_color=T.BG_HOVER,
+            dropdown_text_color=T.FG, text_color=T.FG,
+            height=36, corner_radius=6,
+            command=self._on_recognition_change, state="readonly",
+        )
+        self._recog_dropdown.pack(fill="x", pady=(0, T.PAD_S))
+
+        self._recog_hint = ctk.CTkLabel(
+            pad, text=locales.get("setting_recognition_hint"),
+            font=T.FONT_TINY, text_color=T.FG_DIM, anchor="w",
+            wraplength=_WIN_W - 3 * T.PAD_L, justify="left",
+        )
+
+        self._build_separator(pad)
+
         # ── 6. Language ──────────────────────────────────────────────
         self._build_section_label(pad, locales.get("setting_language"))
 
@@ -589,6 +622,16 @@ class SettingsWindow:
         if self._whisper_dropdown:
             self._whisper_dropdown.set(config.MODEL_SIZE)
 
+        # Recognition language
+        if self._recog_dropdown:
+            current = config.WHISPER_LANGUAGE
+            for code, label in _RECOGNITION_LANGS:
+                if code == current:
+                    display = (locales.get("setting_recognition_auto")
+                               if code is None else label)
+                    self._recog_dropdown.set(display)
+                    break
+
         # Language
         if self._lang_dropdown:
             current_lang = config.LANGUAGE
@@ -606,6 +649,8 @@ class SettingsWindow:
         # Symbol mode hint visibility follows the toggle state
         symbol_on = db.get_setting("symbol_mode", "0") == "1"
         self._update_whisper_hint_visibility(symbol_on)
+        # Recognition-language hint: only when non-English AND symbol mode ON
+        self._update_recognition_hint_visibility(symbol_on)
 
     def _fetch_and_update_ollama_models(self):
         """Fetch Ollama models in background thread, update dropdown on main thread."""
@@ -686,6 +731,31 @@ class SettingsWindow:
             threading.Thread(target=self._fetch_and_update_ollama_models,
                              daemon=True).start()
 
+    # ── Recognition-language callback ─────────────────────────────────────
+
+    def _on_recognition_change(self, selected: str):
+        auto_label = locales.get("setting_recognition_auto")
+        for code, label in _RECOGNITION_LANGS:
+            display = auto_label if code is None else label
+            if display == selected:
+                config.WHISPER_LANGUAGE = code
+                db.save_setting("whisper_language",
+                                "auto" if code is None else code)
+                log.info("Recognition language set to: %s",
+                         "auto" if code is None else code)
+                symbol_on = db.get_setting("symbol_mode", "0") == "1"
+                self._update_recognition_hint_visibility(symbol_on)
+                return
+
+    def _update_recognition_hint_visibility(self, symbol_on: bool):
+        if not self._recog_hint:
+            return
+        show = symbol_on and config.WHISPER_LANGUAGE not in (None, "en")
+        if show:
+            self._recog_hint.pack(fill="x")
+        else:
+            self._recog_hint.pack_forget()
+
     # ── Whisper callback ──────────────────────────────────────────────────
 
     def _on_whisper_change(self, value: str):
@@ -731,6 +801,7 @@ class SettingsWindow:
         db.save_setting("symbol_mode", "1" if enabled else "0")
         log.info("Symbol & spelling mode: %s", "ON" if enabled else "OFF")
         self._update_whisper_hint_visibility(enabled)
+        self._update_recognition_hint_visibility(enabled)
 
     def _update_whisper_hint_visibility(self, enabled: bool):
         if not self._whisper_hint:

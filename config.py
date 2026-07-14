@@ -10,11 +10,16 @@ HOTKEY = Key.alt_gr
 ASSISTANT_HOTKEY = (frozenset({"ctrl", "alt"}), KeyCode.from_vk(82))
 
 # ── Language ──────────────────────────────────────────────────────────────
-# Controls both Whisper transcription and all UI / assistant strings.
-# Supported values: "en" (English), "it" (Italian).
+# Controls the UI and assistant strings.
+# Supported values: "en" (English), "it" (Italian), "de" (German).
 LANGUAGE = "en"
 
 # ── Whisper ───────────────────────────────────────────────────────────────
+# Recognition language passed to faster-whisper's transcribe().
+# None = per-clip auto-detect (recommended for mixed-language users).
+# Otherwise a Whisper language code: "en", "it", "de", ...
+WHISPER_LANGUAGE = None
+
 MODEL_SIZE = "base"
 SAMPLE_RATE = 16000
 DEVICE = "cpu"
