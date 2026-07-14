@@ -436,7 +436,7 @@ Contributions to upstream via pull request:
 | [Marcel Alsleben](https://github.com/marcelal94) | Assistant dispatcher refactoring, pending delete handling |
 | [Aaron Dutton](https://github.com/aarondutton) | OS-locale date/time formatting |
 
-The following features originate from the fork by [@rusty-bit](https://github.com/rusty-bit/writher) and have been integrated into upstream — their commits are preserved in this repository's history:
+The following features originate from the fork by [@rusty-bit](https://github.com/rusty-bit/writher) and have been integrated into upstream - their commits are preserved in this repository's history:
 
 - Combo hotkeys with live key capture (default assistant hotkey now `Ctrl+Alt+R`)
 - Per-mode widget accent colours (cyan for dictation, violet for assistant)
