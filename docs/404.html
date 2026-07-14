@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Page not found — WritHer</title>
+  <link rel="icon" href="/favicon.ico" sizes="32x32" />
+  <link rel="icon" href="/apple-touch-icon.png" type="image/png" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #050508;
+      color: #ccccdd;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .widget {
+      width: 80px;
+      height: 40px;
+      background: #000;
+      border: 1px solid #2a2a3a;
+      border-radius: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 2.5rem;
+      box-shadow: 0 0 40px rgba(255, 255, 255, 0.05);
+    }
+
+    .eye {
+      width: 10px;
+      height: 10px;
+      background: #fff;
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+      animation: lookAround 2.5s ease-in-out infinite;
+    }
+
+    @keyframes lookAround {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-3px); }
+      75% { transform: translateX(3px); }
+    }
+
+    h1 {
+      color: #fff;
+      font-size: clamp(2rem, 6vw, 3.5rem);
+      letter-spacing: -.03em;
+      margin-bottom: 1rem;
+    }
+
+    p {
+      color: #a0a0b0;
+      font-size: .9rem;
+      line-height: 1.7;
+      max-width: 420px;
+      margin-bottom: 2rem;
+    }
+
+    a.btn {
+      background: #fff;
+      color: #000;
+      padding: .8rem 2rem;
+      border-radius: 4px;
+      font-size: .8rem;
+      font-weight: 600;
+      text-decoration: none;
+      letter-spacing: .04em;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="widget">
+    <div class="eye"></div>
+    <div class="eye"></div>
+  </div>
+  <h1>404 — Not found</h1>
+  <p>WritHer looked everywhere but couldn't find this page. It may have been moved or never existed.</p>
+  <a class="btn" href="/">← Back to getwrither.com</a>
+</body>
+
+</html>

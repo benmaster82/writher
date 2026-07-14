@@ -9,6 +9,12 @@
 </p>
 
 <p align="center">
+  <a href="https://getwrither.com"><strong>🌐 getwrither.com</strong></a> ·
+  <a href="https://github.com/benmaster82/writher/releases/latest"><strong>⬇️ Download</strong></a> ·
+  <a href="https://www.youtube.com/watch?v=lfV0LF3EGMw"><strong>🎬 Demo video</strong></a>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/platform-Windows-0078D6?logo=windows" alt="Windows">
   <img src="https://img.shields.io/badge/python-3.11+-3776AB?logo=python&logoColor=white" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/whisper-faster--whisper-orange" alt="Faster Whisper">
@@ -51,7 +57,7 @@
 - 📁 **Portable data paths** - database, logs, and recovery files stored in %APPDATA%/WritHer when running as exe, preventing permission issues.
 - ✓ **Cleaner widget feedback** - assistant confirmations show minimal icons instead of long text that overflowed the widget.
 
-> 💬 **Feedback welcome!** If you test WritHer with different microphones or setups, please [open an issue](https://github.com/rusty-bit/writher/issues) and let us know how it goes. Your feedback helps improve the app for everyone.
+> 💬 **Feedback welcome!** If you test WritHer with different microphones or setups, please [open an issue](https://github.com/benmaster82/writher/issues) and let us know how it goes. Your feedback helps improve the app for everyone.
 
 ---
 
@@ -152,7 +158,7 @@ Everything runs **locally**: speech recognition via [faster-whisper](https://git
 
 ### Option A: Download the exe (recommended)
 
-1. Download `WritHer-v1.2.0-win64.zip` from the [latest release](https://github.com/rusty-bit/writher/releases/latest)
+1. Download `WritHer-v1.3.0-win64.zip` from the [latest release](https://github.com/benmaster82/writher/releases/latest)
 2. Extract to any folder
 3. Install and start [Ollama](https://ollama.com) (only needed for assistant mode)
 4. Run `WritHer.exe`
@@ -164,7 +170,7 @@ Everything runs **locally**: speech recognition via [faster-whisper](https://git
 #### 1. Clone the repository
 
 ```bash
-git clone https://github.com/rusty-bit/writher.git
+git clone https://github.com/benmaster82/writher.git
 cd writher
 ```
 
@@ -370,7 +376,7 @@ writher/
 ├── tray_icon.py         # System tray icon (pystray)
 ├── brand.py             # "Pandora Blackboard" icon renderer
 ├── theme.py             # Unified colour palette and font definitions
-├── locales.py           # i18n string tables (EN, IT)
+├── locales.py           # i18n string tables (EN, IT, DE)
 ├── paths.py             # Data-directory resolution (source vs frozen exe)
 ├── logger.py            # Rotating file + console logger
 ├── debug_keys.py        # Key event debugger utility
