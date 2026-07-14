@@ -39,3 +39,9 @@ modificaseo.md
 # Internal planning docs
 obsidian-integration.md
 Writhercina.md
+
+# Local test scripts (audio/manual/integration harness)
+test_audio_script.md
+test_audio*.wav
+test_audio*.mp3
+test_integration.py
