@@ -565,7 +565,7 @@ def _destroy_root():
 def _acquire_instance_lock():
     """Return a Win32 mutex handle if this is the first instance, else exit."""
     import ctypes
-    mutex = ctypes.windll.kernel32.CreateMutexW(None, True, "Global\\WritHerSingleInstance")
+    mutex = ctypes.windll.kernel32.CreateMutexW(None, True, "Local\\WritHerSingleInstance")
     if ctypes.windll.kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
         log.error("Another instance of WritHer is already running. Exiting.")
         raise SystemExit(1)
