@@ -77,6 +77,8 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "show_appointments":    "📅 Here is your agenda",
         "show_reminders":       "⏰ Here are your reminders",
         "assistant_error":      "Assistant error",
+        "ollama_unreachable_title": "Writher — assistant unavailable",
+        "ollama_unreachable_body":  "Ollama is not running — assistant mode unavailable",
 
         # tray_icon.py
         "tray_idle":            "Writher — idle",
@@ -190,6 +192,8 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "show_appointments":    "📅 Ecco l'agenda",
         "show_reminders":       "⏰ Ecco i reminder",
         "assistant_error":      "Errore assistente",
+        "ollama_unreachable_title": "Writher — assistente non disponibile",
+        "ollama_unreachable_body":  "Ollama non è in esecuzione — modalità assistente non disponibile",
 
         "tray_idle":            "Writher — inattivo",
         "tray_recording":       "Writher — registrazione...",
@@ -299,6 +303,8 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "show_appointments":    "📅 Hier ist Ihre Agenda",
         "show_reminders":       "⏰ Hier sind Ihre Erinnerungen",
         "assistant_error":      "Assistentenfehler",
+        "ollama_unreachable_title": "Writher — Assistent nicht verfügbar",
+        "ollama_unreachable_body":  "Ollama läuft nicht — Assistentenmodus nicht verfügbar",
 
         "tray_idle":            "Writher — bereit",
         "tray_recording":       "Writher — Aufnahme...",

@@ -26,7 +26,7 @@ MIC_DEVICE_NAME = None
 
 # ── Ollama (assistant) ───────────────────────────────────────────────────
 OLLAMA_URL = "http://localhost:11434"
-OLLAMA_MODEL = "llama3.2:3b"
+OLLAMA_MODEL = "llama3.1:8b"
 
 # ── Recording mode ────────────────────────────────────────────────────────
 # True = hold key to record (release stops).  False = toggle (press start, press stop).

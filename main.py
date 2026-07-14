@@ -35,7 +35,7 @@ import assistant
 import config
 import database as db
 import locales
-import ollama_manager
+import notifier
 from notifier import ReminderScheduler
 from notes_window import NotesWindow
 from settings_window import SettingsWindow
@@ -423,6 +423,18 @@ def _assistant_worker():
             log.info("Assistant heard: %r", text)
             result = _handle_pending_delete_confirmation(text)
             if result is None:
+                if not assistant.ping_ollama():
+                    log.warning("Ollama unreachable at %s — aborting assistant call.",
+                                config.OLLAMA_URL)
+                    notifier.notify(
+                        locales.get("ollama_unreachable_title"),
+                        locales.get("ollama_unreachable_body"),
+                    )
+                    if widget:
+                        widget.set_expression("error")
+                        widget.show_message(
+                            locales.get("ollama_unreachable_body"), 3000)
+                    continue
                 result = assistant.process(text)
             log.info("Assistant result: %s", result)
 
@@ -510,7 +522,6 @@ def _quit():
     _cancel_timeout("assistant")
     _pipeline_queue.put(_STOP)
     _assistant_queue.put(_STOP)
-    ollama_manager.stop()
     if scheduler:
         scheduler.stop()
     if hotkey_listener:
@@ -583,30 +594,7 @@ def main():
     tray = TrayIcon(on_quit=_quit, on_show_notes=_show_notes,
                     on_show_settings=_show_settings)
     tray.start()
-
-    # Start Ollama in the background — download binary + pull model if needed.
-    # Callbacks update only the pystray title, which is thread-safe.
-    # root.after() must NOT be called from background threads before mainloop
-    # starts because tkinter._register() requires the main Tcl thread.
-    def _on_ollama_download(pct: float):
-        tray.set_tooltip(f"Downloading Ollama... {int(pct * 100)}%")
-
-    def _on_model_pull(pct, status: str):
-        label = f"{int(pct * 100)}% — {status}" if pct is not None else status
-        tray.set_tooltip(f"Pulling model: {label}")
-
-    def _setup_ollama():
-        tray.set_tooltip("Starting Ollama...")
-        ollama_manager.ensure_ready(
-            on_ollama_download=_on_ollama_download,
-            on_model_pull=_on_model_pull,
-        )
-        tray.set_tooltip(
-            locales.get("tray_idle") if ollama_manager.is_ready()
-            else locales.get("tray_ollama_down")
-        )
-
-    threading.Thread(target=_setup_ollama, daemon=True).start()
+    tray.set_tooltip(locales.get("tray_idle"))
 
     transcriber = Transcriber()
 

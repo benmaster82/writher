@@ -28,7 +28,6 @@
 
 - 🔢 **Symbol & code spelling** — say "forward slash", "dash", "semicolon", or number words and they type as actual characters. Spell code letter-by-letter: *"W H forward slash F A T"* → `WH/FAT`. Always active, no mode switch needed.
 - 🔒 **Single-instance lock** — launching a second copy exits immediately, preventing double-paste.
-- 🤖 **Ollama auto-management** — WritHer downloads and starts Ollama automatically on first launch and pulls `llama3.2:3b` if no model is present. No manual setup required.
 - 🎨 **Per-mode colour themes** — dictation widget renders in cyan, assistant in violet.
 - ⌨️ **Combo hotkeys** — assistant hotkey is now `Ctrl+Alt+R` (avoids browser conflicts). Settings window captures live key combos.
 - 🗑️ **Delete by voice** - say "delete the dentist appointment" or "remove the shopping list" and WritHer finds and removes it. Voice confirmation required before any deletion (15s timeout).
@@ -87,8 +86,7 @@ Everything runs **locally**: speech recognition via [faster-whisper](https://git
 - **Settings window** - configure recording mode, max recording duration, keyboard shortcuts, and microphone device directly from the system tray. All settings are persisted across restarts.
 - **Customizable combo hotkeys** - reassign dictation and assistant keys (including multi-key combos like `Ctrl+Alt+R`) from the Settings window. Blocked keys are rejected, duplicate detection prevents conflicts.
 - **Microphone selection** - choose your input device from a dropdown in Settings. Supports hot-plug detection with a refresh button - no restart needed.
-- **Ollama auto-management** - WritHer installs and launches Ollama automatically if it is not already running, and pulls the default model on first use.
-- **Single-instance protection** - a system-wide mutex prevents two copies running at once, eliminating the double-paste bug.
+- **Single-instance protection** - a per-session mutex prevents two copies running at once, eliminating the double-paste bug.
 - **Modern UI** - built with CustomTkinter and a unified "Pandora Blackboard" theme (pure black + bright white) defined in a single `theme.py` file.
 - **Multi-language** - ships with English and Italian; easy to add more via the `locales.py` string table.
 - **Fully offline** - no internet required after model download.
@@ -131,9 +129,14 @@ Everything runs **locally**: speech recognition via [faster-whisper](https://git
 
 - **Windows 10/11**
 - A working **microphone**
-- Internet connection on first launch (to download the Whisper speech model, ~244 MB for `small`)
+- Internet connection on first launch (to download the Whisper speech model)
+- **[Ollama](https://ollama.com)** installed and running locally (only required for assistant mode; dictation works without it)
 
-> **Ollama** is downloaded and started automatically by WritHer if it is not already installed. You do not need to set it up manually.
+> **Ollama setup:** download and install from [ollama.com](https://ollama.com), then pull the configured model, for example:
+> ```
+> ollama pull llama3.1:8b
+> ```
+> Ollama runs as a background service on Windows. If the assistant hotkey is triggered while Ollama is not reachable, WritHer shows a toast notification and aborts the request — dictation is unaffected.
 
 ---
 
@@ -143,9 +146,10 @@ Everything runs **locally**: speech recognition via [faster-whisper](https://git
 
 1. Download `WritHer-v1.2.0-win64.zip` from the [latest release](https://github.com/rusty-bit/writher/releases/latest)
 2. Extract to any folder
-3. Run `WritHer.exe`
-4. On first launch, the Whisper model and Ollama are downloaded automatically
-5. Right-click the tray icon for **Settings** and **Notes & Agenda**
+3. Install and start [Ollama](https://ollama.com) (only needed for assistant mode)
+4. Run `WritHer.exe`
+5. On first launch, the Whisper model is downloaded automatically
+6. Right-click the tray icon for **Settings** and **Notes & Agenda**
 
 ### Option B: Run from source
 
@@ -182,7 +186,7 @@ pip install faster-whisper numpy sounddevice pynput pystray Pillow requests wino
 python main.py
 ```
 
-Writher appears in the system tray. Hold `AltGr` to dictate, hold `Ctrl+Alt+R` for assistant commands. Ollama is started automatically if needed.
+Writher appears in the system tray. Hold `AltGr` to dictate, hold `Ctrl+Alt+R` for assistant commands. Make sure Ollama is running (`ollama serve` or the installed service) before invoking the assistant.
 
 ---
 
@@ -212,7 +216,7 @@ COMPUTE_TYPE = "int8"          # int8, float16, float32
 
 # Ollama
 OLLAMA_URL = "http://localhost:11434"
-OLLAMA_MODEL = "llama3.2:3b"
+OLLAMA_MODEL = "llama3.1:8b"
 
 # Notification lead time
 APPOINTMENT_REMIND_MINUTES = 15
@@ -344,7 +348,6 @@ writher/
 ├── symbols.py           # Post-processing: spoken symbols/numbers → characters
 ├── injector.py          # Clipboard paste into active app (Win32 API)
 ├── assistant.py         # Ollama LLM integration + function calling
-├── ollama_manager.py    # Ollama auto-download, install, and lifecycle management
 ├── database.py          # SQLite storage (notes, appointments, reminders, settings)
 ├── notifier.py          # Toast notifications + reminder/appointment scheduler
 ├── widget.py            # Floating pill overlay with animated eyes
@@ -372,7 +375,7 @@ writher/
 Run `python debug_keys.py` to see exactly what pynput reports for your keyboard. Some keyboard layouts map AltGr differently.
 
 **Ollama not reachable?**
-WritHer attempts to start Ollama automatically. If the assistant still fails, run `ollama serve` manually and verify the URL in `config.py` matches. The tray tooltip shows a warning if the connection fails at startup.
+WritHer expects Ollama to be running locally. Start it with `ollama serve` (or via the installed Windows service), then verify the URL in Settings matches. When you trigger assistant mode with Ollama down, WritHer shows a toast notification and flashes the widget in the error state — dictation continues to work.
 
 **No audio / microphone not found?**
 WritHer uses the system default input device unless you select a specific one in Settings. If the widget shows "🎤 No microphone detected", check your Windows sound settings. You can also open **Settings** from the tray and use the microphone dropdown to pick the correct device. Hit the ⟳ button to refresh the list if you just plugged in a new mic.
@@ -418,7 +421,6 @@ Additional contributions to the upstream repository were made by:
 
 New features added in this fork ([rusty-bit/writher](https://github.com/rusty-bit/writher)):
 - Spoken symbol & number substitution (`symbols.py`)
-- Ollama auto-download and lifecycle management (`ollama_manager.py`)
 - Combo hotkeys (`Ctrl+Alt+R`) with live key capture
 - Per-mode colour themes (cyan / violet)
 - Single-instance lock (prevents double-paste)
