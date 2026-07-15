@@ -574,13 +574,82 @@ def _acquire_instance_lock():
     mutex = ctypes.windll.kernel32.CreateMutexW(None, True, "Local\\WritHerSingleInstance")
     if ctypes.windll.kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
         log.error("Another instance of WritHer is already running. Exiting.")
+        try:
+            notifier.notify(
+                locales.get("already_running_title"),
+                locales.get("already_running_body"),
+            )
+        except Exception:
+            pass
         raise SystemExit(1)
     return mutex  # keep reference so it isn't garbage-collected
 
 
+def _finish_startup():
+    """Load the Whisper model and start the pipelines.
+
+    Runs on a background thread so the Tk mainloop can paint the widget
+    while the model loads — on first launch the download takes minutes,
+    and without visible feedback the app looks dead.
+    """
+    global transcriber, scheduler, hotkey_listener
+    from hotkey_util import key_display_name
+
+    model_flag = f"model_ready_{config.MODEL_SIZE}"
+    first_model_load = db.get_setting(model_flag, "") != "1"
+    widget.show_status(locales.get(
+        "model_downloading" if first_model_load else "model_loading"))
+
+    try:
+        transcriber = Transcriber()
+    except Exception as exc:
+        log.error("Whisper model load failed: %s", exc)
+        widget.show_status(locales.get("model_error"), expression="error")
+        notifier.notify(
+            locales.get("model_error_title"),
+            locales.get("model_error_body"),
+        )
+        return  # tray stays alive so the user can read the toast and quit
+
+    db.save_setting(model_flag, "1")
+
+    scheduler = ReminderScheduler()
+    scheduler.start()
+
+    t1 = threading.Thread(target=_dictation_worker, daemon=True)
+    t1.start()
+    t2 = threading.Thread(target=_assistant_worker, daemon=True)
+    t2.start()
+
+    hotkey_listener = HotkeyListener(
+        on_press_cb=_on_hotkey_press,
+        on_release_cb=_on_hotkey_release,
+        on_assist_press_cb=_on_assist_press,
+        on_assist_release_cb=_on_assist_release,
+    )
+    hotkey_listener.start()
+
+    dict_key = key_display_name(config.HOTKEY)
+    widget.set_expression("happy")
+    widget.show_message(locales.get("startup_ready", hotkey=dict_key), 3500)
+
+    if db.get_setting("welcome_shown", "") != "1":
+        notifier.notify(
+            locales.get("welcome_title"),
+            locales.get(
+                "welcome_body",
+                dict_key=dict_key,
+                assist_key=key_display_name(config.ASSISTANT_HOTKEY),
+            ),
+        )
+        db.save_setting("welcome_shown", "1")
+
+    log.info("Ready. %s=dictate, %s=assistant.",
+             dict_key, key_display_name(config.ASSISTANT_HOTKEY))
+
+
 def main():
-    global transcriber, tray, widget, root, notes_win, settings_win, scheduler
-    global hotkey_listener
+    global tray, widget, root, notes_win, settings_win
 
     _mutex = _acquire_instance_lock()
 
@@ -602,25 +671,8 @@ def main():
     tray.start()
     tray.set_tooltip(locales.get("tray_idle"))
 
-    transcriber = Transcriber()
+    threading.Thread(target=_finish_startup, daemon=True).start()
 
-    scheduler = ReminderScheduler()
-    scheduler.start()
-
-    t1 = threading.Thread(target=_dictation_worker, daemon=True)
-    t1.start()
-    t2 = threading.Thread(target=_assistant_worker, daemon=True)
-    t2.start()
-
-    hotkey_listener = HotkeyListener(
-        on_press_cb=_on_hotkey_press,
-        on_release_cb=_on_hotkey_release,
-        on_assist_press_cb=_on_assist_press,
-        on_assist_release_cb=_on_assist_release,
-    )
-    hotkey_listener.start()
-
-    log.info("Ready. AltGr=dictate, Ctrl+Alt+R=assistant.")
     root.mainloop()
 
 

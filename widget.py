@@ -70,7 +70,8 @@ _STATE_STYLE = {
     "sleep":      {"accent": (255, 255, 255), "glow": (255, 255, 255), "border": (255, 255, 255), "border_a": 0.04, "label": ""},
     "sad":        {"accent": (255, 255, 255), "glow": (255, 255, 255), "border": (255, 255, 255), "border_a": 0.06, "label": "Not found"},
     "love":       {"accent": (255, 107, 157), "glow": (255, 107, 157), "border": (255, 107, 157), "border_a": 0.12, "label": "Saved"},
-    "loading":    {"accent": (255, 255, 255), "glow": (255, 255, 255), "border": (255, 255, 255), "border_a": 0.08, "label": "Loading..."},
+    # label empty: status text is drawn via show_status() instead
+    "loading":    {"accent": (255, 255, 255), "glow": (255, 255, 255), "border": (255, 255, 255), "border_a": 0.08, "label": ""},
     # mode aliases
     "recording":  {"accent": (255, 255, 255), "glow": (255, 255, 255), "border": (255, 255, 255), "border_a": 0.08, "label": "Listening..."},
     "processing": {"accent": (255, 255, 255), "glow": (255, 255, 255), "border": (255, 255, 255), "border_a": 0.08, "label": "Thinking..."},
@@ -185,6 +186,7 @@ class RecordingWidget:
     RECORDING  = "recording"
     PROCESSING = "processing"
     ASSISTANT  = "assistant"
+    STATUS     = "status"
 
     def __init__(self, root: tk.Tk):
         self._root       = root
@@ -230,6 +232,13 @@ class RecordingWidget:
 
     def show_message(self, text: str, duration_ms: int = 3000):
         self._root.after(0, lambda: self._show_msg(text, duration_ms))
+
+    def show_status(self, text: str, expression: str = "loading"):
+        """Persistent status message (no auto-hide) with animated eyes.
+
+        Used for long-running startup states such as the Whisper model
+        download. Call hide() to dismiss."""
+        self._root.after(0, lambda: self._show_status(text, expression))
 
     def hide(self):
         self._root.after(0, self._start_fade_out)
@@ -413,6 +422,10 @@ class RecordingWidget:
             self._canvas.itemconfig(self._text_id, text=text, state="normal")
 
         self._mode = None
+        # Render the current expression once — the animation loop is stopped
+        # while a message is displayed, so the avatar would go stale otherwise.
+        self._update_avatar()
+        self._update_pill_bg()
         if self._alpha < _ALPHA_MAX:
             self._start_fade_in()
 
@@ -422,6 +435,43 @@ class RecordingWidget:
             except Exception:
                 pass
         self._after_msg = self._root.after(duration_ms, self._start_fade_out)
+
+    def _show_status(self, text: str, expression: str):
+        needs_build = (self._win is None)
+        if not needs_build:
+            try:
+                needs_build = not self._win.winfo_exists()
+            except Exception:
+                needs_build = True
+        if needs_build:
+            self._bar_ids = []
+            self._build()
+
+        if self._fading == "out":
+            self._cancel_fade()
+        if self._win:
+            self._win.deiconify()
+
+        for bid in self._bar_ids:
+            self._canvas.itemconfig(bid, state="hidden")
+        if self._label_id:
+            self._canvas.itemconfig(self._label_id, state="hidden")
+        if self._text_id:
+            self._canvas.itemconfig(self._text_id, text=text, state="normal")
+
+        if self._after_msg is not None:
+            try:
+                self._root.after_cancel(self._after_msg)
+            except Exception:
+                pass
+            self._after_msg = None
+
+        self._expression = expression if expression in _STATE_STYLE else "loading"
+        self._mode = self.STATUS  # keeps the animation loop running
+        if self._alpha < _ALPHA_MAX:
+            self._start_fade_in()
+        if self._after_anim is None:
+            self._animate()
 
     # ── update status label ───────────────────────────────────────────────
 
@@ -825,8 +875,9 @@ class RecordingWidget:
         # Update pill border color per state
         self._update_pill_bg()
 
-        # Update label
-        self._update_label()
+        # Update label (not in STATUS mode: the message text is shown instead)
+        if self._mode != self.STATUS:
+            self._update_label()
 
         # Waveform bars (recording + assistant both show animated bars)
         if self._mode in (self.RECORDING, self.ASSISTANT):

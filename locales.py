@@ -80,6 +80,18 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "ollama_unreachable_title": "Writher — assistant unavailable",
         "ollama_unreachable_body":  "Ollama is not running — assistant mode unavailable",
 
+        # main.py — startup
+        "model_downloading":    "Downloading speech model...",
+        "model_loading":        "Loading speech model...",
+        "startup_ready":        "✓ Ready — hold {hotkey}",
+        "welcome_title":        "WritHer is ready",
+        "welcome_body":         "Hold {dict_key} and speak — text appears in any app. Hold {assist_key} for the voice assistant.",
+        "model_error":          "Speech model failed to load",
+        "model_error_title":    "WritHer — speech model error",
+        "model_error_body":     "Could not load the speech model. Check your internet connection (first launch) and restart WritHer.",
+        "already_running_title": "WritHer is already running",
+        "already_running_body":  "Check the system tray (the ^ arrow next to the clock).",
+
         # tray_icon.py
         "tray_idle":            "Writher — idle",
         "tray_recording":       "Writher — recording...",
@@ -213,6 +225,17 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "ollama_unreachable_title": "Writher — assistente non disponibile",
         "ollama_unreachable_body":  "Ollama non è in esecuzione — modalità assistente non disponibile",
 
+        "model_downloading":    "Download modello vocale...",
+        "model_loading":        "Caricamento modello vocale...",
+        "startup_ready":        "✓ Pronto — tieni premuto {hotkey}",
+        "welcome_title":        "WritHer è pronto",
+        "welcome_body":         "Tieni premuto {dict_key} e parla — il testo appare in qualsiasi app. Tieni premuto {assist_key} per l'assistente vocale.",
+        "model_error":          "Errore caricamento modello",
+        "model_error_title":    "WritHer — errore modello vocale",
+        "model_error_body":     "Impossibile caricare il modello vocale. Controlla la connessione (primo avvio) e riavvia WritHer.",
+        "already_running_title": "WritHer è già in esecuzione",
+        "already_running_body":  "Controlla la system tray (la freccia ^ vicino all'orologio).",
+
         "tray_idle":            "Writher — inattivo",
         "tray_recording":       "Writher — registrazione...",
         "tray_ollama_down":     "Writher — Ollama non raggiungibile",
@@ -340,6 +363,17 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "assistant_error":      "Assistentenfehler",
         "ollama_unreachable_title": "Writher — Assistent nicht verfügbar",
         "ollama_unreachable_body":  "Ollama läuft nicht — Assistentenmodus nicht verfügbar",
+
+        "model_downloading":    "Sprachmodell wird heruntergeladen...",
+        "model_loading":        "Sprachmodell wird geladen...",
+        "startup_ready":        "✓ Bereit — {hotkey} gedrückt halten",
+        "welcome_title":        "WritHer ist bereit",
+        "welcome_body":         "{dict_key} gedrückt halten und sprechen — der Text erscheint in jeder App. {assist_key} für den Sprachassistenten.",
+        "model_error":          "Sprachmodell-Fehler",
+        "model_error_title":    "WritHer — Sprachmodell-Fehler",
+        "model_error_body":     "Sprachmodell konnte nicht geladen werden. Internetverbindung prüfen (Erststart) und WritHer neu starten.",
+        "already_running_title": "WritHer läuft bereits",
+        "already_running_body":  "Siehe System-Tray (^-Pfeil neben der Uhr).",
 
         "tray_idle":            "Writher — bereit",
         "tray_recording":       "Writher — Aufnahme...",
