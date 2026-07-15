@@ -18,7 +18,7 @@
   <img src="https://img.shields.io/badge/platform-Windows-0078D6?logo=windows" alt="Windows">
   <img src="https://img.shields.io/badge/python-3.11+-3776AB?logo=python&logoColor=white" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/whisper-faster--whisper-orange" alt="Faster Whisper">
-  <img src="https://img.shields.io/badge/LLM-Ollama-white?logo=ollama" alt="Ollama">
+  <img src="https://img.shields.io/badge/LLM-Local%20providers-white" alt="Local LLM providers">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
 </p>
 
@@ -82,7 +82,7 @@ Both hotkeys support two recording modes, configurable from the **Settings** win
 | **Hold** (default) | Hold the key to record, release to stop. |
 | **Toggle** | Press once to start recording, press again to stop. A configurable safety timeout auto-stops the recording if you forget. |
 
-Everything runs **locally**: speech recognition via [faster-whisper](https://github.com/SYSTRAN/faster-whisper), intent parsing via [Ollama](https://ollama.com), and data stored in a local SQLite database. No cloud, no API keys, no telemetry.
+Everything runs **locally**: speech recognition via [faster-whisper](https://github.com/SYSTRAN/faster-whisper), intent parsing via [Ollama](https://ollama.com) or an OpenAI-compatible local server such as [llama.cpp](https://github.com/ggml-org/llama.cpp), and data stored in a local SQLite database. No cloud and no telemetry.
 
 ---
 
@@ -147,13 +147,15 @@ Everything runs **locally**: speech recognition via [faster-whisper](https://git
 - **Windows 10/11**
 - A working **microphone**
 - Internet connection on first launch (to download the Whisper speech model)
-- **[Ollama](https://ollama.com)** installed and running locally (only required for assistant mode; dictation works without it)
+- A local LLM server for assistant mode: **[Ollama](https://ollama.com)** or an OpenAI-compatible server such as **[llama.cpp](https://github.com/ggml-org/llama.cpp)**. Dictation works without either.
 
 > **Ollama setup:** download and install from [ollama.com](https://ollama.com), then pull the configured model, for example:
 > ```
 > ollama pull llama3.1:8b
 > ```
 > Ollama runs as a background service on Windows. If the assistant hotkey is triggered while Ollama is not reachable, WritHer shows a toast notification and aborts the request — dictation is unaffected.
+
+> **OpenAI-compatible setup:** start a local server with chat-completions and tool-call support, then choose **OpenAI-compatible** in WritHer Settings. For llama.cpp the default URL is `http://localhost:8080/v1`; function calling requires a compatible chat template and the server's `--jinja` option.
 
 ---
 
@@ -163,7 +165,7 @@ Everything runs **locally**: speech recognition via [faster-whisper](https://git
 
 1. Download `WritHer-v1.3.1-win64.zip` from the [latest release](https://github.com/benmaster82/writher/releases/latest)
 2. Extract to any folder
-3. Install and start [Ollama](https://ollama.com) (only needed for assistant mode)
+3. Install and start Ollama or another supported local LLM server (only needed for assistant mode)
 4. Run `WritHer.exe`
 5. On first launch, the Whisper model is downloaded automatically
 6. Right-click the tray icon for **Settings** and **Notes & Agenda**
@@ -203,7 +205,7 @@ pip install faster-whisper numpy sounddevice pynput pystray Pillow requests wino
 python main.py
 ```
 
-Writher appears in the system tray. Hold `AltGr` to dictate, hold `Ctrl+Alt+R` for assistant commands. Make sure Ollama is running (`ollama serve` or the installed service) before invoking the assistant.
+Writher appears in the system tray. Hold `AltGr` to dictate, hold `Ctrl+Alt+R` for assistant commands. Make sure the provider selected in Settings is running before invoking the assistant.
 
 ---
 
@@ -237,15 +239,23 @@ MODEL_SIZE = "small"           # tiny, base, small (default), medium, large-v3
 DEVICE = "cpu"                 # "cpu" or "cuda"
 COMPUTE_TYPE = "int8"          # int8, float16, float32
 
-# Ollama
+# Assistant provider: "ollama" or "openai"
+ASSISTANT_PROVIDER = "ollama"
+
+# Ollama settings
 OLLAMA_URL = "http://localhost:11434"
 OLLAMA_MODEL = "llama3.1:8b"
+
+# OpenAI-compatible local server settings
+OPENAI_URL = "http://localhost:8080/v1"
+OPENAI_MODEL = ""                  # Discovered from /v1/models in Settings
+OPENAI_API_KEY = ""             # Optional; leave empty for local servers
 
 # Notification lead time
 APPOINTMENT_REMIND_MINUTES = 15
 ```
 
-> **Note:** `HOLD_TO_RECORD`, `MAX_RECORD_SECONDS`, `MIC_DEVICE_NAME`, `HOTKEY`, and `ASSISTANT_HOTKEY` can also be changed at runtime from the **Settings** window in the system tray. Changes made there are persisted in the database and override `config.py` defaults.
+> **Note:** Recording, microphone, hotkey, assistant provider, assistant model, and assistant URL settings can also be changed at runtime from the **Settings** window in the system tray. Changes made there are persisted in the database and override `config.py` defaults.
 
 ### Choosing a Whisper model
 
@@ -370,7 +380,7 @@ writher/
 ├── transcriber.py       # Speech-to-text (faster-whisper)
 ├── replacements.py      # Two-layer post-processing (user vocab + opt-in symbols)
 ├── injector.py          # Clipboard paste into active app (Win32 API)
-├── assistant.py         # Ollama LLM integration + function calling
+├── assistant.py         # Local LLM provider integration + function calling
 ├── database.py          # SQLite storage (notes, appointments, reminders, settings)
 ├── notifier.py          # Toast notifications + reminder/appointment scheduler
 ├── widget.py            # Floating pill overlay with animated eyes
@@ -399,8 +409,8 @@ writher/
 **AltGr not detected?**
 Run `python debug_keys.py` to see exactly what pynput reports for your keyboard. Some keyboard layouts map AltGr differently.
 
-**Ollama not reachable?**
-WritHer expects Ollama to be running locally. Start it with `ollama serve` (or via the installed Windows service), then verify the URL in Settings matches. When you trigger assistant mode with Ollama down, WritHer shows a toast notification and flashes the widget in the error state — dictation continues to work.
+**Assistant provider not reachable?**
+Verify that the provider selected in Settings is running and that its URL is correct. Start Ollama with `ollama serve`, or start your OpenAI-compatible server and include its `/v1` base path in the URL. WritHer checks `/api/tags` for Ollama and `/v1/models` for OpenAI-compatible providers. If the health check fails, assistant mode shows an error while dictation continues to work.
 
 **No audio / microphone not found?**
 WritHer uses the system default input device unless you select a specific one in Settings. If the widget shows "🎤 No microphone detected", check your Windows sound settings. You can also open **Settings** from the tray and use the microphone dropdown to pick the correct device. Hit the ⟳ button to refresh the list if you just plugged in a new mic.
@@ -433,7 +443,7 @@ MIT - see [LICENSE](LICENSE) for the full text.
 
 ## Credits & Acknowledgements
 
-Core architecture - voice dictation pipeline, Ollama assistant integration, floating widget, notes/agenda/reminders, tray icon -  is by **benmaster82** (this repository).
+Core architecture - voice dictation pipeline, local LLM assistant integration, floating widget, notes/agenda/reminders, tray icon - is by **benmaster82** (this repository).
 
 Contributions to upstream via pull request:
 

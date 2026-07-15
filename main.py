@@ -92,6 +92,15 @@ def _load_settings():
     ollama_url = db.get_setting("ollama_url", "")
     if ollama_url:
         config.OLLAMA_URL = ollama_url
+    assistant_provider = db.get_setting("assistant_provider", "")
+    if assistant_provider in {"ollama", "openai"}:
+        config.ASSISTANT_PROVIDER = assistant_provider
+    openai_model = db.get_setting("openai_model", "")
+    if openai_model:
+        config.OPENAI_MODEL = openai_model
+    openai_url = db.get_setting("openai_url", "")
+    if openai_url:
+        config.OPENAI_URL = openai_url
     whisper = db.get_setting("whisper_model", "")
     if whisper:
         config.MODEL_SIZE = whisper
@@ -412,7 +421,7 @@ def _handle_pending_delete_confirmation(text: str):
 
 
 def _assistant_worker():
-    """Transcribe audio, send to Ollama, and execute the returned action."""
+    """Transcribe audio, send it to the local LLM, and execute its action."""
     while True:
         item = _assistant_queue.get()
         if item is _STOP:
@@ -429,17 +438,20 @@ def _assistant_worker():
             log.info("Assistant heard: %r", text)
             result = _handle_pending_delete_confirmation(text)
             if result is None:
-                if not assistant.ping_ollama():
-                    log.warning("Ollama unreachable at %s — aborting assistant call.",
-                                config.OLLAMA_URL)
+                if not assistant.ping_provider():
+                    provider = getattr(config, "ASSISTANT_PROVIDER", "ollama")
+                    url = (config.OPENAI_URL if provider == "openai"
+                           else config.OLLAMA_URL)
+                    log.warning("Assistant provider %s unreachable at %s — "
+                                "aborting assistant call.", provider, url)
                     notifier.notify(
-                        locales.get("ollama_unreachable_title"),
-                        locales.get("ollama_unreachable_body"),
+                        locales.get("assistant_unreachable_title"),
+                        locales.get("assistant_unreachable_body"),
                     )
                     if widget:
                         widget.set_expression("error")
                         widget.show_message(
-                            locales.get("ollama_unreachable_body"), 3000)
+                            locales.get("assistant_unreachable_body"), 3000)
                     continue
                 result = assistant.process(text)
             log.info("Assistant result: %s", result)

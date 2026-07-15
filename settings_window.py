@@ -5,7 +5,7 @@ Allows the user to configure:
   - Max recording duration in seconds (toggle mode only)
   - Keyboard shortcuts for dictation and assistant
   - Microphone device selection
-  - Ollama model and URL
+  - Local assistant provider, model, and URL
   - Whisper model size
   - Interface language
 """
@@ -38,17 +38,44 @@ _LANGUAGES = [("en", "English"), ("it", "Italiano"), ("de", "Deutsch")]
 # Recognition (Whisper) language options — value None means auto-detect.
 _RECOGNITION_LANGS = [(None, "Auto"), ("en", "en"), ("it", "it"), ("de", "de")]
 
+_ASSISTANT_PROVIDERS = [
+    ("ollama", "Ollama"),
+    ("openai", "OpenAI-compatible"),
+]
 
-def _fetch_ollama_models() -> list[str]:
-    """Query Ollama /api/tags for installed models. Returns list of names."""
+
+def _assistant_model(provider: str | None = None) -> str:
+    provider = provider or getattr(config, "ASSISTANT_PROVIDER", "ollama")
+    return config.OPENAI_MODEL if provider == "openai" else config.OLLAMA_MODEL
+
+
+def _assistant_url(provider: str | None = None) -> str:
+    provider = provider or getattr(config, "ASSISTANT_PROVIDER", "ollama")
+    return config.OPENAI_URL if provider == "openai" else config.OLLAMA_URL
+
+
+def _fetch_assistant_models(provider: str | None = None) -> list[str]:
+    """Query the configured local provider for its available models."""
+    provider = provider or getattr(config, "ASSISTANT_PROVIDER", "ollama")
     try:
         import requests
-        resp = requests.get(f"{config.OLLAMA_URL}/api/tags", timeout=5)
+        base_url = _assistant_url(provider).rstrip("/")
+        if provider == "openai":
+            headers = {}
+            api_key = getattr(config, "OPENAI_API_KEY", "").strip()
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+            resp = requests.get(f"{base_url}/models", headers=headers,
+                                timeout=5)
+        else:
+            resp = requests.get(f"{base_url}/api/tags", timeout=5)
         if resp.status_code == 200:
             data = resp.json()
+            if provider == "openai":
+                return [m["id"] for m in data.get("data", []) if m.get("id")]
             return [m["name"] for m in data.get("models", [])]
     except Exception as exc:
-        log.warning("Could not fetch Ollama models: %s", exc)
+        log.warning("Could not fetch assistant models: %s", exc)
     return []
 
 
@@ -70,9 +97,10 @@ class SettingsWindow:
         self._mic_dropdown = None
         self._mic_devices = []
         self._refresh_btn = None
-        # Ollama
-        self._ollama_model_dropdown = None
-        self._ollama_url_entry = None
+        # Local assistant provider
+        self._assistant_provider_dropdown = None
+        self._assistant_model_dropdown = None
+        self._assistant_url_entry = None
         # Whisper
         self._whisper_dropdown = None
         # Recognition language
@@ -305,10 +333,24 @@ class SettingsWindow:
 
         self._build_separator(pad)
 
-        # ── 4. Ollama model ──────────────────────────────────────────
-        self._build_section_label(pad, locales.get("setting_ollama_model"))
+        # ── 4. Local assistant provider ──────────────────────────────
+        self._build_section_label(pad, locales.get("setting_assistant_provider"))
 
-        self._ollama_model_dropdown = ctk.CTkComboBox(
+        self._assistant_provider_dropdown = ctk.CTkComboBox(
+            pad, values=[label for _, label in _ASSISTANT_PROVIDERS],
+            font=T.FONT_SMALL, dropdown_font=T.FONT_SMALL,
+            fg_color=T.BG_CARD, border_color=T.BORDER,
+            button_color=T.BORDER_GLOW, button_hover_color=T.FG_DIM,
+            dropdown_fg_color=T.BG_CARD, dropdown_hover_color=T.BG_HOVER,
+            dropdown_text_color=T.FG, text_color=T.FG,
+            height=36, corner_radius=6, state="readonly",
+            command=self._on_assistant_provider_change,
+        )
+        self._assistant_provider_dropdown.pack(fill="x", pady=(0, T.PAD_M))
+
+        self._build_section_label(pad, locales.get("setting_assistant_model"))
+
+        self._assistant_model_dropdown = ctk.CTkComboBox(
             pad, values=[], font=T.FONT_SMALL,
             dropdown_font=T.FONT_SMALL,
             fg_color=T.BG_CARD, border_color=T.BORDER,
@@ -316,21 +358,22 @@ class SettingsWindow:
             dropdown_fg_color=T.BG_CARD, dropdown_hover_color=T.BG_HOVER,
             dropdown_text_color=T.FG, text_color=T.FG,
             height=36, corner_radius=6,
-            command=self._on_ollama_model_change,
+            command=self._on_assistant_model_change,
         )
-        self._ollama_model_dropdown.pack(fill="x", pady=(0, T.PAD_M))
+        self._assistant_model_dropdown.pack(fill="x", pady=(0, T.PAD_M))
 
-        # Ollama URL
-        self._build_section_label(pad, locales.get("setting_ollama_url"))
+        self._build_section_label(pad, locales.get("setting_assistant_url"))
 
-        self._ollama_url_entry = ctk.CTkEntry(
+        self._assistant_url_entry = ctk.CTkEntry(
             pad, font=T.FONT_SMALL, height=36, corner_radius=6,
             fg_color=T.BG_CARD, border_color=T.BORDER,
-            text_color=T.FG, placeholder_text="http://localhost:11434",
+            text_color=T.FG,
         )
-        self._ollama_url_entry.pack(fill="x", pady=(0, T.PAD_M))
-        self._ollama_url_entry.bind("<FocusOut>", lambda e: self._on_ollama_url_change())
-        self._ollama_url_entry.bind("<Return>", lambda e: self._on_ollama_url_change())
+        self._assistant_url_entry.pack(fill="x", pady=(0, T.PAD_M))
+        self._assistant_url_entry.bind(
+            "<FocusOut>", lambda e: self._on_assistant_url_change())
+        self._assistant_url_entry.bind(
+            "<Return>", lambda e: self._on_assistant_url_change())
 
         self._build_separator(pad)
 
@@ -607,16 +650,15 @@ class SettingsWindow:
         self._refresh_mic_list()
         self._sync_mic_dropdown()
 
-        # Ollama model - fetch in background to avoid blocking UI
-        if self._ollama_model_dropdown:
-            self._ollama_model_dropdown.set(config.OLLAMA_MODEL)
-            threading.Thread(target=self._fetch_and_update_ollama_models,
-                             daemon=True).start()
-
-        # Ollama URL
-        if self._ollama_url_entry:
-            self._ollama_url_entry.delete(0, "end")
-            self._ollama_url_entry.insert(0, config.OLLAMA_URL)
+        # Assistant provider - fetch models in background to avoid blocking UI
+        provider = getattr(config, "ASSISTANT_PROVIDER", "ollama")
+        if self._assistant_provider_dropdown:
+            label = next((label for key, label in _ASSISTANT_PROVIDERS
+                          if key == provider), "Ollama")
+            self._assistant_provider_dropdown.set(label)
+        self._sync_assistant_fields()
+        threading.Thread(target=self._fetch_and_update_assistant_models,
+                         args=(provider,), daemon=True).start()
 
         # Whisper model
         if self._whisper_dropdown:
@@ -652,16 +694,45 @@ class SettingsWindow:
         # Recognition-language hint: only when non-English AND symbol mode ON
         self._update_recognition_hint_visibility(symbol_on)
 
-    def _fetch_and_update_ollama_models(self):
-        """Fetch Ollama models in background thread, update dropdown on main thread."""
-        models = _fetch_ollama_models()
-        if models and self._win and self._ollama_model_dropdown:
-            current = config.OLLAMA_MODEL
-            # Ensure current model is in the list even if not installed
-            if current and current not in models:
-                models.insert(0, current)
-            self._root.after(0, lambda: self._ollama_model_dropdown.configure(values=models)
-                             if self._win and self._ollama_model_dropdown else None)
+    def _sync_assistant_fields(self):
+        """Show the model and URL for the selected provider."""
+        provider = getattr(config, "ASSISTANT_PROVIDER", "ollama")
+        if self._assistant_model_dropdown:
+            self._assistant_model_dropdown.set(_assistant_model(provider))
+        if self._assistant_url_entry:
+            self._assistant_url_entry.delete(0, "end")
+            self._assistant_url_entry.insert(0, _assistant_url(provider))
+
+    def _fetch_and_update_assistant_models(self, provider: str | None = None):
+        """Fetch provider models in a worker and update the dropdown."""
+        provider = provider or getattr(config, "ASSISTANT_PROVIDER", "ollama")
+        models = _fetch_assistant_models(provider)
+        if models and self._win and self._assistant_model_dropdown:
+            def apply_models():
+                if (not self._win or not self._assistant_model_dropdown
+                        or getattr(config, "ASSISTANT_PROVIDER", "ollama")
+                        != provider):
+                    return
+
+                current = _assistant_model(provider)
+                if provider == "openai" and not current:
+                    # OpenAI-compatible servers route by model ID. Select and
+                    # persist the first model returned by /models so a fresh
+                    # llama.cpp setup works without a fake placeholder ID.
+                    current = models[0]
+                    config.OPENAI_MODEL = current
+                    db.save_setting("openai_model", current)
+                elif current and current not in models:
+                    # Preserve a manually entered model that discovery omitted.
+                    models.insert(0, current)
+
+                self._assistant_model_dropdown.configure(values=models)
+                self._assistant_model_dropdown.set(current)
+
+            self._root.after(
+                0,
+                apply_models,
+            )
 
     def _update_mode_buttons(self, hold: bool):
         if self._hold_btn:
@@ -710,26 +781,45 @@ class SettingsWindow:
         if self._slider_val_label:
             self._slider_val_label.configure(text=f"{seconds}s")
 
-    # ── Ollama callbacks ──────────────────────────────────────────────────
+    # ── Assistant provider callbacks ──────────────────────────────────────
 
-    def _on_ollama_model_change(self, value: str):
+    def _on_assistant_provider_change(self, selected: str):
+        provider = next((key for key, label in _ASSISTANT_PROVIDERS
+                         if label == selected), "ollama")
+        config.ASSISTANT_PROVIDER = provider
+        db.save_setting("assistant_provider", provider)
+        self._sync_assistant_fields()
+        threading.Thread(target=self._fetch_and_update_assistant_models,
+                         args=(provider,), daemon=True).start()
+        log.info("Assistant provider set to: %s", provider)
+
+    def _on_assistant_model_change(self, value: str):
         value = value.strip()
         if value:
-            config.OLLAMA_MODEL = value
-            db.save_setting("ollama_model", value)
-            log.info("Ollama model set to: %s", value)
+            provider = getattr(config, "ASSISTANT_PROVIDER", "ollama")
+            if provider == "openai":
+                config.OPENAI_MODEL = value
+                db.save_setting("openai_model", value)
+            else:
+                config.OLLAMA_MODEL = value
+                db.save_setting("ollama_model", value)
+            log.info("Assistant model set to: %s", value)
 
-    def _on_ollama_url_change(self):
-        if not self._ollama_url_entry:
+    def _on_assistant_url_change(self):
+        if not self._assistant_url_entry:
             return
-        value = self._ollama_url_entry.get().strip()
-        if value and value != config.OLLAMA_URL:
-            config.OLLAMA_URL = value
-            db.save_setting("ollama_url", value)
-            log.info("Ollama URL set to: %s", value)
-            # Refresh model list with new URL
-            threading.Thread(target=self._fetch_and_update_ollama_models,
-                             daemon=True).start()
+        value = self._assistant_url_entry.get().strip()
+        provider = getattr(config, "ASSISTANT_PROVIDER", "ollama")
+        if value and value != _assistant_url(provider):
+            if provider == "openai":
+                config.OPENAI_URL = value
+                db.save_setting("openai_url", value)
+            else:
+                config.OLLAMA_URL = value
+                db.save_setting("ollama_url", value)
+            log.info("Assistant URL set to: %s", value)
+            threading.Thread(target=self._fetch_and_update_assistant_models,
+                             args=(provider,), daemon=True).start()
 
     # ── Recognition-language callback ─────────────────────────────────────
 
