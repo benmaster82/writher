@@ -32,6 +32,9 @@
 
 ## 🆕 What's New
 
+- 🚀 **Visible first-launch feedback** — the widget now appears right away with a *"Downloading speech model…"* status and animated loading eyes while the model loads, then confirms *"Ready — hold ‹your hotkey›"*. No more silent minutes where the app looked dead.
+- 👋 **Welcome toast** — the very first launch ends with a Windows notification explaining both hotkeys. If the model download fails (no internet on first launch), a clear error state and toast tell you what to do.
+- 🔁 **Second-instance toast** — launching WritHer twice now shows *"WritHer is already running"* instead of exiting silently.
 - 📚 **Custom vocabulary** — teach WritHer to render your spoken jargon or acronyms as their written form. Case-insensitive whole-word matching, multi-word spoken forms supported. Priming terms also feed faster-whisper's `initial_prompt` to nudge recognition.
 - 🔢 **Symbol & spelling mode (opt-in)** — enable in Settings and say "forward slash", "dash", "semicolon", or number words to get actual characters. Spell code letter-by-letter: *"W H forward slash F A T"* → `WH/FAT`. Contractions (`don't`, `we're`) stay intact and prose is never mangled.
 - 🌐 **Recognition language dropdown** — pick Whisper's language independently of the UI: `Auto` (default), `en`, `it`, `de`. The detected language is logged for every clip.
