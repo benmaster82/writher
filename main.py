@@ -585,6 +585,27 @@ def _acquire_instance_lock():
     return mutex  # keep reference so it isn't garbage-collected
 
 
+def _whisper_model_is_cached(size: str) -> bool:
+    """Return True if the faster-whisper model is already on disk.
+
+    Mirrors huggingface_hub's cache resolution (HF_HUB_CACHE / HF_HOME /
+    default ~/.cache/huggingface/hub) so the startup widget can honestly
+    say "Downloading" vs "Loading".
+    """
+    import os
+    hub = os.environ.get("HF_HUB_CACHE")
+    if not hub:
+        hf_home = os.environ.get("HF_HOME") or os.path.join(
+            os.path.expanduser("~"), ".cache", "huggingface")
+        hub = os.path.join(hf_home, "hub")
+    snapshots = os.path.join(
+        hub, f"models--Systran--faster-whisper-{size}", "snapshots")
+    try:
+        return any(os.scandir(snapshots))
+    except OSError:
+        return False
+
+
 def _finish_startup():
     """Load the Whisper model and start the pipelines.
 
@@ -595,10 +616,10 @@ def _finish_startup():
     global transcriber, scheduler, hotkey_listener
     from hotkey_util import key_display_name
 
-    model_flag = f"model_ready_{config.MODEL_SIZE}"
-    first_model_load = db.get_setting(model_flag, "") != "1"
+    downloading = not _whisper_model_is_cached(config.MODEL_SIZE)
     widget.show_status(locales.get(
-        "model_downloading" if first_model_load else "model_loading"))
+        "model_downloading" if downloading else "model_loading"))
+    log.info("Model '%s' cached: %s", config.MODEL_SIZE, not downloading)
 
     try:
         transcriber = Transcriber()
@@ -610,8 +631,6 @@ def _finish_startup():
             locales.get("model_error_body"),
         )
         return  # tray stays alive so the user can read the toast and quit
-
-    db.save_setting(model_flag, "1")
 
     scheduler = ReminderScheduler()
     scheduler.start()
