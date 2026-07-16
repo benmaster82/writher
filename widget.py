@@ -17,6 +17,7 @@ import ctypes
 import math
 import threading
 import tkinter as tk
+import tkinter.font as tkfont
 from PIL import Image, ImageDraw, ImageFilter, ImageTk
 from logger import log
 
@@ -213,6 +214,9 @@ class RecordingWidget:
         self._ava_tk     = None
         # Cached pill backgrounds per state
         self._pill_cache = {}
+        # Current pill width — grows to fit long messages
+        self._width      = _W
+        self._msg_font   = None
 
     # ── public API ────────────────────────────────────────────────────────
 
@@ -252,6 +256,28 @@ class RecordingWidget:
         error, alert, surprised, wink, sleep, sad, love, loading"""
         if expr in _STATE_STYLE:
             self._expression = expr
+
+    # ── dynamic width (long messages) ─────────────────────────────────────
+
+    def _set_width(self, width: int):
+        """Resize the pill window/canvas and recenter it on screen."""
+        if self._win is None or width == self._width:
+            return
+        self._width = width
+        sw = self._win.winfo_screenwidth()
+        sh = self._win.winfo_screenheight()
+        self._win.geometry(f"{width}x{_H}+{(sw - width) // 2}+{sh - _H - 80}")
+        self._canvas.config(width=width)
+        self._canvas.coords(self._text_id, (_SEP_X + width - 10) // 2, _H // 2)
+        self._update_pill_bg()
+
+    def _fit_width_to_text(self, text: str):
+        """Grow (or shrink back) the pill so *text* is never clipped."""
+        if self._win is None:
+            return
+        needed = _SEP_X + self._msg_font.measure(text) + 34
+        max_w = self._win.winfo_screenwidth() - 40
+        self._set_width(min(max(_W, needed), max_w))
 
     # ── mode accent helpers ───────────────────────────────────────────────
 
@@ -343,6 +369,7 @@ class RecordingWidget:
         if self._win:
             self._win.deiconify()
 
+        self._set_width(_W)  # recording modes use the default compact pill
         self._mode = mode
         self._tick = 0
 
@@ -414,6 +441,7 @@ class RecordingWidget:
         if self._win:
             self._win.deiconify()
 
+        self._fit_width_to_text(text)
         for bid in self._bar_ids:
             self._canvas.itemconfig(bid, state="hidden")
         if self._label_id:
@@ -452,6 +480,7 @@ class RecordingWidget:
         if self._win:
             self._win.deiconify()
 
+        self._fit_width_to_text(text)
         for bid in self._bar_ids:
             self._canvas.itemconfig(bid, state="hidden")
         if self._label_id:
@@ -503,14 +532,15 @@ class RecordingWidget:
         expr = self._expression
         style = self._resolved_style()
 
-        cache_key = (expr, tuple(style["border"]), style["border_a"], self._source_mode)
+        cache_key = (expr, tuple(style["border"]), style["border_a"],
+                     self._source_mode, self._width)
         if cache_key in self._pill_cache:
             self._bg_tk = self._pill_cache[cache_key]
         else:
             fill_rgb = _hex_to_rgb(_BG)
             ck_rgb   = _hex_to_rgb(_CHROMAKEY)
             pill = _render_pill(
-                _W, _H, _RADIUS,
+                self._width, _H, _RADIUS,
                 fill_rgb=fill_rgb,
                 border_rgb=style["border"],
                 border_a=style["border_a"],
@@ -535,11 +565,14 @@ class RecordingWidget:
 
         sw = win.winfo_screenwidth()
         sh = win.winfo_screenheight()
+        self._width = _W
         win.geometry(f"{_W}x{_H}+{(sw - _W) // 2}+{sh - _H - 80}")
 
         c = tk.Canvas(win, width=_W, height=_H, bg=_CHROMAKEY,
                       highlightthickness=0)
         c.pack()
+
+        self._msg_font = tkfont.Font(root=win, family="Segoe UI", size=10)
 
         # ── Pill background ───────────────────────────────────────
         fill_rgb = _hex_to_rgb(_BG)
@@ -592,7 +625,7 @@ class RecordingWidget:
         self._text_id = c.create_text(
             (_SEP_X + _W - 10) // 2, _H // 2,
             text="", fill="#c8c8d4",
-            font=("Segoe UI", 10),
+            font=self._msg_font,
             anchor="center", state="hidden",
         )
 
