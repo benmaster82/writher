@@ -650,14 +650,18 @@ def _finish_startup():
     hotkey_listener.start()
 
     dict_key = key_display_name(config.HOTKEY)
+    # Wording must match the configured recording mode: "hold" is wrong
+    # (and misleading) when the user has toggle mode enabled.
+    rec_mode = "hold" if config.HOLD_TO_RECORD else "toggle"
     widget.set_expression("happy")
-    widget.show_message(locales.get("startup_ready", hotkey=dict_key), 3500)
+    widget.show_message(
+        locales.get(f"startup_ready_{rec_mode}", hotkey=dict_key), 3500)
 
     if db.get_setting("welcome_shown", "") != "1":
         notifier.notify(
             locales.get("welcome_title"),
             locales.get(
-                "welcome_body",
+                f"welcome_body_{rec_mode}",
                 dict_key=dict_key,
                 assist_key=key_display_name(config.ASSISTANT_HOTKEY),
             ),
