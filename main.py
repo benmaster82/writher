@@ -55,6 +55,9 @@ settings_win = None
 scheduler   = None
 hotkey_listener = None
 
+_quit_requested = threading.Event()
+_shutting_down = False
+
 _rec_start  = 0.0
 _MIN_DURATION = 0.5
 _DELETE_CONFIRM_SECONDS = 15.0
@@ -523,7 +526,30 @@ def _show_settings():
         root.after(0, lambda: settings_win.show())
 
 
+def _request_quit():
+    """Receive a tray-thread request without calling Tk from that thread."""
+    _quit_requested.set()
+
+
+def _shutdown_requested() -> bool:
+    """Return True as soon as shutdown is requested or has begun."""
+    return _quit_requested.is_set() or _shutting_down
+
+
+def _poll_quit_request():
+    """Run shutdown on Tk's main thread when the tray requests it."""
+    if _quit_requested.is_set():
+        _quit()
+        return
+    if root:
+        root.after(50, _poll_quit_request)
+
+
 def _quit():
+    global _shutting_down
+    if _shutting_down:
+        return
+    _shutting_down = True
     log.info("Quitting...")
     _cancel_timeout("dictation")
     _cancel_timeout("assistant")
@@ -557,8 +583,7 @@ def _quit():
         try:
             root.after(50, _destroy_root)
         except Exception:
-            pass
-    log.info("Shutdown complete.")
+            _destroy_root()
 
 
 def _destroy_root():
@@ -567,6 +592,7 @@ def _destroy_root():
         root.destroy()
     except Exception:
         pass
+    log.info("Shutdown complete.")
 
 
 def _acquire_instance_lock():
@@ -633,14 +659,28 @@ def _finish_startup():
         )
         return  # tray stays alive so the user can read the toast and quit
 
+    if _shutdown_requested():
+        log.info("Startup cancelled after model load: shutdown requested.")
+        return
+
+    db.save_setting(model_flag, "1")
+
+    if _shutdown_requested():
+        return
     scheduler = ReminderScheduler()
     scheduler.start()
 
+    if _shutdown_requested():
+        scheduler.stop()
+        scheduler = None
+        return
     t1 = threading.Thread(target=_dictation_worker, daemon=True)
     t1.start()
     t2 = threading.Thread(target=_assistant_worker, daemon=True)
     t2.start()
 
+    if _shutdown_requested():
+        return
     hotkey_listener = HotkeyListener(
         on_press_cb=_on_hotkey_press,
         on_release_cb=_on_hotkey_release,
@@ -649,6 +689,10 @@ def _finish_startup():
     )
     hotkey_listener.start()
 
+    if _shutdown_requested():
+        hotkey_listener.stop()
+        hotkey_listener = None
+        return
     dict_key = key_display_name(config.HOTKEY)
     # Wording must match the configured recording mode: "hold" is wrong
     # (and misleading) when the user has toggle mode enabled.
@@ -690,13 +734,14 @@ def main():
     recorder.on_level = lambda rms: widget.update_level(min(1.0, rms * 8))
     recorder.on_mic_error = lambda msg: widget.show_message(msg, 4000)
 
-    tray = TrayIcon(on_quit=_quit, on_show_notes=_show_notes,
+    tray = TrayIcon(on_quit=_request_quit, on_show_notes=_show_notes,
                     on_show_settings=_show_settings)
     tray.start()
     tray.set_tooltip(locales.get("tray_idle"))
 
     threading.Thread(target=_finish_startup, daemon=True).start()
 
+    root.after(50, _poll_quit_request)
     root.mainloop()
 
     # Belt and braces: pystray's run_detached() thread is non-daemon and can
