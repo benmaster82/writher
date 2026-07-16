@@ -39,6 +39,9 @@ OLLAMA_MODEL = "llama3.1:8b"
 # False = save the user's clipboard before paste and restore it after.
 KEEP_TRANSCRIPT_IN_CLIPBOARD = False
 
+# Seconds to wait before restoring the clipboard (increase for slow apps).
+CLIPBOARD_RESTORE_DELAY = 0.5
+
 # ── Recording mode ────────────────────────────────────────────────────────
 # True = hold key to record (release stops).  False = toggle (press start, press stop).
 HOLD_TO_RECORD = True

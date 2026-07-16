@@ -225,6 +225,9 @@ WHISPER_LANGUAGE = None
 # Clipboard behaviour after paste. False = restore previous clipboard.
 KEEP_TRANSCRIPT_IN_CLIPBOARD = False
 
+# Seconds to wait before restoring prior clipboard contents.
+CLIPBOARD_RESTORE_DELAY = 0.5
+
 # Recording mode
 HOLD_TO_RECORD = True          # True = hold key, False = toggle (press/press)
 MAX_RECORD_SECONDS = 120       # Safety timeout for toggle mode (seconds)
