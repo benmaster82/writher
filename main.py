@@ -1,5 +1,6 @@
 import ctypes
 import locale
+import os
 import queue
 import re
 import threading
@@ -693,6 +694,16 @@ def main():
     threading.Thread(target=_finish_startup, daemon=True).start()
 
     root.mainloop()
+
+    # Belt and braces: pystray's run_detached() thread is non-daemon and can
+    # survive icon.stop(), leaving a ghost process that keeps holding the
+    # single-instance mutex ("already running" with no tray icon). Give
+    # stragglers a moment to finish, then force the process to exit.
+    for t in threading.enumerate():
+        if t is not threading.current_thread() and not t.daemon:
+            t.join(timeout=2.0)
+    log.info("Process exit.")
+    os._exit(0)
 
 
 if __name__ == "__main__":
