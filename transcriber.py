@@ -15,21 +15,32 @@ class Transcriber:
         )
         log.info("Model loaded.")
 
-    def transcribe(self, audio_np: np.ndarray) -> str:
+    def transcribe_with_info(
+            self, audio_np: np.ndarray) -> tuple[str, str | None, float | None]:
+        language = config.WHISPER_LANGUAGE
+        if language is None:
+            log.info("Language detection: enabled (Auto).")
+        else:
+            log.info("Language detection: disabled; using fixed language: %s.",
+                     language)
         segments, info = self._model.transcribe(
             audio_np,
-            language=config.WHISPER_LANGUAGE,
+            language=language,
             beam_size=5,
             vad_filter=True,
             initial_prompt=get_initial_prompt(),
         )
         detected = getattr(info, "language", None)
         probability = getattr(info, "language_probability", None)
-        if detected:
+        if detected and language is None:
             if probability is not None:
                 log.info("Whisper detected language: %s (p=%.2f)",
                          detected, probability)
             else:
                 log.info("Whisper detected language: %s", detected)
         text = " ".join(seg.text.strip() for seg in segments)
-        return text.strip()
+        return text.strip(), detected, probability
+
+    def transcribe(self, audio_np: np.ndarray) -> str:
+        text, _, _ = self.transcribe_with_info(audio_np)
+        return text

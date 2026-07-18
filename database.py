@@ -414,6 +414,24 @@ def save_setting(key: str, value: str):
         c.close()
 
 
+def save_settings(settings: dict[str, str]):
+    """Save multiple settings atomically."""
+    with _lock:
+        c = _conn()
+        try:
+            c.executemany(
+                "INSERT INTO settings(key,value) VALUES(?,?) "
+                "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                settings.items(),
+            )
+            c.commit()
+        except Exception:
+            c.rollback()
+            raise
+        finally:
+            c.close()
+
+
 # ── Custom vocabulary (Layer A) ───────────────────────────────────────────
 
 def list_vocabulary() -> list[tuple[str, str]]:

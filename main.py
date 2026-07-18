@@ -41,9 +41,15 @@ from notifier import ReminderScheduler
 from notes_window import NotesWindow
 from settings_window import SettingsWindow
 from replacements import apply_replacements
+from recognition_languages import (
+    SUPPORTED_LANGUAGE_CODES,
+    language_display_name,
+)
 
 _pipeline_queue   = queue.Queue()
 _assistant_queue  = queue.Queue()
+_recording_started_queue = queue.SimpleQueue()
+_shutdown_event = threading.Event()
 
 recorder    = Recorder()
 transcriber = None
@@ -60,6 +66,9 @@ _MIN_DURATION = 0.5
 _DELETE_CONFIRM_SECONDS = 15.0
 _DELETE_CONFIRM_TOKEN = re.compile(r"^__confirm_delete__:(note|appointment|reminder):(\d+)$")
 _pending_delete = None
+_language_prompt_pending = False
+_last_detected_language = None
+_recording_session = 0
 
 # Toggle-mode timeout timers
 _dict_timeout_timer  = None
@@ -161,18 +170,37 @@ def _timeout_assistant():
 # ── Dictation callbacks (AltGr) ──────────────────────────────────────────
 
 def _on_hotkey_press():
-    global _rec_start
+    global _rec_start, _recording_session
+    if _shutdown_event.is_set():
+        return
     _rec_start = time.monotonic()
-    recorder.start()
+    _recording_session += 1
+    session = _recording_session
+    if widget:
+        widget.show_status(locales.get("microphone_starting"), "loading")
+    if config.WHISPER_LANGUAGE:
+        language = config.WHISPER_LANGUAGE
+    elif _last_detected_language:
+        language = f"auto · {_last_detected_language}"
+    else:
+        language = "auto"
+    recorder.on_started = lambda: _recording_started_queue.put(
+        (session, "dictation", language))
+    if not recorder.start():
+        if widget:
+            widget.hide(immediate=True)
+        if hotkey_listener:
+            hotkey_listener.cancel_dictation_start()
+        return
     if tray:
         tray.set_recording(True)
-    if widget:
-        widget.show_recording()
     _start_timeout("dictation")
-    log.info("Recording started (dictation).")
+    log.info("Microphone starting (dictation).")
 
 
 def _on_hotkey_release():
+    global _recording_session
+    _recording_session += 1
     _cancel_timeout("dictation")
     audio = recorder.stop()
     duration = time.monotonic() - _rec_start
@@ -186,7 +214,7 @@ def _on_hotkey_release():
         _pipeline_queue.put(audio)
     else:
         if widget:
-            widget.hide()
+            widget.hide(immediate=True)
         if duration < _MIN_DURATION:
             log.info("Too short (%.2fs), skipping.", duration)
         else:
@@ -196,19 +224,37 @@ def _on_hotkey_release():
 # ── Assistant callbacks (Ctrl+R) ──────────────────────────────────────────
 
 def _on_assist_press():
-    global _rec_start
+    global _rec_start, _recording_session
+    if _shutdown_event.is_set():
+        return
     _rec_start = time.monotonic()
-    recorder.start()
+    _recording_session += 1
+    session = _recording_session
+    if widget:
+        widget.show_status(locales.get("microphone_starting"), "loading")
+    if config.WHISPER_LANGUAGE:
+        language = config.WHISPER_LANGUAGE
+    elif _last_detected_language:
+        language = f"auto · {_last_detected_language}"
+    else:
+        language = "auto"
+    recorder.on_started = lambda: _recording_started_queue.put(
+        (session, "assistant", language))
+    if not recorder.start():
+        if widget:
+            widget.hide(immediate=True)
+        if hotkey_listener:
+            hotkey_listener.cancel_assistant_start()
+        return
     if tray:
         tray.set_recording(True)
-    if widget:
-        widget.show_assistant()
-        widget.set_expression("listening")
     _start_timeout("assistant")
-    log.info("Recording started (assistant).")
+    log.info("Microphone starting (assistant).")
 
 
 def _on_assist_release():
+    global _recording_session
+    _recording_session += 1
     _cancel_timeout("assistant")
     audio = recorder.stop()
     duration = time.monotonic() - _rec_start
@@ -223,7 +269,7 @@ def _on_assist_release():
         _assistant_queue.put(audio)
     else:
         if widget:
-            widget.hide()
+            widget.hide(immediate=True)
 
 
 # ── Pipeline workers ──────────────────────────────────────────────────────
@@ -236,12 +282,13 @@ def _dictation_worker():
             break
         try:
             log.info("Transcribing (dictation)...")
-            text = transcriber.transcribe(item)
+            text, detected_language, _ = transcriber.transcribe_with_info(item)
             if text:
                 log.debug("Raw: %r", text)
                 text = apply_replacements(text)
                 log.info("Transcribed: %r", text)
                 inject(text)
+                _maybe_offer_detected_language(detected_language)
             else:
                 log.info("No speech detected.")
         except Exception as exc:
@@ -249,6 +296,61 @@ def _dictation_worker():
         finally:
             if widget:
                 widget.hide()
+
+
+def _maybe_offer_detected_language(detected_language: str | None):
+    global _language_prompt_pending, _last_detected_language
+    if config.WHISPER_LANGUAGE is not None:
+        return
+    detected_language = (detected_language or "").strip().lower()
+    if detected_language not in SUPPORTED_LANGUAGE_CODES:
+        if detected_language:
+            log.warning("Ignoring unsupported detected language: %s",
+                        detected_language)
+        return
+    _last_detected_language = detected_language
+    if db.get_setting("auto_language_prompt_answered", "0") == "1":
+        return
+    if _language_prompt_pending:
+        return
+    if not widget:
+        return
+
+    _language_prompt_pending = True
+    language_label = language_display_name(detected_language)
+
+    def accept():
+        global _language_prompt_pending
+        try:
+            db.save_settings({
+                "whisper_language": detected_language,
+                "auto_language_prompt_answered": "1",
+            })
+            config.WHISPER_LANGUAGE = detected_language
+            log.info("Recognition language saved from first detection: %s",
+                     detected_language)
+        except Exception as exc:
+            log.error("Could not save recognition language: %s", exc)
+        finally:
+            _language_prompt_pending = False
+
+    def decline():
+        global _language_prompt_pending
+        try:
+            db.save_setting("auto_language_prompt_answered", "1")
+            log.info("Recognition language remains on auto detection.")
+        except Exception as exc:
+            log.error("Could not save Auto-language preference: %s", exc)
+        finally:
+            _language_prompt_pending = False
+
+    widget.show_language_prompt(
+        locales.get("language_prompt_question", language=language_label),
+        locales.get("language_prompt_accept", language=language_label),
+        locales.get("language_prompt_decline"),
+        accept,
+        decline,
+    )
 
 
 def _parse_delete_token(result: str):
@@ -420,7 +522,7 @@ def _assistant_worker():
             break
         try:
             log.info("Transcribing (assistant)...")
-            text = transcriber.transcribe(item)
+            text, detected_language, _ = transcriber.transcribe_with_info(item)
             if not text:
                 log.info("No speech detected.")
                 if widget:
@@ -428,6 +530,7 @@ def _assistant_worker():
                 continue
 
             log.info("Assistant heard: %r", text)
+            _maybe_offer_detected_language(detected_language)
             result = _handle_pending_delete_confirmation(text)
             if result is None:
                 if not assistant.ping_ollama():
@@ -523,7 +626,45 @@ def _show_settings():
         root.after(0, lambda: settings_win.show())
 
 
+def _poll_recording_started():
+    """Apply first-audio UI updates from the Tk main thread."""
+    if not root:
+        return
+    while True:
+        try:
+            session, mode, language = _recording_started_queue.get_nowait()
+        except queue.Empty:
+            break
+        if session != _recording_session or not recorder.recording or not widget:
+            continue
+        def should_show(session=session):
+            return session == _recording_session and recorder.recording
+        if mode == "assistant":
+            widget.show_assistant(language, should_show)
+        else:
+            widget.show_recording(language, should_show)
+    root.after(20, _poll_recording_started)
+
+
+def _poll_shutdown():
+    """Destroy Tk from its owning thread after a tray-requested shutdown."""
+    if not root:
+        return
+    if not _shutdown_event.is_set():
+        root.after(20, _poll_shutdown)
+        return
+    try:
+        if notes_win and notes_win._win and notes_win._win.winfo_exists():
+            notes_win._win.withdraw()
+        if settings_win and settings_win._win and settings_win._win.winfo_exists():
+            settings_win._win.withdraw()
+    except Exception:
+        pass
+    root.after(50, _destroy_root)
+
+
 def _quit():
+    _shutdown_event.set()
     log.info("Quitting...")
     _cancel_timeout("dictation")
     _cancel_timeout("assistant")
@@ -542,22 +683,9 @@ def _quit():
         except Exception:
             pass
     try:
-        recorder.stop()
+        recorder.close()
     except Exception:
         pass
-    # Hide child windows immediately, then destroy root after event queue drains
-    if root:
-        try:
-            if notes_win and notes_win._win and notes_win._win.winfo_exists():
-                notes_win._win.withdraw()
-            if settings_win and settings_win._win and settings_win._win.winfo_exists():
-                settings_win._win.withdraw()
-        except Exception:
-            pass
-        try:
-            root.after(50, _destroy_root)
-        except Exception:
-            pass
     log.info("Shutdown complete.")
 
 
@@ -633,13 +761,34 @@ def _finish_startup():
         )
         return  # tray stays alive so the user can read the toast and quit
 
+    if _shutdown_event.is_set():
+        return
+
+    # Opening the stream at startup avoids device enumeration on first use.
+    # It remains stopped while idle so Windows shows no microphone indicator.
+    recorder.prepare()
+    if _shutdown_event.is_set():
+        recorder.close()
+        return
+
     scheduler = ReminderScheduler()
     scheduler.start()
+    if _shutdown_event.is_set():
+        scheduler.stop()
+        recorder.close()
+        return
 
     t1 = threading.Thread(target=_dictation_worker, daemon=True)
     t1.start()
     t2 = threading.Thread(target=_assistant_worker, daemon=True)
     t2.start()
+
+    if _shutdown_event.is_set():
+        _pipeline_queue.put(_STOP)
+        _assistant_queue.put(_STOP)
+        scheduler.stop()
+        recorder.close()
+        return
 
     hotkey_listener = HotkeyListener(
         on_press_cb=_on_hotkey_press,
@@ -647,7 +796,17 @@ def _finish_startup():
         on_assist_press_cb=_on_assist_press,
         on_assist_release_cb=_on_assist_release,
     )
+    if _shutdown_event.is_set():
+        hotkey_listener.stop()
+        scheduler.stop()
+        recorder.close()
+        return
     hotkey_listener.start()
+    if _shutdown_event.is_set():
+        hotkey_listener.stop()
+        scheduler.stop()
+        recorder.close()
+        return
 
     dict_key = key_display_name(config.HOTKEY)
     # Wording must match the configured recording mode: "hold" is wrong
@@ -689,6 +848,8 @@ def main():
 
     recorder.on_level = lambda rms: widget.update_level(min(1.0, rms * 8))
     recorder.on_mic_error = lambda msg: widget.show_message(msg, 4000)
+    root.after(20, _poll_recording_started)
+    root.after(20, _poll_shutdown)
 
     tray = TrayIcon(on_quit=_quit, on_show_notes=_show_notes,
                     on_show_settings=_show_settings)
