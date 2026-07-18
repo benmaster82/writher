@@ -15,6 +15,7 @@ Redesigned to match the JSX floating pill widget:
 
 import ctypes
 import math
+import queue
 import threading
 import tkinter as tk
 import tkinter.font as tkfont
@@ -31,6 +32,7 @@ _BORDER    = "#1c1c26"      # default subtle border
 
 # Widget dimensions — pill shape
 _W, _H   = 220, 44
+_RECORDING_W = 280
 _RADIUS  = _H // 2          # full pill (borderRadius: height/2 in JSX)
 
 # ── avatar / eye area ───────────────────────────────────────────────────
@@ -196,6 +198,7 @@ class RecordingWidget:
         self._bar_ids    = []
         self._text_id    = None
         self._label_id   = None    # status label (JSX-style)
+        self._language_id = None   # contrasting recognition-language badge
         self._sep_ids    = []      # separator lines
         self._after_anim = None
         self._after_fade = None
@@ -217,35 +220,80 @@ class RecordingWidget:
         # Current pill width — grows to fit long messages
         self._width      = _W
         self._msg_font   = None
+        self._language_label = None
+        self._language_prompt_win = None
+        # Tk calls must only be made by the thread running mainloop().
+        # Cross-thread ``after`` calls can block the hotkey listener and delay
+        # the recording-to-transcription handoff until another key event.
+        self._ui_queue = queue.SimpleQueue()
+        self._root.after(10, self._drain_ui_queue)
+
+    def _dispatch(self, func):
+        """Queue a UI operation without blocking the calling thread."""
+        self._ui_queue.put(func)
+
+    def _drain_ui_queue(self):
+        """Run queued UI operations on the Tk main thread."""
+        try:
+            while True:
+                try:
+                    func = self._ui_queue.get_nowait()
+                except queue.Empty:
+                    break
+                try:
+                    func()
+                except Exception as exc:
+                    log.error("Widget UI operation failed: %s", exc)
+        finally:
+            try:
+                self._root.after(10, self._drain_ui_queue)
+            except tk.TclError:
+                pass
 
     # ── public API ────────────────────────────────────────────────────────
 
-    def show_recording(self):
-        self._source_mode = "dictation"
-        self._root.after(0, lambda: self._show(self.RECORDING))
+    def show_recording(self, language: str | None = None, should_show=None):
+        def show():
+            if should_show is not None and not should_show():
+                return
+            self._source_mode = "dictation"
+            self._language_label = (language or "AUTO").upper()
+            self._show(self.RECORDING)
+        self._dispatch(show)
 
     def show_processing(self):
         # _source_mode intentionally not reset — carries through from the
         # preceding show_recording() or show_assistant() call so the
         # processing phase keeps the same colour theme.
-        self._root.after(0, lambda: self._show(self.PROCESSING))
+        self._dispatch(lambda: self._show(self.PROCESSING))
 
-    def show_assistant(self):
-        self._source_mode = "assistant"
-        self._root.after(0, lambda: self._show(self.ASSISTANT))
+    def show_assistant(self, language: str | None = None, should_show=None):
+        def show():
+            if should_show is not None and not should_show():
+                return
+            self._source_mode = "assistant"
+            self._language_label = (language or "AUTO").upper()
+            self._show(self.ASSISTANT)
+        self._dispatch(show)
+
+    def show_language_prompt(self, question: str, accept_text: str,
+                             decline_text: str, on_accept, on_decline):
+        self._dispatch(lambda: self._show_language_prompt(
+            question, accept_text, decline_text, on_accept, on_decline))
 
     def show_message(self, text: str, duration_ms: int = 3000):
-        self._root.after(0, lambda: self._show_msg(text, duration_ms))
+        self._dispatch(lambda: self._show_msg(text, duration_ms))
 
     def show_status(self, text: str, expression: str = "loading"):
         """Persistent status message (no auto-hide) with animated eyes.
 
         Used for long-running startup states such as the Whisper model
         download. Call hide() to dismiss."""
-        self._root.after(0, lambda: self._show_status(text, expression))
+        self._dispatch(lambda: self._show_status(text, expression))
 
-    def hide(self):
-        self._root.after(0, self._start_fade_out)
+    def hide(self, immediate: bool = False):
+        self._dispatch(
+            self._hide_immediately if immediate else self._start_fade_out)
 
     def update_level(self, level: float):
         with self._level_lock:
@@ -255,7 +303,7 @@ class RecordingWidget:
         """Set bot eye expression: idle, listening, thinking, coding, happy,
         error, alert, surprised, wink, sleep, sad, love, loading"""
         if expr in _STATE_STYLE:
-            self._expression = expr
+            self._dispatch(lambda: setattr(self, "_expression", expr))
 
     # ── dynamic width (long messages) ─────────────────────────────────────
 
@@ -269,6 +317,8 @@ class RecordingWidget:
         self._win.geometry(f"{width}x{_H}+{(sw - width) // 2}+{sh - _H - 80}")
         self._canvas.config(width=width)
         self._canvas.coords(self._text_id, (_SEP_X + width - 10) // 2, _H // 2)
+        if self._language_id is not None:
+            self._canvas.coords(self._language_id, width - 16, _H // 2)
         self._update_pill_bg()
 
     def _fit_width_to_text(self, text: str):
@@ -322,6 +372,13 @@ class RecordingWidget:
         self._cancel_fade()
         self._fade_step()
 
+    def _hide_immediately(self):
+        """Cancel in-flight fades and fully withdraw the overlay."""
+        self._cancel_fade()
+        self._fading = None
+        self._set_alpha(_ALPHA_MIN)
+        self._do_hide()
+
     def _fade_step(self):
         step = _ALPHA_MAX / _FADE_STEPS
         if self._fading == "in":
@@ -369,7 +426,8 @@ class RecordingWidget:
         if self._win:
             self._win.deiconify()
 
-        self._set_width(_W)  # recording modes use the default compact pill
+        self._set_width(
+            _RECORDING_W if mode in (self.RECORDING, self.ASSISTANT) else _W)
         self._mode = mode
         self._tick = 0
 
@@ -388,6 +446,12 @@ class RecordingWidget:
 
         # Update label
         self._update_label()
+        if self._language_id:
+            self._canvas.itemconfig(
+                self._language_id,
+                text=self._language_label or "AUTO",
+                state="normal" if show_bars else "hidden",
+            )
 
         if self._text_id:
             self._canvas.itemconfig(self._text_id, state="hidden")
@@ -425,6 +489,55 @@ class RecordingWidget:
             except Exception:
                 pass
 
+    def _show_language_prompt(self, question: str, accept_text: str,
+                              decline_text: str, on_accept, on_decline):
+        if self._language_prompt_win is not None:
+            try:
+                if self._language_prompt_win.winfo_exists():
+                    return
+            except Exception:
+                pass
+
+        win = tk.Toplevel(self._root)
+        self._language_prompt_win = win
+        win.overrideredirect(True)
+        win.attributes("-topmost", True)
+        win.configure(bg="#38bdf8")
+        width, height = 430, 112
+        sw, sh = win.winfo_screenwidth(), win.winfo_screenheight()
+        win.geometry(
+            f"{width}x{height}+{(sw - width) // 2}+{sh - height - 126}")
+
+        panel = tk.Frame(win, bg=_BG, padx=14, pady=12)
+        panel.pack(fill="both", expand=True, padx=1, pady=1)
+        tk.Label(
+            panel, text=question, bg=_BG, fg="#e8e8f0",
+            font=("Segoe UI", 10), anchor="center",
+        ).pack(fill="x", pady=(0, 10))
+
+        buttons = tk.Frame(panel, bg=_BG)
+        buttons.pack()
+
+        def finish(callback):
+            try:
+                win.destroy()
+            finally:
+                self._language_prompt_win = None
+                callback()
+
+        tk.Button(
+            buttons, text=accept_text, command=lambda: finish(on_accept),
+            bg="#38bdf8", fg="#001018", activebackground="#7dd3fc",
+            activeforeground="#001018", relief="flat",
+            font=("Segoe UI", 9, "bold"), padx=14, pady=5,
+        ).pack(side="left", padx=5)
+        tk.Button(
+            buttons, text=decline_text, command=lambda: finish(on_decline),
+            bg="#1c1c26", fg="#d0d0dc", activebackground="#2a2a38",
+            activeforeground="#ffffff", relief="flat",
+            font=("Segoe UI", 9), padx=14, pady=5,
+        ).pack(side="left", padx=5)
+
     def _show_msg(self, text: str, duration_ms: int):
         needs_build = (self._win is None)
         if not needs_build:
@@ -446,6 +559,8 @@ class RecordingWidget:
             self._canvas.itemconfig(bid, state="hidden")
         if self._label_id:
             self._canvas.itemconfig(self._label_id, state="hidden")
+        if self._language_id:
+            self._canvas.itemconfig(self._language_id, state="hidden")
         if self._text_id:
             self._canvas.itemconfig(self._text_id, text=text, state="normal")
 
@@ -485,6 +600,8 @@ class RecordingWidget:
             self._canvas.itemconfig(bid, state="hidden")
         if self._label_id:
             self._canvas.itemconfig(self._label_id, state="hidden")
+        if self._language_id:
+            self._canvas.itemconfig(self._language_id, state="hidden")
         if self._text_id:
             self._canvas.itemconfig(self._text_id, text=text, state="normal")
 
@@ -607,6 +724,13 @@ class RecordingWidget:
             text="", fill="#666670",
             font=("Segoe UI", 10),
             anchor="w", state="hidden",
+        )
+
+        self._language_id = c.create_text(
+            _RECORDING_W - 16, _H // 2,
+            text="", fill="#ffaa00",
+            font=("Segoe UI", 9, "bold"),
+            anchor="e", state="hidden",
         )
 
         # ── Waveform bars (JSX-style: 5 bars, only during listening)

@@ -4,10 +4,13 @@ Covers the acceptance criterion "hotkey combo round-trip and conflict
 detection" for the fork's combo-hotkey feature.
 """
 
+import threading
 import unittest
+from unittest.mock import patch
 
 from pynput.keyboard import Key, KeyCode
 
+from hotkey import HotkeyListener
 from hotkey_util import (key_to_str, str_to_key, hotkeys_equal, keys_match,
                         canonical_modifier, is_blocked)
 
@@ -95,6 +98,81 @@ class TestBlockedKeys(unittest.TestCase):
         self.assertFalse(is_blocked(
             (frozenset({"ctrl"}), KeyCode.from_char("a"))
         ))
+
+
+class TestFailedStartReset(unittest.TestCase):
+    def test_cancel_dictation_start_resets_toggle_and_hold_state(self):
+        listener = HotkeyListener(lambda: None, lambda: None)
+        listener._dict_recording = True
+        listener._dict_pressed = True
+
+        listener.cancel_dictation_start()
+
+        self.assertFalse(listener._dict_recording)
+        self.assertFalse(listener._dict_pressed)
+
+    def test_cancel_assistant_start_resets_toggle_and_hold_state(self):
+        listener = HotkeyListener(lambda: None, lambda: None)
+        listener._assist_recording = True
+        listener._assist_pressed = True
+
+        listener.cancel_assistant_start()
+
+        self.assertFalse(listener._assist_recording)
+        self.assertFalse(listener._assist_pressed)
+
+
+class TestCallbackDispatch(unittest.TestCase):
+    def test_slow_start_does_not_prevent_release_from_being_queued(self):
+        start_entered = threading.Event()
+        allow_start_to_finish = threading.Event()
+        release_called = threading.Event()
+
+        def slow_start():
+            start_entered.set()
+            allow_start_to_finish.wait(timeout=1)
+
+        listener = HotkeyListener(slow_start, release_called.set)
+        listener._safe_call(slow_start, "start")
+        self.assertTrue(start_entered.wait(timeout=0.2))
+
+        listener._safe_call(release_called.set, "release")
+        self.assertFalse(release_called.is_set())
+        allow_start_to_finish.set()
+
+        self.assertTrue(release_called.wait(timeout=0.2))
+        listener.stop()
+
+    def test_stop_waits_for_running_callback(self):
+        callback_entered = threading.Event()
+        allow_callback_to_finish = threading.Event()
+
+        def blocked_callback():
+            callback_entered.set()
+            allow_callback_to_finish.wait(timeout=1)
+
+        listener = HotkeyListener(blocked_callback, lambda: None)
+        listener._safe_call(blocked_callback, "blocked")
+        self.assertTrue(callback_entered.wait(timeout=0.2))
+
+        stopper = threading.Thread(target=listener.stop)
+        stopper.start()
+        self.assertTrue(stopper.is_alive())
+        allow_callback_to_finish.set()
+        stopper.join(timeout=0.2)
+
+        self.assertFalse(stopper.is_alive())
+        self.assertFalse(listener._callback_worker.is_alive())
+
+    @patch("hotkey.keyboard.Listener")
+    def test_start_after_stop_does_not_create_keyboard_listener(
+            self, keyboard_listener):
+        listener = HotkeyListener(lambda: None, lambda: None)
+        listener.stop()
+
+        listener.start()
+
+        keyboard_listener.assert_not_called()
 
 
 if __name__ == "__main__":

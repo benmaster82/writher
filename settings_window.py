@@ -22,7 +22,7 @@ import config
 import database as db
 import locales
 from brand import make_title_bar_image
-from hotkey_util import (key_to_str, str_to_key, key_display_name, is_blocked,
+from hotkey_util import (key_to_str, key_display_name, is_blocked,
                          canonical_modifier, hotkeys_equal)
 import theme as T
 
@@ -36,7 +36,7 @@ _WHISPER_MODELS = ["tiny", "base", "small", "medium", "large-v3"]
 _LANGUAGES = [("en", "English"), ("it", "Italiano"), ("de", "Deutsch")]
 
 # Recognition (Whisper) language options — value None means auto-detect.
-_RECOGNITION_LANGS = [(None, "Auto"), ("en", "en"), ("it", "it"), ("de", "de")]
+_RECOGNITION_LANGS = [(None, "Auto"), ("en", "EN"), ("it", "IT"), ("de", "DE")]
 
 
 def _fetch_ollama_models() -> list[str]:
@@ -625,12 +625,18 @@ class SettingsWindow:
         # Recognition language
         if self._recog_dropdown:
             current = config.WHISPER_LANGUAGE
+            matched = False
             for code, label in _RECOGNITION_LANGS:
                 if code == current:
                     display = (locales.get("setting_recognition_auto")
                                if code is None else label)
                     self._recog_dropdown.set(display)
+                    matched = True
                     break
+            if not matched and current:
+                # A language accepted from Auto detection may intentionally
+                # fall outside the compact Auto/EN/IT/DE dropdown list.
+                self._recog_dropdown.set(current.upper())
 
         # Language
         if self._lang_dropdown:

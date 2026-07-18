@@ -73,6 +73,10 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "lang_name": "English",
 
         # main.py — widget messages
+        "microphone_starting":    "Starting microphone...",
+        "language_prompt_question": "Set recognition language to {language}?",
+        "language_prompt_accept": "Use {language}",
+        "language_prompt_decline": "Keep Auto",
         "show_notes":           "📝 Here are your notes",
         "show_appointments":    "📅 Here is your agenda",
         "show_reminders":       "⏰ Here are your reminders",
@@ -221,6 +225,10 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "lang_name": "Italian",
 
         "show_notes":           "📝 Ecco le note",
+        "microphone_starting":   "Avvio microfono...",
+        "language_prompt_question": "Impostare la lingua di riconoscimento su {language}?",
+        "language_prompt_accept": "Usa {language}",
+        "language_prompt_decline": "Mantieni Auto",
         "show_appointments":    "📅 Ecco l'agenda",
         "show_reminders":       "⏰ Ecco i reminder",
         "assistant_error":      "Errore assistente",
@@ -362,6 +370,10 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "lang_name": "German",
 
         "show_notes":           "📝 Hier sind Ihre Notizen",
+        "microphone_starting":   "Mikrofon wird gestartet...",
+        "language_prompt_question": "Erkennungssprache auf {language} setzen?",
+        "language_prompt_accept": "{language} verwenden",
+        "language_prompt_decline": "Auto behalten",
         "show_appointments":    "📅 Hier ist Ihre Agenda",
         "show_reminders":       "⏰ Hier sind Ihre Erinnerungen",
         "assistant_error":      "Assistentenfehler",
