@@ -1,8 +1,7 @@
 """Local LLM assistant with function calling for notes, agenda and reminders."""
 
 import json
-import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from logger import log
 import config
 import locales

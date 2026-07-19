@@ -19,7 +19,6 @@ import threading
 import tkinter as tk
 import tkinter.font as tkfont
 from PIL import Image, ImageDraw, ImageFilter, ImageTk
-from logger import log
 
 # ── visual constants ──────────────────────────────────────────────────────
 _CHROMAKEY = "#000001"

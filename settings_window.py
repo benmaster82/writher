@@ -22,7 +22,7 @@ import config
 import database as db
 import locales
 from brand import make_title_bar_image
-from hotkey_util import (key_to_str, str_to_key, key_display_name, is_blocked,
+from hotkey_util import (key_to_str, key_display_name, is_blocked,
                          canonical_modifier, hotkeys_equal)
 import theme as T
 

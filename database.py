@@ -1,7 +1,6 @@
 """SQLite storage for notes, appointments and reminders."""
 
 import json
-import os
 import sqlite3
 import threading
 from datetime import datetime, timedelta

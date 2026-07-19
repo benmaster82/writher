@@ -16,7 +16,6 @@ from datetime import datetime
 import customtkinter as ctk
 from PIL import ImageTk
 
-from logger import log
 import database as db
 import locales
 from brand import make_title_bar_image
