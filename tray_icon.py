@@ -1,5 +1,7 @@
 """System tray icon for Writher with Pandora Blackboard eyes."""
 
+import threading
+
 import pystray
 import locales
 from brand import make_tray_icon
@@ -11,6 +13,7 @@ class TrayIcon:
         self._on_show_notes = on_show_notes
         self._on_show_settings = on_show_settings
         self._icon = None
+        self._thread = None
 
     def _build_menu(self):
         items = [
@@ -48,7 +51,13 @@ class TrayIcon:
             locales.get("tray_idle"),
             menu=self._build_menu(),
         )
-        self._icon.run_detached()
+        # Track the tray thread so shutdown can wait for it.
+        self._thread = threading.Thread(
+            target=self._icon.run,
+            name="WritHerTray",
+            daemon=True,
+        )
+        self._thread.start()
 
     def set_recording(self, recording: bool):
         if self._icon is None:
@@ -65,3 +74,6 @@ class TrayIcon:
     def stop(self):
         if self._icon is not None:
             self._icon.stop()
+        if (self._thread is not None
+                and self._thread is not threading.current_thread()):
+            self._thread.join(timeout=2.0)

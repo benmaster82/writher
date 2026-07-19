@@ -2,7 +2,6 @@
 
 import subprocess
 import threading
-import time
 from datetime import datetime
 from logger import log
 import config
@@ -105,6 +104,8 @@ class ReminderScheduler:
 
     def stop(self):
         self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=2.0)
 
     def _loop(self):
         while not self._stop.is_set():
