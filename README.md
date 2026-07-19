@@ -82,7 +82,7 @@ Both hotkeys support two recording modes, configurable from the **Settings** win
 | **Hold** (default) | Hold the key to record, release to stop. |
 | **Toggle** | Press once to start recording, press again to stop. A configurable safety timeout auto-stops the recording if you forget. |
 
-Everything runs **locally**: speech recognition via [faster-whisper](https://github.com/SYSTRAN/faster-whisper), intent parsing via [Ollama](https://ollama.com) or an OpenAI-compatible local server such as [llama.cpp](https://github.com/ggml-org/llama.cpp), and data stored in a local SQLite database. No cloud and no telemetry.
+Everything runs **locally**: speech recognition via [faster-whisper](https://github.com/SYSTRAN/faster-whisper), intent parsing via [Ollama](https://ollama.com) or an OpenAI-compatible local server such as [llama.cpp](https://github.com/ggml-org/llama.cpp), and data stored in a local SQLite database. No cloud required, no account, no telemetry.
 
 ---
 
@@ -156,6 +156,8 @@ Everything runs **locally**: speech recognition via [faster-whisper](https://git
 > Ollama runs as a background service on Windows. If the assistant hotkey is triggered while Ollama is not reachable, WritHer shows a toast notification and aborts the request — dictation is unaffected.
 
 > **OpenAI-compatible setup:** start a local server with chat-completions and tool-call support, then choose **OpenAI-compatible** in WritHer Settings. For llama.cpp the default URL is `http://localhost:8080/v1`; function calling requires a compatible chat template and the server's `--jinja` option.
+>
+> ⚠️ The URL is meant for **local** servers. Nothing stops you from pointing it at a remote/cloud endpoint, but doing so forfeits WritHer's offline and privacy guarantees — your assistant commands would leave your machine.
 
 ---
 

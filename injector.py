@@ -345,19 +345,55 @@ def _set_clipboard_text(text: str) -> bool:
             _GlobalFree(h_mem)
 
 
+def _get_clipboard_text() -> str:
+    """Return current clipboard text, or empty string on failure."""
+    if not _open_clipboard():
+        log.warning("Cannot open clipboard for reading")
+        return ""
+    try:
+        return _open_clipboard_text() or ""
+    finally:
+        _CloseClipboard()
+
+
+def _restore_text_only(original: str, expected_text: str) -> bool:
+    """Restore plain text unless another program changed the clipboard."""
+    if not _open_clipboard(_RESTORE_RETRIES):
+        log.warning("Cannot open clipboard for text restoration")
+        return False
+    try:
+        if _open_clipboard_text() != expected_text:
+            log.info("Clipboard changed during paste; skipping restoration")
+            return False
+    finally:
+        _CloseClipboard()
+    return _set_clipboard_text(original)
+
+
 def _inject_via_clipboard(text: str) -> bool:
     """Paste *text* and optionally restore the previous clipboard data."""
     keep = getattr(config, "KEEP_TRANSCRIPT_IN_CLIPBOARD", False)
     swap = None
+    fallback_text = None
 
     try:
         if keep:
             ready = _set_clipboard_text(text)
         else:
             swap = _swap_clipboard_for_text(text)
-            ready = swap is not None
+            if swap is None:
+                # An app holding a format hostage (e.g. delayed rendering)
+                # must not abort the dictation: degrade to the historical
+                # text-only save/restore instead of failing the paste.
+                log.warning("Full clipboard snapshot failed; "
+                            "falling back to text-only restore")
+                fallback_text = _get_clipboard_text()
+                ready = _set_clipboard_text(text)
+            else:
+                ready = True
         if not ready:
             log.error("Failed to set clipboard text (already saved to recovery)")
+            fallback_text = None
             return False
         time.sleep(0.05)
 
@@ -374,6 +410,9 @@ def _inject_via_clipboard(text: str) -> bool:
             snapshot, sequence = swap
             if not _restore_clipboard(snapshot, sequence, text):
                 log.warning("Original clipboard could not be restored")
+        elif fallback_text is not None:
+            if not _restore_text_only(fallback_text, text):
+                log.warning("Original clipboard text could not be restored")
 
 
 # ── Public API ────────────────────────────────────────────────────────────

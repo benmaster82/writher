@@ -182,5 +182,44 @@ class TestClipboardPreservation(unittest.TestCase):
         free_snapshot.assert_called_once_with([])
 
 
+class TestClipboardSnapshotFallback(unittest.TestCase):
+    """A failed multi-format snapshot must degrade, not abort the paste."""
+
+    def setUp(self):
+        self.original_keep = config.KEEP_TRANSCRIPT_IN_CLIPBOARD
+        config.KEEP_TRANSCRIPT_IN_CLIPBOARD = False
+
+    def tearDown(self):
+        config.KEEP_TRANSCRIPT_IN_CLIPBOARD = self.original_keep
+
+    @patch.object(injector, "_keyboard")
+    @patch.object(injector.time, "sleep")
+    @patch.object(injector, "_restore_text_only", return_value=True)
+    @patch.object(injector, "_set_clipboard_text", return_value=True)
+    @patch.object(injector, "_get_clipboard_text", return_value="old text")
+    @patch.object(injector, "_swap_clipboard_for_text", return_value=None)
+    def test_snapshot_failure_falls_back_to_text_only_paste(
+            self, swap, get_text, set_text, restore_text, _sleep, keyboard):
+        self.assertTrue(injector._inject_via_clipboard("hello"))
+
+        swap.assert_called_once_with("hello")
+        get_text.assert_called_once_with()
+        set_text.assert_called_once_with("hello")
+        keyboard.press.assert_called_once_with("v")
+        restore_text.assert_called_once_with("old text", "hello")
+
+    @patch.object(injector, "_keyboard")
+    @patch.object(injector, "_restore_text_only")
+    @patch.object(injector, "_set_clipboard_text", return_value=False)
+    @patch.object(injector, "_get_clipboard_text", return_value="old text")
+    @patch.object(injector, "_swap_clipboard_for_text", return_value=None)
+    def test_fallback_set_failure_still_aborts_without_restoring(
+            self, _swap, _get_text, _set_text, restore_text, keyboard):
+        self.assertFalse(injector._inject_via_clipboard("hello"))
+
+        keyboard.press.assert_not_called()
+        restore_text.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
