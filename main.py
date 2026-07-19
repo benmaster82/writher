@@ -557,12 +557,28 @@ def _poll_quit_request():
         root.after(50, _poll_quit_request)
 
 
+def _force_exit():
+    """Watchdog: kill the process if Tk fails to wind down after a quit.
+
+    root.destroy() can raise (e.g. TclError from CustomTkinter windows
+    torn down mid-callback); if that happens the mainloop never returns
+    and the process survives as an invisible ghost holding the
+    single-instance mutex. Five seconds after a quit request, exit
+    unconditionally.
+    """
+    log.warning("Force-exit watchdog fired: Tk did not shut down cleanly.")
+    os._exit(0)
+
+
 def _quit():
     global _shutting_down
     if _shutting_down:
         return
     _shutting_down = True
     log.info("Quitting...")
+    watchdog = threading.Timer(5.0, _force_exit)
+    watchdog.daemon = True
+    watchdog.start()
     _cancel_timeout("dictation")
     _cancel_timeout("assistant")
     _pipeline_queue.put(_STOP)
@@ -602,8 +618,12 @@ def _destroy_root():
     """Destroy root after pending Tk events have been processed."""
     try:
         root.destroy()
-    except Exception:
-        pass
+    except Exception as exc:
+        log.error("Root destroy failed: %s — stopping mainloop instead.", exc)
+        try:
+            root.quit()
+        except Exception:
+            pass  # the _quit watchdog will force the exit
     log.info("Shutdown complete.")
 
 
