@@ -45,6 +45,15 @@ def _is_trigger_match(key, hotkey) -> bool:
     return keys_match(key, hotkey)
 
 
+def _is_bare_modifier_hotkey(key, hotkey) -> bool:
+    """Return True if *hotkey* is configured as exactly this modifier key.
+
+    Lets users bind a bare modifier (e.g. ``Key.ctrl_r`` in config.py) as a
+    hotkey instead of it being silently swallowed by modifier tracking.
+    """
+    return not isinstance(hotkey, tuple) and keys_match(key, hotkey)
+
+
 class HotkeyListener:
     def __init__(self, on_press_cb, on_release_cb,
                  on_assist_press_cb=None, on_assist_release_cb=None):
@@ -70,11 +79,15 @@ class HotkeyListener:
     # ── press ─────────────────────────────────────────────────────────────
 
     def _handle_press(self, key):
-        # Track modifier state first; modifiers alone never start recording.
+        # Track modifier state first. A modifier key normally never starts
+        # recording, except when this exact key is itself a configured
+        # hotkey (e.g. HOTKEY = Key.ctrl_r) — see issue #19.
         mod = canonical_modifier(key)
         if mod is not None:
             self._held_modifiers.add(mod)
-            return
+            if not (_is_bare_modifier_hotkey(key, config.HOTKEY)
+                    or _is_bare_modifier_hotkey(key, config.ASSISTANT_HOTKEY)):
+                return
 
         held = frozenset(self._held_modifiers)
 
@@ -163,7 +176,28 @@ class HotkeyListener:
         except Exception as exc:
             log.error("%s error: %s", label, exc)
 
+    def _warn_bare_modifier_conflicts(self):
+        """Log configured bare-modifier hotkeys and any combo overlap."""
+        pairs = (
+            (config.HOTKEY, config.ASSISTANT_HOTKEY, "Dictation"),
+            (config.ASSISTANT_HOTKEY, config.HOTKEY, "Assistant"),
+        )
+        for own, other, label in pairs:
+            if isinstance(own, tuple):
+                continue
+            mod = canonical_modifier(own)
+            if mod is None:
+                continue
+            log.info("%s hotkey is a bare modifier key: %s", label, own)
+            if isinstance(other, tuple) and mod in other[0]:
+                log.warning(
+                    "Hotkey conflict: %s hotkey %s is also a '%s' modifier "
+                    "of the other combo hotkey %s — holding it will start "
+                    "recording before the combo completes.",
+                    label, own, mod, other)
+
     def start(self):
+        self._warn_bare_modifier_conflicts()
         self._listener = keyboard.Listener(
             on_press=self._handle_press,
             on_release=self._handle_release,

@@ -1,13 +1,18 @@
 """Hotkey serialisation and conflict-detection tests.
 
 Covers the acceptance criterion "hotkey combo round-trip and conflict
-detection" for the fork's combo-hotkey feature.
+detection" for the fork's combo-hotkey feature, plus bare-modifier
+hotkey support (issue #19).
 """
 
 import unittest
+from unittest.mock import Mock, patch
 
 from pynput.keyboard import Key, KeyCode
 
+import config
+import hotkey
+from hotkey import HotkeyListener
 from hotkey_util import (key_to_str, str_to_key, hotkeys_equal, keys_match,
                         canonical_modifier, is_blocked)
 
@@ -95,6 +100,82 @@ class TestBlockedKeys(unittest.TestCase):
         self.assertFalse(is_blocked(
             (frozenset({"ctrl"}), KeyCode.from_char("a"))
         ))
+
+
+class TestBareModifierHotkeys(unittest.TestCase):
+    """Regression tests for issue #19: bare modifiers as hotkeys."""
+
+    def _listener(self):
+        cbs = {name: Mock() for name in
+               ("press", "release", "assist_press", "assist_release")}
+        listener = HotkeyListener(
+            on_press_cb=cbs["press"],
+            on_release_cb=cbs["release"],
+            on_assist_press_cb=cbs["assist_press"],
+            on_assist_release_cb=cbs["assist_release"],
+        )
+        return listener, cbs
+
+    def test_right_ctrl_hotkey_fires_in_hold_mode(self):
+        with patch.multiple(config, HOTKEY=Key.ctrl_r, HOLD_TO_RECORD=True):
+            listener, cbs = self._listener()
+            listener._handle_press(Key.ctrl_r)
+            cbs["press"].assert_called_once_with()
+            listener._handle_release(Key.ctrl_r)
+            cbs["release"].assert_called_once_with()
+
+    def test_other_ctrl_variant_does_not_fire(self):
+        with patch.multiple(config, HOTKEY=Key.ctrl_r, HOLD_TO_RECORD=True):
+            listener, cbs = self._listener()
+            listener._handle_press(Key.ctrl_l)
+            cbs["press"].assert_not_called()
+            # It is still tracked as a held modifier.
+            self.assertIn("ctrl", listener._held_modifiers)
+
+    def test_right_ctrl_hotkey_toggles_in_toggle_mode(self):
+        with patch.multiple(config, HOTKEY=Key.ctrl_r, HOLD_TO_RECORD=False):
+            listener, cbs = self._listener()
+            listener._handle_press(Key.ctrl_r)
+            cbs["press"].assert_called_once_with()
+            listener._dict_last_toggle = 0.0  # bypass debounce
+            listener._handle_press(Key.ctrl_r)
+            cbs["release"].assert_called_once_with()
+
+    def test_bare_modifier_assistant_hotkey_fires(self):
+        with patch.multiple(config, ASSISTANT_HOTKEY=Key.ctrl_r,
+                            HOLD_TO_RECORD=True):
+            listener, cbs = self._listener()
+            listener._handle_press(Key.ctrl_r)
+            cbs["assist_press"].assert_called_once_with()
+
+    def test_combo_hotkey_still_works_alongside_bare_modifier(self):
+        combo = (frozenset({"ctrl", "alt"}), KeyCode.from_vk(82))
+        with patch.multiple(config, HOTKEY=Key.shift_r,
+                            ASSISTANT_HOTKEY=combo, HOLD_TO_RECORD=True):
+            listener, cbs = self._listener()
+            listener._handle_press(Key.ctrl_l)
+            listener._handle_press(Key.alt_l)
+            listener._handle_press(KeyCode.from_vk(82))
+            cbs["assist_press"].assert_called_once_with()
+            cbs["press"].assert_not_called()
+
+    def test_conflict_with_combo_modifier_is_logged(self):
+        combo = (frozenset({"ctrl", "alt"}), KeyCode.from_vk(82))
+        with patch.multiple(config, HOTKEY=Key.ctrl_r,
+                            ASSISTANT_HOTKEY=combo):
+            listener, _ = self._listener()
+            with patch.object(hotkey, "log") as mock_log:
+                listener._warn_bare_modifier_conflicts()
+            mock_log.warning.assert_called_once()
+
+    def test_no_conflict_warning_for_disjoint_hotkeys(self):
+        combo = (frozenset({"shift", "alt"}), KeyCode.from_vk(82))
+        with patch.multiple(config, HOTKEY=Key.ctrl_r,
+                            ASSISTANT_HOTKEY=combo):
+            listener, _ = self._listener()
+            with patch.object(hotkey, "log") as mock_log:
+                listener._warn_bare_modifier_conflicts()
+            mock_log.warning.assert_not_called()
 
 
 if __name__ == "__main__":
