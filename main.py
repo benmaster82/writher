@@ -674,11 +674,6 @@ def _finish_startup():
     if _shutdown_requested():
         log.info("Startup cancelled after model load: shutdown requested.")
         return
-
-    db.save_setting(model_flag, "1")
-
-    if _shutdown_requested():
-        return
     scheduler = ReminderScheduler()
     scheduler.start()
 
