@@ -32,6 +32,9 @@
 
 ## 🆕 What's New
 
+- 🤖 **OpenAI-compatible providers** - the assistant now works with llama.cpp, LM Studio and any OpenAI-compatible local server, not just Ollama. Pick the provider in Settings; models are discovered automatically via `/v1/models`, and each provider keeps its own URL and model settings. (thanks [@aladin7](https://github.com/aladin7))
+- 🖼️ **Clipboard keeps your images and files** - dictating no longer destroys non-text clipboard content: screenshots, copied files and other formats are preserved and restored after the paste. If you copy something new while WritHer is pasting, your fresh copy wins. Restore delay is configurable via `CLIPBOARD_RESTORE_DELAY`. (thanks [@aladin7](https://github.com/aladin7))
+- 👻 **Quit really quits** - closing WritHer from the tray now always terminates the process. No more invisible ghost instance holding the single-instance lock and blocking the next launch.
 - 🚀 **Visible first-launch feedback** - the widget now appears right away with a *"Downloading speech model…"* status and animated loading eyes while the model loads, then confirms *"Ready - hold ‹your hotkey›"*. No more silent minutes where the app looked dead.
 - 👋 **Welcome toast** - the very first launch ends with a Windows notification explaining both hotkeys. If the model download fails (no internet on first launch), a clear error state and toast tell you what to do.
 - 🔁 **Second-instance toast** - launching WritHer twice now shows *"WritHer is already running"* instead of exiting silently.
