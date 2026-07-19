@@ -5,7 +5,7 @@
 <h1 align="center">WritHer</h1>
 
 <p align="center">
-  <strong>Offline voice dictation &amp; voice assistant for Windows — paste text anywhere, manage notes &amp; reminders hands-free, and speak symbols &amp; code directly (say <em>forward slash</em>, <em>dash</em>, <em>one two three</em> → <code>/</code> <code>-</code> <code>123</code>).</strong>
+  <strong>Offline voice dictation &amp; voice assistant for Windows - paste text anywhere, manage notes &amp; reminders hands-free, and speak symbols &amp; code directly (say <em>forward slash</em>, <em>dash</em>, <em>one two three</em> → <code>/</code> <code>-</code> <code>123</code>).</strong>
 </p>
 
 <p align="center">
@@ -32,17 +32,17 @@
 
 ## 🆕 What's New
 
-- 🚀 **Visible first-launch feedback** — the widget now appears right away with a *"Downloading speech model…"* status and animated loading eyes while the model loads, then confirms *"Ready — hold ‹your hotkey›"*. No more silent minutes where the app looked dead.
-- 👋 **Welcome toast** — the very first launch ends with a Windows notification explaining both hotkeys. If the model download fails (no internet on first launch), a clear error state and toast tell you what to do.
-- 🔁 **Second-instance toast** — launching WritHer twice now shows *"WritHer is already running"* instead of exiting silently.
-- 📚 **Custom vocabulary** — teach WritHer to render your spoken jargon or acronyms as their written form. Case-insensitive whole-word matching, multi-word spoken forms supported. Priming terms also feed faster-whisper's `initial_prompt` to nudge recognition.
-- 🔢 **Symbol & spelling mode (opt-in)** — enable in Settings and say "forward slash", "dash", "semicolon", or number words to get actual characters. Spell code letter-by-letter: *"W H forward slash F A T"* → `WH/FAT`. Contractions (`don't`, `we're`) stay intact and prose is never mangled.
-- 🌐 **Recognition language dropdown** — pick Whisper's language independently of the UI: `Auto` (default), `en`, `it`, `de`. The detected language is logged for every clip.
-- 📋 **Clipboard restore (default)** — your clipboard is saved before paste and restored after. Optional toggle keeps the transcript in the clipboard for re-pasting.
-- 🔒 **Single-instance lock (per-session)** — launching a second copy exits immediately. Now scoped to the current Windows user so it does not block other users on the same machine.
-- 🎨 **Per-mode colour themes** — dictation widget renders in cyan, assistant in violet.
-- ⌨️ **Combo hotkeys** — assistant hotkey is now `Ctrl+Alt+R` (avoids browser conflicts). Settings window captures live key combos.
-- 📜 **Log viewer in Settings** — tail the latest log lines directly from the Settings window.
+- 🚀 **Visible first-launch feedback** - the widget now appears right away with a *"Downloading speech model…"* status and animated loading eyes while the model loads, then confirms *"Ready - hold ‹your hotkey›"*. No more silent minutes where the app looked dead.
+- 👋 **Welcome toast** - the very first launch ends with a Windows notification explaining both hotkeys. If the model download fails (no internet on first launch), a clear error state and toast tell you what to do.
+- 🔁 **Second-instance toast** - launching WritHer twice now shows *"WritHer is already running"* instead of exiting silently.
+- 📚 **Custom vocabulary** - teach WritHer to render your spoken jargon or acronyms as their written form. Case-insensitive whole-word matching, multi-word spoken forms supported. Priming terms also feed faster-whisper's `initial_prompt` to nudge recognition.
+- 🔢 **Symbol & spelling mode (opt-in)** - enable in Settings and say "forward slash", "dash", "semicolon", or number words to get actual characters. Spell code letter-by-letter: *"W H forward slash F A T"* → `WH/FAT`. Contractions (`don't`, `we're`) stay intact and prose is never mangled.
+- 🌐 **Recognition language dropdown** - pick Whisper's language independently of the UI: `Auto` (default), `en`, `it`, `de`. The detected language is logged for every clip.
+- 📋 **Clipboard restore (default)** - your clipboard is saved before paste and restored after. Optional toggle keeps the transcript in the clipboard for re-pasting.
+- 🔒 **Single-instance lock (per-session)** - launching a second copy exits immediately. Now scoped to the current Windows user so it does not block other users on the same machine.
+- 🎨 **Per-mode colour themes** - dictation widget renders in cyan, assistant in violet.
+- ⌨️ **Combo hotkeys** - assistant hotkey is now `Ctrl+Alt+R` (avoids browser conflicts). Settings window captures live key combos.
+- 📜 **Log viewer in Settings** - tail the latest log lines directly from the Settings window.
 - 🗑️ **Delete by voice** - say "delete the dentist appointment" or "remove the shopping list" and WritHer finds and removes it. Voice confirmation required before any deletion (15s timeout).
 - ⌨️ **Customizable hotkeys** - change dictation and assistant shortcuts from Settings. Press the ⌨ button, hit any key, done. No restart needed.
 - 🎙️ **Microphone selection** - pick your input device from Settings, with hot-plug refresh
@@ -153,11 +153,11 @@ Everything runs **locally**: speech recognition via [faster-whisper](https://git
 > ```
 > ollama pull llama3.1:8b
 > ```
-> Ollama runs as a background service on Windows. If the assistant hotkey is triggered while Ollama is not reachable, WritHer shows a toast notification and aborts the request — dictation is unaffected.
+> Ollama runs as a background service on Windows. If the assistant hotkey is triggered while Ollama is not reachable, WritHer shows a toast notification and aborts the request - dictation is unaffected.
 
 > **OpenAI-compatible setup:** start a local server with chat-completions and tool-call support, then choose **OpenAI-compatible** in WritHer Settings. For llama.cpp the default URL is `http://localhost:8080/v1`; function calling requires a compatible chat template and the server's `--jinja` option.
 >
-> ⚠️ The URL is meant for **local** servers. Nothing stops you from pointing it at a remote/cloud endpoint, but doing so forfeits WritHer's offline and privacy guarantees — your assistant commands would leave your machine.
+> ⚠️ The URL is meant for **local** servers. Nothing stops you from pointing it at a remote/cloud endpoint, but doing so forfeits WritHer's offline and privacy guarantees - your assistant commands would leave your machine.
 
 ---
 
@@ -216,11 +216,11 @@ Writher appears in the system tray. Hold `AltGr` to dictate, hold `Ctrl+Alt+R` f
 All settings live in **`config.py`**:
 
 ```python
-# Hotkeys (defaults — can be changed from Settings at runtime)
+# Hotkeys (defaults - can be changed from Settings at runtime)
 HOTKEY = Key.alt_gr                                          # Dictation
 ASSISTANT_HOTKEY = (frozenset({"ctrl", "alt"}), KeyCode.from_vk(82))  # Ctrl+Alt+R
 
-# UI language ("en", "it" or "de") — controls interface strings only.
+# UI language ("en", "it" or "de") - controls interface strings only.
 LANGUAGE = "en"
 
 # Recognition language (Whisper). None = per-clip auto-detect.
@@ -300,7 +300,7 @@ For CUDA acceleration, install `ctranslate2` with CUDA support and set `DEVICE =
 
 ### Symbol & spelling mode
 
-Off by default. Enable the toggle in Settings to substitute spoken symbol names and number words, and to glue letter-by-letter spelling. Prose stays intact — the spacing compaction only fires when both neighbours of a symbol are single characters or digit sequences, so *"The 100 meter dash was thrilling"* becomes *"The 100 meter - was thrilling"* rather than gluing across words. Contractions like `don't` and `we're` are always preserved.
+Off by default. Enable the toggle in Settings to substitute spoken symbol names and number words, and to glue letter-by-letter spelling. Prose stays intact - the spacing compaction only fires when both neighbours of a symbol are single characters or digit sequences, so *"The 100 meter dash was thrilling"* becomes *"The 100 meter - was thrilling"* rather than gluing across words. Contractions like `don't` and `we're` are always preserved.
 
 | You say | You get |
 |---|---|
@@ -427,7 +427,7 @@ This usually means Whisper received audio but couldn't recognize speech. Common 
 - The default `small` model requires ~244 MB download on first launch; check the console for progress
 
 **Symbol substitution not working / weird output?**
-Enable "Symbol & spelling mode" in Settings — it is off by default. For reliable multi-word phrases ("forward slash", "less than") set the Whisper model to `small` or larger; the `base` default is fast and accurate for prose but can mishear multi-word symbol names.
+Enable "Symbol & spelling mode" in Settings - it is off by default. For reliable multi-word phrases ("forward slash", "less than") set the Whisper model to `small` or larger; the `base` default is fast and accurate for prose but can mishear multi-word symbol names.
 
 **Custom vocabulary not applying?**
 Layer A runs case-insensitively and matches whole words. If your spoken form contains a symbol or punctuation, add it exactly as Whisper transcribes it. Layer A is applied before Symbol & spelling mode, so vocabulary entries always win over the built-in substitutions.
@@ -459,6 +459,7 @@ Contributions to upstream via pull request:
 | [Steven Ohád](https://github.com/steven-ohad) | Appointment and reminder voice deletion, delete confirmation popup |
 | [Marcel Alsleben](https://github.com/marcelal94) | Assistant dispatcher refactoring, pending delete handling |
 | [Aaron Dutton](https://github.com/aarondutton) | OS-locale date/time formatting |
+| [aladin7](https://github.com/aladin7) | OpenAI-compatible provider support (llama.cpp, LM Studio), multi-format clipboard preservation, clean shutdown hardening |
 
 The following features originate from the fork by [@rusty-bit](https://github.com/rusty-bit/writher) and have been integrated into upstream - their commits are preserved in this repository's history:
 
