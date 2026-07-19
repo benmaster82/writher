@@ -168,7 +168,7 @@ Everything runs **locally**: speech recognition via [faster-whisper](https://git
 
 ### Option A: Download the exe (recommended)
 
-1. Download `WritHer-v1.3.1-win64.zip` from the [latest release](https://github.com/benmaster82/writher/releases/latest)
+1. Download `WritHer-v1.4.1-win64.zip` from the [latest release](https://github.com/benmaster82/writher/releases/latest)
 2. Extract to any folder
 3. Install and start Ollama or another supported local LLM server (only needed for assistant mode)
 4. Run `WritHer.exe`
