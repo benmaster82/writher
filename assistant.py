@@ -1,4 +1,4 @@
-"""Ollama-based assistant with function calling for notes, agenda and reminders."""
+"""Local LLM assistant with function calling for notes, agenda and reminders."""
 
 import json
 import re
@@ -14,7 +14,7 @@ except ImportError:
 
 import database as db
 
-# ── Tool definitions (sent to Ollama) ─────────────────────────────────────
+# ── Tool definitions (sent to the configured LLM provider) ────────────────
 
 TOOLS = [
     {
@@ -195,7 +195,31 @@ def _system_prompt() -> str:
     )
 
 
-# ── Ollama API call ───────────────────────────────────────────────────────
+# ── LLM API calls ─────────────────────────────────────────────────────────
+
+def _messages(text: str) -> list[dict]:
+    """Build the provider-neutral chat message list."""
+    return [
+        {"role": "system", "content": _system_prompt()},
+        {"role": "user", "content": text},
+    ]
+
+
+def _tool_call(name: str, arguments) -> dict | None:
+    """Normalize Ollama/OpenAI tool arguments to WritHer's internal shape."""
+    if not isinstance(name, str) or not name:
+        log.error("LLM returned a tool call without a function name")
+        return None
+    if isinstance(arguments, str):
+        try:
+            arguments = json.loads(arguments)
+        except (json.JSONDecodeError, TypeError):
+            log.error("LLM returned invalid tool arguments for %s", name)
+            return None
+    if not isinstance(arguments, dict):
+        log.error("LLM returned non-object tool arguments for %s", name)
+        return None
+    return {"function": name, "arguments": arguments}
 
 def _call_ollama(text: str) -> dict | None:
     """Send transcribed text to Ollama and return the function-call dict."""
@@ -206,10 +230,7 @@ def _call_ollama(text: str) -> dict | None:
     url = f"{config.OLLAMA_URL}/api/chat"
     payload = {
         "model": config.OLLAMA_MODEL,
-        "messages": [
-            {"role": "system", "content": _system_prompt()},
-            {"role": "user", "content": text},
-        ],
+        "messages": _messages(text),
         "tools": TOOLS,
         "stream": False,
     }
@@ -228,10 +249,9 @@ def _call_ollama(text: str) -> dict | None:
     tool_calls = msg.get("tool_calls")
     if tool_calls and len(tool_calls) > 0:
         tc = tool_calls[0]
-        return {
-            "function": tc["function"]["name"],
-            "arguments": tc["function"].get("arguments", {}),
-        }
+        function = tc.get("function", {})
+        return _tool_call(function.get("name", ""),
+                          function.get("arguments", {}))
 
     # Some models return the function call in the content as JSON
     content = msg.get("content", "").strip()
@@ -240,11 +260,73 @@ def _call_ollama(text: str) -> dict | None:
         try:
             parsed = json.loads(content)
             if "function" in parsed:
-                return parsed
+                return _tool_call(parsed["function"],
+                                  parsed.get("arguments", {}))
         except (json.JSONDecodeError, TypeError):
             pass
 
     return None
+
+
+def _call_openai(text: str) -> dict | None:
+    """Call an OpenAI-compatible local chat-completions endpoint."""
+    if requests is None:
+        log.error("requests library not installed")
+        return None
+
+    base_url = config.OPENAI_URL.rstrip("/")
+    headers = {"Content-Type": "application/json"}
+    api_key = getattr(config, "OPENAI_API_KEY", "").strip()
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    payload = {
+        "model": config.OPENAI_MODEL,
+        "messages": _messages(text),
+        "tools": TOOLS,
+        "stream": False,
+    }
+
+    try:
+        resp = requests.post(
+            f"{base_url}/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=120,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as exc:
+        log.error("OpenAI-compatible request failed: %s", exc)
+        return None
+
+    choices = data.get("choices", [])
+    if not choices:
+        return None
+    msg = choices[0].get("message", {})
+    tool_calls = msg.get("tool_calls") or []
+    if tool_calls:
+        function = tool_calls[0].get("function", {})
+        return _tool_call(function.get("name", ""),
+                          function.get("arguments", {}))
+
+    content = (msg.get("content") or "").strip()
+    if content:
+        log.info("OpenAI-compatible text response: %s", content)
+        try:
+            parsed = json.loads(content)
+            if "function" in parsed:
+                return _tool_call(parsed["function"],
+                                  parsed.get("arguments", {}))
+        except (json.JSONDecodeError, TypeError):
+            pass
+    return None
+
+
+def _call_provider(text: str) -> dict | None:
+    """Send a request through the configured assistant provider."""
+    if getattr(config, "ASSISTANT_PROVIDER", "ollama") == "openai":
+        return _call_openai(text)
+    return _call_ollama(text)
 
 
 # ── Function dispatcher ───────────────────────────────────────────────────
@@ -338,25 +420,42 @@ def _dispatch(fc: dict) -> str:
 
 # ── Public API ────────────────────────────────────────────────────────────
 
-def ping_ollama() -> bool:
-    """Quick connectivity check. Returns True if Ollama is reachable."""
+def ping_provider() -> bool:
+    """Return whether the configured assistant provider is reachable."""
     if requests is None:
         return False
     try:
-        resp = requests.get(f"{config.OLLAMA_URL}/api/tags", timeout=2)
+        if getattr(config, "ASSISTANT_PROVIDER", "ollama") == "openai":
+            headers = {}
+            api_key = getattr(config, "OPENAI_API_KEY", "").strip()
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+            resp = requests.get(
+                f"{config.OPENAI_URL.rstrip('/')}/models",
+                headers=headers,
+                timeout=2,
+            )
+        else:
+            resp = requests.get(f"{config.OLLAMA_URL.rstrip('/')}/api/tags",
+                                timeout=2)
         return resp.status_code == 200
     except Exception:
         return False
 
 
+def ping_ollama() -> bool:
+    """Backward-compatible alias for the provider health check."""
+    return ping_provider()
+
+
 def process(text: str) -> str:
-    """Process transcribed text through Ollama. Returns confirmation string.
+    """Process transcribed text through the configured local LLM.
 
     Special return values starting with '__show_' signal the caller
     to open the notes/agenda window.
     """
     log.info("Assistant input: %r", text)
-    fc = _call_ollama(text)
+    fc = _call_provider(text)
     if fc is None:
         return locales.get("not_understood")
     return _dispatch(fc)

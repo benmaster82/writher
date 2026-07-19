@@ -29,9 +29,15 @@ COMPUTE_TYPE = "int8"
 # None = system default.  Set to device name (str) to use a specific mic.
 MIC_DEVICE_NAME = None
 
-# ── Ollama (assistant) ───────────────────────────────────────────────────
+# ── Local LLM assistant ──────────────────────────────────────────────────
+ASSISTANT_PROVIDER = "ollama"  # "ollama" or "openai"
 OLLAMA_URL = "http://localhost:11434"
 OLLAMA_MODEL = "llama3.1:8b"
+
+# OpenAI-compatible local server (for example llama.cpp or LM Studio)
+OPENAI_URL = "http://localhost:8080/v1"
+OPENAI_MODEL = ""  # Discovered from /models when the provider is selected
+OPENAI_API_KEY = ""
 
 # ── Clipboard ─────────────────────────────────────────────────────────────
 # True  = leave the transcript in the clipboard after paste

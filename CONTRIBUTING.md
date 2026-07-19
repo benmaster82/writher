@@ -37,7 +37,7 @@ hotkey.py            - Keyboard listener (hold/toggle modes)
 recorder.py          - Microphone capture (sounddevice)
 transcriber.py       - Speech-to-text (faster-whisper)
 injector.py          - Clipboard paste into active app (Win32 API)
-assistant.py         - Ollama LLM integration + function calling
+assistant.py         - Local LLM provider integration + function calling
 database.py          - SQLite storage (notes, appointments, reminders, settings)
 notifier.py          - Toast notifications + reminder scheduler
 widget.py            - Floating pill overlay with animated eyes (Tkinter + PIL)
@@ -108,10 +108,11 @@ Adding a language is straightforward:
 
 No code changes needed beyond `locales.py`.
 
-### Ollama Model Testing
+### Local LLM Model Testing
 
-WritHer uses Ollama's function calling API. Not all models support it equally well. If you test a model, please report:
+WritHer supports Ollama and OpenAI-compatible local servers. Not all models and chat templates support function calling equally well. If you test one, please report:
 
+- Provider and server version
 - Model name and size (e.g. `llama3.1:8b`)
 - Whether function calling works reliably
 - Any issues with date/time parsing
