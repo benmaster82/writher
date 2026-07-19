@@ -625,24 +625,40 @@ def _acquire_instance_lock():
 
 
 def _whisper_model_is_cached(size: str) -> bool:
-    """Return True if the faster-whisper model is already on disk.
+    """Return True if the faster-whisper model is fully on disk.
 
     Mirrors huggingface_hub's cache resolution (HF_HUB_CACHE / HF_HOME /
-    default ~/.cache/huggingface/hub) so the startup widget can honestly
-    say "Downloading" vs "Loading".
+    default ~/.cache/huggingface/hub). "Fully" matters: an interrupted
+    first download leaves *.incomplete blobs and a snapshot without the
+    weights — treating that as cached made startup claim "Loading" while
+    it was actually re-downloading (looked stuck, see issue #16 report).
     """
-    import os
     hub = os.environ.get("HF_HUB_CACHE")
     if not hub:
         hf_home = os.environ.get("HF_HOME") or os.path.join(
             os.path.expanduser("~"), ".cache", "huggingface")
         hub = os.path.join(hf_home, "hub")
-    snapshots = os.path.join(
-        hub, f"models--Systran--faster-whisper-{size}", "snapshots")
+    model_dir = os.path.join(hub, f"models--Systran--faster-whisper-{size}")
+
     try:
-        return any(os.scandir(snapshots))
+        snapshots = [e.path for e in os.scandir(
+            os.path.join(model_dir, "snapshots")) if e.is_dir()]
     except OSError:
         return False
+    if not snapshots:
+        return False
+
+    # A partially downloaded model leaves *.incomplete files in blobs/.
+    try:
+        if any(e.name.endswith(".incomplete")
+               for e in os.scandir(os.path.join(model_dir, "blobs"))):
+            return False
+    except OSError:
+        pass
+
+    # The actual weights must be present in at least one snapshot.
+    return any(os.path.exists(os.path.join(snap, "model.bin"))
+               for snap in snapshots)
 
 
 def _finish_startup():
@@ -661,7 +677,9 @@ def _finish_startup():
     log.info("Model '%s' cached: %s", config.MODEL_SIZE, not downloading)
 
     try:
-        transcriber = Transcriber()
+        # Fully cached -> load straight from disk, no network: a slow or
+        # blocked connection to huggingface.co must not hang startup.
+        transcriber = Transcriber(local_files_only=not downloading)
     except Exception as exc:
         log.error("Whisper model load failed: %s", exc)
         widget.show_status(locales.get("model_error"), expression="error")
