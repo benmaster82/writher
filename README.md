@@ -498,6 +498,7 @@ Contributions to upstream via pull request:
 | [Marcel Alsleben](https://github.com/marcelal94) | Assistant dispatcher refactoring, pending delete handling |
 | [Aaron Dutton](https://github.com/aarondutton) | OS-locale date/time formatting |
 | [aladin7](https://github.com/aladin7) | OpenAI-compatible provider support (llama.cpp, LM Studio), multi-format clipboard preservation, clean shutdown hardening |
+| [MaxiKingXXL](https://github.com/MaxiKingXXL) | Bare-modifier hotkey fix and CUDA DLL discovery on Windows - both root-caused with tested patches (RTX 40xx / Ada GPU testing) |
 
 The following features originate from the fork by [@rusty-bit](https://github.com/rusty-bit/writher) and have been integrated into upstream - their commits are preserved in this repository's history:
 
