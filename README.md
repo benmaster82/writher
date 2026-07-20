@@ -279,7 +279,14 @@ APPOINTMENT_REMIND_MINUTES = 15
 
 > The `small` model is the default because it handles symbol and code spelling (e.g. "forward slash") reliably. The `base` model can mishear multi-word phrases and is not recommended for code dictation.
 
-For CUDA acceleration, install `ctranslate2` with CUDA support and set `DEVICE = "cuda"`.
+### CUDA acceleration (optional, source installs)
+
+Set `DEVICE = "cuda"` and `COMPUTE_TYPE = "float16"` in `config.py`. CTranslate2 4.x needs the **CUDA 12** and **cuDNN 9** runtime libraries; either Windows setup works:
+
+- **Full CUDA Toolkit** installed system-wide (its directories are already on the DLL search path), or
+- **NVIDIA pip packages** inside your virtual environment - `pip install nvidia-cublas-cu12 nvidia-cudnn-cu12==9.*` - WritHer detects them and adds their DLL directories automatically at startup.
+
+If you see `Library cublas64_12.dll is not found or cannot be loaded`, the runtime libraries are missing or not discoverable - check `writher.log` for "Added NVIDIA DLL directory" lines to confirm the pip packages were found.
 
 ---
 
