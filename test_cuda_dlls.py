@@ -55,6 +55,26 @@ class TestExposeNvidiaDlls(unittest.TestCase):
         self.assertEqual(len(transcriber._dll_dir_handles), 1)
 
     @patch.object(transcriber.os, "add_dll_directory", create=True)
+    def test_prepends_dirs_to_path_for_lazy_cublas_load(self, _add_dll):
+        # CTranslate2 loads cuBLAS lazily on first inference; on some GPUs
+        # that only honours PATH, so the dirs must be prepended (issue #21).
+        with (
+            patch.object(transcriber.sys, "platform", "win32"),
+            patch.object(transcriber, "_nvidia_bin_dirs",
+                         return_value=["X:\\nv\\cublas\\bin",
+                                       "X:\\nv\\cudnn\\bin"]),
+            patch.dict(transcriber.os.environ, {"PATH": "C:\\existing"},
+                       clear=False),
+        ):
+            transcriber._expose_nvidia_dlls()
+            path = transcriber.os.environ["PATH"]
+
+        self.assertEqual(
+            path,
+            os.pathsep.join(["X:\\nv\\cublas\\bin", "X:\\nv\\cudnn\\bin",
+                             "C:\\existing"]))
+
+    @patch.object(transcriber.os, "add_dll_directory", create=True)
     def test_noop_outside_windows(self, add_dll):
         with patch.object(transcriber.sys, "platform", "linux"):
             transcriber._expose_nvidia_dlls()
