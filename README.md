@@ -172,7 +172,7 @@ Everything runs **locally**: speech recognition via [faster-whisper](https://git
 2. Extract to any folder
 3. Install and start Ollama or another supported local LLM server (only needed for assistant mode)
 4. Run `WritHer.exe`
-5. On first launch, the Whisper model is downloaded automatically
+5. On first launch, the Whisper model is downloaded automatically from Hugging Face (if the download is slow or looks stuck, see [Troubleshooting](#troubleshooting))
 6. Right-click the tray icon for **Settings** and **Notes & Agenda**
 
 ### Option B: Run from source
@@ -419,6 +419,20 @@ Run `python debug_keys.py` to see exactly what pynput reports for your keyboard.
 
 **Assistant provider not reachable?**
 Verify that the provider selected in Settings is running and that its URL is correct. Start Ollama with `ollama serve`, or start your OpenAI-compatible server and include its `/v1` base path in the URL. WritHer checks `/api/tags` for Ollama and `/v1/models` for OpenAI-compatible providers. If the health check fails, assistant mode shows an error while dictation continues to work.
+
+**Model download slow or stuck at "Downloading speech model..."?**
+Models are fetched from Hugging Face on first launch, and their CDN occasionally throttles hard - we have measured the same connection dropping from 9 MB/s to 6 KB/s within minutes. Two ways out:
+
+1. **Quit WritHer from the tray and relaunch.** The stalled connection is replaced by a fresh one and the download resumes where it left off - this fixes it in most cases.
+2. **Download the model manually** (verified procedure, also works on machines where Hugging Face is blocked):
+   1. Create this folder structure (replace `small` with your model size):
+      ```
+      %USERPROFILE%\.cache\huggingface\hub\models--Systran--faster-whisper-small\
+      ├── refs\main            <- a plain text file containing exactly:  manual
+      └── snapshots\manual\    <- put the 4 files below in here
+      ```
+   2. Download these 4 files from `https://huggingface.co/Systran/faster-whisper-small/tree/main` (browser or any downloader) into `snapshots\manual\`: `model.bin`, `config.json`, `tokenizer.json`, `vocabulary.txt`
+   3. Relaunch WritHer - it will say "Loading speech model..." and start in about a second, with no network access.
 
 **No audio / microphone not found?**
 WritHer uses the system default input device unless you select a specific one in Settings. If the widget shows "🎤 No microphone detected", check your Windows sound settings. You can also open **Settings** from the tray and use the microphone dropdown to pick the correct device. Hit the ⟳ button to refresh the list if you just plugged in a new mic.
