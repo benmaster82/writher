@@ -424,7 +424,19 @@ Verify that the provider selected in Settings is running and that its URL is cor
 Models are fetched from Hugging Face on first launch, and their CDN occasionally throttles hard - we have measured the same connection dropping from 9 MB/s to 6 KB/s within minutes. Two ways out:
 
 1. **Quit WritHer from the tray and relaunch.** The stalled connection is replaced by a fresh one and the download resumes where it left off - this fixes it in most cases.
-2. **Download the model manually** (verified procedure, also works on machines where Hugging Face is blocked):
+2. **Download the model manually** (verified procedure, also works on machines where Hugging Face is blocked). Quit WritHer first, then paste this into PowerShell (change `$size` if you use a different model):
+   ```powershell
+   $size = "small"   # tiny | base | small | medium | large-v3
+   $dir = "$env:USERPROFILE\.cache\huggingface\hub\models--Systran--faster-whisper-$size"
+   New-Item -ItemType Directory -Force "$dir\snapshots\manual" | Out-Null
+   New-Item -ItemType Directory -Force "$dir\refs" | Out-Null
+   Set-Content -Path "$dir\refs\main" -Value "manual" -NoNewline -Encoding ascii
+   foreach ($f in "model.bin","config.json","tokenizer.json","vocabulary.txt") {
+     Write-Host "downloading $f..."
+     curl.exe -L -o "$dir\snapshots\manual\$f" "https://huggingface.co/Systran/faster-whisper-$size/resolve/main/$f"
+   }
+   ```
+   Or do the same by hand:
    1. Create this folder structure (replace `small` with your model size):
       ```
       %USERPROFILE%\.cache\huggingface\hub\models--Systran--faster-whisper-small\
