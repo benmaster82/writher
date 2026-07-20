@@ -28,6 +28,8 @@
   </a>
 </p>
 
+> ⚠️ **First-launch note:** WritHer downloads the speech model from Hugging Face on first start, and their CDN is occasionally very slow. If it stays on *"Downloading speech model..."* for a long time: quit from the tray and relaunch (the download resumes on a fresh connection), or use the verified [manual download procedure](#troubleshooting) - a single PowerShell paste, no Python required.
+
 ---
 
 ## 🆕 What's New
