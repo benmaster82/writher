@@ -13,7 +13,11 @@ class TestStartupShutdownRace(unittest.TestCase):
         main.hotkey_listener = None
 
     def test_services_do_not_start_when_quit_arrives_during_model_load(self):
-        def finish_model_load():
+        # The mock must accept whatever args Transcriber is called with
+        # (e.g. local_files_only); otherwise it raises before setting the
+        # quit flag and the test silently exercises the load-failure branch
+        # instead — which also fires a real toast (issue #22).
+        def finish_model_load(*args, **kwargs):
             main._quit_requested.set()
             return Mock()
 
@@ -25,9 +29,13 @@ class TestStartupShutdownRace(unittest.TestCase):
                          side_effect=finish_model_load),
             patch.object(main, "ReminderScheduler") as reminder_scheduler,
             patch.object(main, "HotkeyListener") as hotkey_listener,
+            patch.object(main.notifier, "notify") as notify,
         ):
             main._finish_startup()
 
+        # Proves the quit-during-load path ran, not the load-failure branch.
+        self.assertTrue(main._quit_requested.is_set())
+        notify.assert_not_called()
         save_setting.assert_not_called()
         reminder_scheduler.assert_not_called()
         hotkey_listener.assert_not_called()
