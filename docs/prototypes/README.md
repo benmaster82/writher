@@ -1,27 +1,26 @@
-# Prototipi — concept, non codice di produzione
+# Prototypes — concepts, not production code
 
-File di riferimento visivo per l'evoluzione "agentica" di WritHer. **Non** vengono
-importati dall'app: servono solo a mostrare e discutere la direzione grafica.
+Visual reference files for WritHer's "agentic" evolution. They are **not** imported
+by the app: they exist only to show and discuss the graphic direction.
 
 ## `widget_proto.py`
 
-Prototipo nativo (tkinter + Pillow) del widget agentico: parte come pill compatta
-(occhi Pandora + waveform, bordo a gradiente) e in modalità agentica si espande
-mostrando il piano, gli step live, una conferma inline con countdown e l'esito
-finale.
+Native prototype (tkinter + Pillow) of the agentic widget: it starts as a compact
+pill (Pandora eyes + waveform, gradient border) and, in agentic mode, expands to
+show the plan, live steps, an inline confirmation with a countdown, and the final
+outcome.
 
 ```
-python docs/prototypes/widget_proto.py          # avvia il widget sul desktop
-python docs/prototypes/widget_proto.py --dump    # salva i PNG delle fasi
+python docs/prototypes/widget_proto.py          # launch the widget on the desktop
+python docs/prototypes/widget_proto.py --dump    # save PNGs of each phase
 ```
 
-Comandi a runtime: `SPAZIO` = ripeti · `ESC` = esci · click su Consenti/Annulla.
+Runtime keys: `SPACE` = replay · `ESC` = quit · click Consenti/Annulla.
 
-### Cosa è già passato in produzione
-- La **grafica della pill** (bordo gradiente per-modalità + glow, occhi Pandora
-  ingranditi, chromakey magenta) è stata portata su `widget.py`, agganciata alle
-  logiche esistenti.
-- La **card di conferma** (bordo ambra + countdown) è diventata `agent_panel.py`.
+### What already shipped to production
+- The **pill graphics** (per-mode gradient border + glow, enlarged Pandora eyes,
+  magenta chromakey) were ported to `widget.py`, wired to the existing logic.
+- The **confirmation card** (amber border + countdown) became `agent_panel.py`.
 
-Le fasi restanti (piano multi-step live, log delle azioni + undo, voice mode
-hands-free) restano concept da studiare.
+The remaining phases (live multi-step plan, action log + undo, hands-free voice
+mode) are still concepts to be explored later.
