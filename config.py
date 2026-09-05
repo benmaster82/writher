@@ -60,6 +60,11 @@ HOLD_TO_RECORD = True
 # bounds the mic if a key-release event is ever lost (issue #25). 0 disables.
 MAX_RECORD_SECONDS = 120
 
+# Play a short high tone when dictation recording starts and a low tone when it
+# stops (eyes-free confirmation / pacing cue). Off by default; toggle from
+# Settings. Windows only. (issue #24)
+AUDIO_CUES = False
+
 # ── Appointment notifications ─────────────────────────────────────────────
 # How many minutes before an appointment to send a toast notification.
 APPOINTMENT_REMIND_MINUTES = 15

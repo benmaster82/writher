@@ -41,6 +41,7 @@ from notifier import ReminderScheduler
 from notes_window import NotesWindow
 from settings_window import SettingsWindow
 from replacements import apply_replacements
+import audio_cues
 
 _pipeline_queue   = queue.Queue()
 _assistant_queue  = queue.Queue()
@@ -122,6 +123,9 @@ def _load_settings():
     compute_type = db.get_setting("compute_type", "")
     if compute_type in {"int8", "float16", "float32"}:
         config.COMPUTE_TYPE = compute_type
+    audio_cues_setting = db.get_setting("audio_cues", "")
+    if audio_cues_setting != "":
+        config.AUDIO_CUES = audio_cues_setting == "1"
     lang = db.get_setting("language", "")
     if lang:
         config.LANGUAGE = lang
@@ -245,6 +249,10 @@ def _safety_stop(mode: str):
                 hotkey_listener.reset_dictation_state()
             else:
                 hotkey_listener.reset_assistant_state()
+        # Toggle mode announces the stop via the normal release path below;
+        # the hold-mode discard path has to play the cue itself (dictation only).
+        if mode == "dictation" and config.AUDIO_CUES:
+            audio_cues.play_stop()
         if tray:
             tray.set_recording(False)
         if widget:
@@ -277,6 +285,8 @@ def _timeout_assistant(generation: int):
 
 def _on_hotkey_press():
     _begin_recording("dictation")
+    if config.AUDIO_CUES:
+        audio_cues.play_start()
     if tray:
         tray.set_recording(True)
     if widget:
@@ -286,6 +296,8 @@ def _on_hotkey_press():
 
 def _on_hotkey_release():
     audio = _end_recording("dictation")
+    if config.AUDIO_CUES:
+        audio_cues.play_stop()
     duration = time.monotonic() - _rec_start
     if tray:
         tray.set_recording(False)

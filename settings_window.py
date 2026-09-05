@@ -8,6 +8,7 @@ Allows the user to configure:
   - Local assistant provider, model, and URL
   - Whisper model size
   - Compute device (CPU / CUDA) and precision (int8 / float16 / float32)
+  - Recording audio cues (start/stop tones)
   - Interface language
 """
 
@@ -112,6 +113,9 @@ class SettingsWindow:
         self._device_dropdown = None
         self._compute_dropdown = None
         self._perf_note = None
+        # Recording audio cues
+        self._audio_cues_switch_var = None
+        self._audio_cues_switch = None
         # Recognition language
         self._recog_dropdown = None
         self._recog_hint = None
@@ -264,6 +268,31 @@ class SettingsWindow:
             command=self._on_slider_change,
         )
         self._slider.pack(fill="x")
+
+        # Recording audio cues toggle (issue #24)
+        cues_row = ctk.CTkFrame(pad, fg_color="transparent")
+        cues_row.pack(fill="x", pady=(T.PAD_M, 0))
+
+        ctk.CTkLabel(cues_row, text=locales.get("setting_audio_cues"),
+                     font=T.FONT_SMALL, text_color=T.FG_DIM,
+                     anchor="w").pack(side="left")
+
+        self._audio_cues_switch_var = tk.StringVar(
+            value="1" if db.get_setting("audio_cues", "0") == "1" else "0")
+        self._audio_cues_switch = ctk.CTkSwitch(
+            cues_row, text="", variable=self._audio_cues_switch_var,
+            onvalue="1", offvalue="0",
+            command=self._on_audio_cues_toggle,
+            fg_color=T.BG_INPUT, progress_color=T.ACCENT,
+            button_color=T.FG, button_hover_color=T.ACCENT_HOVER,
+        )
+        self._audio_cues_switch.pack(side="right")
+
+        ctk.CTkLabel(
+            pad, text=locales.get("setting_audio_cues_hint"),
+            font=T.FONT_TINY, text_color=T.FG_DIM, anchor="w",
+            wraplength=_WIN_W - 3 * T.PAD_L, justify="left",
+        ).pack(fill="x", pady=(T.PAD_S, 0))
 
         self._build_separator(pad)
 
@@ -942,6 +971,14 @@ class SettingsWindow:
         if self._perf_note:
             self._perf_note.configure(
                 text=locales.get("setting_restart_required"))
+
+    # ── Audio cues callback (issue #24) ───────────────────────────────────
+
+    def _on_audio_cues_toggle(self):
+        enabled = self._audio_cues_switch_var.get() == "1"
+        config.AUDIO_CUES = enabled
+        db.save_setting("audio_cues", "1" if enabled else "0")
+        log.info("Recording audio cues: %s", "ON" if enabled else "OFF")
 
     # ── Language callback ─────────────────────────────────────────────────
 

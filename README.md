@@ -35,6 +35,7 @@
 ## 🆕 What's New
 
 - 🎚️ **GPU settings without editing code** - **Compute device** (CPU / CUDA) and **precision** (int8 / float16 / float32) are now selectable from Settings and persisted, so packaged-exe users can enable CUDA without touching `config.py`. Takes effect after a restart. (requested by [@MaxiKingXXL](https://github.com/MaxiKingXXL))
+- 🔊 **Recording sound cues (opt-in)** - enable in Settings to hear a short high tone when dictation starts and a low tone when it stops - eyes-free confirmation and a pacing cue so you don't clip the start of your speech. Tones are generated in memory and played non-blocking; dictation is never delayed or broken if audio playback fails. (requested by [@MaxiKingXXL](https://github.com/MaxiKingXXL))
 - 🛡️ **Hold-mode recording safety cap** - if a key-release event is ever lost, hold-to-record could previously leave the microphone recording indefinitely. `MAX_RECORD_SECONDS` now caps *both* recording modes; when the cap is hit in hold mode the mic stops and the audio is discarded (never pasted), and the shared recorder now tracks a single session owner so audio can't leak from one mode into another. (root-caused by [@MaxiKingXXL](https://github.com/MaxiKingXXL))
 - 🤖 **OpenAI-compatible providers** - the assistant now works with llama.cpp, LM Studio and any OpenAI-compatible local server, not just Ollama. Pick the provider in Settings; models are discovered automatically via `/v1/models`, and each provider keeps its own URL and model settings. (thanks [@aladin7](https://github.com/aladin7))
 - 🖼️ **Clipboard keeps your images and files** - dictating no longer destroys non-text clipboard content: screenshots, copied files and other formats are preserved and restored after the paste. If you copy something new while WritHer is pasting, your fresh copy wins. Restore delay is configurable via `CLIPBOARD_RESTORE_DELAY`. (thanks [@aladin7](https://github.com/aladin7))
@@ -251,6 +252,9 @@ MODEL_SIZE = "small"           # tiny, base, small (default), medium, large-v3
 DEVICE = "cpu"                 # "cpu" or "cuda"  (also selectable in Settings)
 COMPUTE_TYPE = "int8"          # int8, float16, float32  (also in Settings)
 
+# Recording audio cues (Windows) - high tone on start, low tone on stop.
+AUDIO_CUES = False             # opt-in; toggle from Settings
+
 # Assistant provider: "ollama" or "openai"
 ASSISTANT_PROVIDER = "ollama"
 
@@ -267,7 +271,7 @@ OPENAI_API_KEY = ""             # Optional; leave empty for local servers
 APPOINTMENT_REMIND_MINUTES = 15
 ```
 
-> **Note:** Recording, microphone, hotkey, assistant provider, assistant model, assistant URL, and compute device/precision settings can also be changed at runtime from the **Settings** window in the system tray. Changes made there are persisted in the database and override `config.py` defaults. (Whisper model and compute device/precision changes take effect after a restart.)
+> **Note:** Recording, microphone, hotkey, assistant provider, assistant model, assistant URL, compute device/precision, and audio-cue settings can also be changed at runtime from the **Settings** window in the system tray. Changes made there are persisted in the database and override `config.py` defaults. (Whisper model and compute device/precision changes take effect after a restart.)
 
 ### Choosing a Whisper model
 
@@ -398,6 +402,7 @@ writher/
 ├── recorder.py          # Microphone recording (sounddevice)
 ├── transcriber.py       # Speech-to-text (faster-whisper)
 ├── replacements.py      # Two-layer post-processing (user vocab + opt-in symbols)
+├── audio_cues.py        # Optional start/stop dictation tones (winsound)
 ├── injector.py          # Clipboard paste into active app (Win32 API)
 ├── assistant.py         # Local LLM provider integration + function calling
 ├── database.py          # SQLite storage (notes, appointments, reminders, settings)
