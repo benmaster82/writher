@@ -21,10 +21,14 @@ import tkinter.font as tkfont
 from PIL import Image, ImageDraw, ImageFilter, ImageTk
 
 # ── visual constants ──────────────────────────────────────────────────────
-_CHROMAKEY = "#000001"
+# Magenta chromakey: a colour the design (black fill + cyan/violet/amber/white
+# gradients) can never produce, so the soft border glow never leaves a stray
+# keyed-out fringe. The old near-black key (#000001) clipped dark glow pixels.
+_CHROMAKEY = "#ff00ff"
 
-# Pandora Blackboard dark palette (matching JSX rgba(0,0,0,0.75))
-_BG        = "#0c0c0f"      # near-black pill fill
+# Pandora Blackboard dark palette — total black so the gradient border pops
+# (matching the agentic prototype).
+_BG        = "#000000"      # black pill fill
 _BG_INNER  = "#101016"      # subtle inner tone for avatar area
 _BORDER    = "#1c1c26"      # default subtle border
 
@@ -35,8 +39,8 @@ _RADIUS  = _H // 2          # full pill (borderRadius: height/2 in JSX)
 # ── avatar / eye area ───────────────────────────────────────────────────
 _AVA_CX     = 28             # center-x of eye area (left side of pill)
 _AVA_CY     = _H // 2        # center-y
-_EYE_SPREAD = 5.6            # half-distance between the two dots
-_EYE_R      = 2.1            # base eye dot radius
+_EYE_SPREAD = 6.8            # half-distance between the two dots
+_EYE_R      = 3.4            # base eye dot radius (larger, glowy — proto look)
 
 # ── layout ────────────────────────────────────────────────────────────────
 _SEP_X     = 48              # separator x after avatar
@@ -123,6 +127,22 @@ def _lerp_rgb(c1: tuple, c2: tuple, t: float) -> tuple:
     return tuple(int(c1[i] + (c2[i] - c1[i]) * t) for i in range(3))
 
 
+def _lighten(c: tuple, t: float) -> tuple:
+    """Blend *c* toward white by *t* (0..1) — used for the border gradient's
+    lighter end so a single mode accent yields a two-stop gradient."""
+    return tuple(int(c[i] + (255 - c[i]) * t) for i in range(3))
+
+
+def _gradient_img(w: int, h: int, c0: tuple, c1: tuple) -> Image.Image:
+    """Horizontal gradient c0→c1 as an RGB image of size (w, h)."""
+    base = Image.new("RGB", (w, 1))
+    px = base.load()
+    for x in range(w):
+        t = x / max(1, w - 1)
+        px[x, 0] = tuple(int(c0[i] + (c1[i] - c0[i]) * t) for i in range(3))
+    return base.resize((w, h))
+
+
 # ── Windows helpers ───────────────────────────────────────────────────────
 
 def _no_activate(hwnd: int) -> None:
@@ -141,45 +161,43 @@ def _no_activate(hwnd: int) -> None:
 # ── pill background renderer ─────────────────────────────────────────────
 
 def _render_pill(w: int, h: int, radius: int,
-                 fill_rgb: tuple, border_rgb: tuple, border_a: float,
-                 glow_rgb: tuple, chromakey_rgb: tuple) -> Image.Image:
-    """Render a JSX-style pill with border glow at high-res then downscale."""
+                 fill_rgb: tuple, grad_c0: tuple, grad_c1: tuple,
+                 chromakey_rgb: tuple, border_w: float = 1.7) -> Image.Image:
+    """Render the pill: black fill + a c0→c1 gradient border with a soft inward
+    glow, rendered high-res then downscaled. Outside the capsule silhouette is
+    filled with the chromakey so the window shows the desktop there (no fringe).
+    """
     scale  = 4
     sw, sh = w * scale, h * scale
     sr     = radius * scale
 
-    # Start with transparent
-    pill = Image.new("RGBA", (sw, sh), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(pill)
+    img = Image.new("RGB", (sw, sh), fill_rgb)
 
-    # Outer border
-    border_alpha = max(1, int(255 * border_a))
-    draw.rounded_rectangle(
-        [0, 0, sw - 1, sh - 1], radius=sr,
-        fill=border_rgb + (border_alpha,),
-    )
+    # Border band: a rounded-rect ring (outer minus inner) as an L mask.
+    ring = Image.new("L", (sw, sh), 0)
+    rd   = ImageDraw.Draw(ring)
+    bw   = max(2, int(border_w * scale))
+    rd.rounded_rectangle([0, 0, sw - 1, sh - 1], radius=sr, fill=255)
+    rd.rounded_rectangle([bw, bw, sw - 1 - bw, sh - 1 - bw],
+                         radius=max(1, sr - bw), fill=0)
 
-    # Inner fill
-    bw = max(scale, int(scale * 1.2))
-    draw.rounded_rectangle(
-        [bw, bw, sw - 1 - bw, sh - 1 - bw],
-        radius=max(1, sr - bw),
-        fill=fill_rgb + (255,),
-    )
+    grad = _gradient_img(sw, sh, grad_c0, grad_c1)
+    # Soft glow of the border spilling inward, then the crisp border on top.
+    glow_mask = (ring.filter(ImageFilter.GaussianBlur(int(3.5 * scale)))
+                     .point(lambda a: int(a * 0.55)))
+    img.paste(grad, (0, 0), glow_mask)
+    img.paste(grad, (0, 0), ring)
 
-    pill = pill.resize((w, h), Image.LANCZOS)
+    # Capsule silhouette: everything outside becomes the chromakey.
+    sil = Image.new("L", (sw, sh), 0)
+    ImageDraw.Draw(sil).rounded_rectangle([0, 0, sw - 1, sh - 1],
+                                          radius=sr, fill=255)
 
-    # Convert to chromakey for transparent regions
-    pixels = pill.load()
-    for y in range(h):
-        for x in range(w):
-            r, g, b, a = pixels[x, y]
-            if a >= 200:
-                pixels[x, y] = (r, g, b, 255)
-            else:
-                pixels[x, y] = chromakey_rgb + (255,)
-
-    return pill.convert("RGB")
+    img = img.resize((w, h), Image.LANCZOS)
+    sil = sil.resize((w, h), Image.LANCZOS).point(lambda a: 255 if a >= 128 else 0)
+    out = Image.new("RGB", (w, h), chromakey_rgb)
+    out.paste(img, (0, 0), sil)
+    return out
 
 
 class RecordingWidget:
@@ -297,6 +315,26 @@ class RecordingWidget:
             return base
         accent = self._get_accent()
         return {"eye": accent, "glow": accent}
+
+    def _resolved_gradient(self) -> tuple:
+        """Border gradient (c0, c1) for the current expression.
+
+        Semantic states keep their own colour; everything else takes the mode
+        accent (dictation=cyan, assistant=violet) lightened toward white for the
+        gradient's far stop — a per-mode restyle of the prototype's look.
+        """
+        expr = self._expression
+        semantic = {
+            "error": ((255, 93, 93),  (255, 138, 138)),
+            "alert": ((255, 176, 32), (255, 138, 61)),
+            "love":  ((255, 107, 157), (255, 150, 190)),
+        }
+        if expr in semantic:
+            return semantic[expr]
+        if expr in _MODE_TINT_EXPRS:
+            accent = self._get_accent()
+            return accent, _lighten(accent, 0.4)
+        return (80, 80, 96), (110, 110, 128)   # sleep / fallback: faint
 
     # ── fade transitions ──────────────────────────────────────────────────
 
@@ -529,10 +567,9 @@ class RecordingWidget:
             return
 
         expr = self._expression
-        style = self._resolved_style()
+        grad = self._resolved_gradient()
 
-        cache_key = (expr, tuple(style["border"]), style["border_a"],
-                     self._source_mode, self._width)
+        cache_key = (expr, grad, self._source_mode, self._width)
         if cache_key in self._pill_cache:
             self._bg_tk = self._pill_cache[cache_key]
         else:
@@ -541,9 +578,8 @@ class RecordingWidget:
             pill = _render_pill(
                 self._width, _H, _RADIUS,
                 fill_rgb=fill_rgb,
-                border_rgb=style["border"],
-                border_a=style["border_a"],
-                glow_rgb=style["glow"],
+                grad_c0=grad[0],
+                grad_c1=grad[1],
                 chromakey_rgb=ck_rgb,
             )
             self._bg_tk = ImageTk.PhotoImage(pill)
@@ -576,13 +612,12 @@ class RecordingWidget:
         # ── Pill background ───────────────────────────────────────
         fill_rgb = _hex_to_rgb(_BG)
         ck_rgb   = _hex_to_rgb(_CHROMAKEY)
-        style = self._resolved_style()
+        grad = self._resolved_gradient()
         bg_img = _render_pill(
             _W, _H, _RADIUS,
             fill_rgb=fill_rgb,
-            border_rgb=style["border"],
-            border_a=style["border_a"],
-            glow_rgb=style["glow"],
+            grad_c0=grad[0],
+            grad_c1=grad[1],
             chromakey_rgb=ck_rgb,
         )
         self._bg_tk = ImageTk.PhotoImage(bg_img)
@@ -652,7 +687,7 @@ class RecordingWidget:
         glow_rgb = eye_theme["glow"]
 
         # ── Render at high-res (matching JSX SVG approach) ────────
-        sz = 28          # output size
+        sz = 32          # output size (headroom for the larger eyes' glow)
         scale = 6
         s_sz     = sz * scale
         s_cx     = s_sz // 2
