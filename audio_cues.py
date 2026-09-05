@@ -1,12 +1,13 @@
 """Optional short audio cues for dictation recording start/stop (issue #24).
 
 Off by default; enabled via the persisted ``audio_cues`` setting. The tones are
-generated as PCM WAV in memory and played with
-``winsound.PlaySound(SND_MEMORY | SND_ASYNC)`` on a daemon thread, so playback
-never blocks the hotkey callback or delays recording. SND_MEMORY playback
-proved more reliable than ``winsound.Beep`` when the default audio device
-changes. Any playback failure is logged at debug level and swallowed — a
-missing or busy audio device must never break dictation.
+generated as PCM WAV in memory and played with ``winsound.PlaySound(SND_MEMORY)``
+on a daemon thread, so playback never blocks the hotkey callback or delays
+recording. (SND_MEMORY cannot be combined with SND_ASYNC — winsound raises
+"Cannot play asynchronously from memory" — hence the daemon thread instead of
+async playback.) SND_MEMORY playback proved more reliable than ``winsound.Beep``
+when the default audio device changes. Any playback failure is logged at debug
+level and swallowed — a missing or busy audio device must never break dictation.
 """
 
 import io
@@ -55,8 +56,10 @@ def _render_tone(freq: float) -> bytes:
 def _play(freq: float):
     try:
         import winsound
-        winsound.PlaySound(
-            _render_tone(freq), winsound.SND_MEMORY | winsound.SND_ASYNC)
+        # SND_MEMORY must NOT be combined with SND_ASYNC — winsound raises
+        # "Cannot play asynchronously from memory". We already run on a daemon
+        # thread, so a synchronous play is non-blocking for the caller anyway.
+        winsound.PlaySound(_render_tone(freq), winsound.SND_MEMORY)
     except Exception as exc:
         log.debug("Audio cue playback failed: %s", exc)
 

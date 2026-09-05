@@ -42,14 +42,17 @@ class TestPlayback(unittest.TestCase):
         ws.SND_ASYNC = 1
         return ws
 
-    def test_play_uses_snd_memory_async(self):
+    def test_play_uses_snd_memory_without_async(self):
         ws = self._fake_winsound()
         with patch.dict(sys.modules, {"winsound": ws}):
             audio_cues._play(audio_cues._START_FREQ)
         ws.PlaySound.assert_called_once()
         args, _ = ws.PlaySound.call_args
         self.assertIsInstance(args[0], (bytes, bytearray))
-        self.assertEqual(args[1], ws.SND_MEMORY | ws.SND_ASYNC)
+        # SND_MEMORY must be set; SND_ASYNC must NOT — combining them raises
+        # "Cannot play asynchronously from memory" in real winsound.
+        self.assertTrue(args[1] & ws.SND_MEMORY)
+        self.assertFalse(args[1] & ws.SND_ASYNC)
 
     def test_play_swallows_backend_errors(self):
         ws = self._fake_winsound()
