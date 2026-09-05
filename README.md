@@ -34,6 +34,7 @@
 
 ## 🆕 What's New
 
+- 🎚️ **GPU settings without editing code** - **Compute device** (CPU / CUDA) and **precision** (int8 / float16 / float32) are now selectable from Settings and persisted, so packaged-exe users can enable CUDA without touching `config.py`. Takes effect after a restart. (requested by [@MaxiKingXXL](https://github.com/MaxiKingXXL))
 - 🛡️ **Hold-mode recording safety cap** - if a key-release event is ever lost, hold-to-record could previously leave the microphone recording indefinitely. `MAX_RECORD_SECONDS` now caps *both* recording modes; when the cap is hit in hold mode the mic stops and the audio is discarded (never pasted), and the shared recorder now tracks a single session owner so audio can't leak from one mode into another. (root-caused by [@MaxiKingXXL](https://github.com/MaxiKingXXL))
 - 🤖 **OpenAI-compatible providers** - the assistant now works with llama.cpp, LM Studio and any OpenAI-compatible local server, not just Ollama. Pick the provider in Settings; models are discovered automatically via `/v1/models`, and each provider keeps its own URL and model settings. (thanks [@aladin7](https://github.com/aladin7))
 - 🖼️ **Clipboard keeps your images and files** - dictating no longer destroys non-text clipboard content: screenshots, copied files and other formats are preserved and restored after the paste. If you copy something new while WritHer is pasting, your fresh copy wins. Restore delay is configurable via `CLIPBOARD_RESTORE_DELAY`. (thanks [@aladin7](https://github.com/aladin7))
@@ -247,8 +248,8 @@ MIC_DEVICE_NAME = None         # None = system default, or device name (str)
 
 # Whisper
 MODEL_SIZE = "small"           # tiny, base, small (default), medium, large-v3
-DEVICE = "cpu"                 # "cpu" or "cuda"
-COMPUTE_TYPE = "int8"          # int8, float16, float32
+DEVICE = "cpu"                 # "cpu" or "cuda"  (also selectable in Settings)
+COMPUTE_TYPE = "int8"          # int8, float16, float32  (also in Settings)
 
 # Assistant provider: "ollama" or "openai"
 ASSISTANT_PROVIDER = "ollama"
@@ -266,7 +267,7 @@ OPENAI_API_KEY = ""             # Optional; leave empty for local servers
 APPOINTMENT_REMIND_MINUTES = 15
 ```
 
-> **Note:** Recording, microphone, hotkey, assistant provider, assistant model, and assistant URL settings can also be changed at runtime from the **Settings** window in the system tray. Changes made there are persisted in the database and override `config.py` defaults.
+> **Note:** Recording, microphone, hotkey, assistant provider, assistant model, assistant URL, and compute device/precision settings can also be changed at runtime from the **Settings** window in the system tray. Changes made there are persisted in the database and override `config.py` defaults. (Whisper model and compute device/precision changes take effect after a restart.)
 
 ### Choosing a Whisper model
 

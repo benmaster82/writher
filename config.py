@@ -22,6 +22,9 @@ WHISPER_LANGUAGE = None
 
 MODEL_SIZE = "base"
 SAMPLE_RATE = 16000
+# Inference device / precision. Also selectable at runtime from Settings and
+# persisted in the DB (issue #23). DEVICE: "cpu" or "cuda" (needs the NVIDIA
+# CUDA/cuDNN runtime). COMPUTE_TYPE: "int8", "float16" or "float32".
 DEVICE = "cpu"
 COMPUTE_TYPE = "int8"
 

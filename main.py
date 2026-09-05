@@ -116,6 +116,12 @@ def _load_settings():
     whisper = db.get_setting("whisper_model", "")
     if whisper:
         config.MODEL_SIZE = whisper
+    device = db.get_setting("device", "")
+    if device in {"cpu", "cuda"}:
+        config.DEVICE = device
+    compute_type = db.get_setting("compute_type", "")
+    if compute_type in {"int8", "float16", "float32"}:
+        config.COMPUTE_TYPE = compute_type
     lang = db.get_setting("language", "")
     if lang:
         config.LANGUAGE = lang

@@ -7,6 +7,7 @@ Allows the user to configure:
   - Microphone device selection
   - Local assistant provider, model, and URL
   - Whisper model size
+  - Compute device (CPU / CUDA) and precision (int8 / float16 / float32)
   - Interface language
 """
 
@@ -31,6 +32,10 @@ _TITLE_H = 40
 
 # Whisper model options
 _WHISPER_MODELS = ["tiny", "base", "small", "medium", "large-v3"]
+
+# Inference device / precision options (issue #23)
+_DEVICES = [("cpu", "CPU"), ("cuda", "CUDA (NVIDIA GPU)")]
+_COMPUTE_TYPES = ["int8", "float16", "float32"]
 
 # Supported languages
 _LANGUAGES = [("en", "English"), ("it", "Italiano"), ("de", "Deutsch")]
@@ -103,6 +108,10 @@ class SettingsWindow:
         self._assistant_url_entry = None
         # Whisper
         self._whisper_dropdown = None
+        # Performance (device / compute type)
+        self._device_dropdown = None
+        self._compute_dropdown = None
+        self._perf_note = None
         # Recognition language
         self._recog_dropdown = None
         self._recog_hint = None
@@ -435,6 +444,48 @@ class SettingsWindow:
 
         self._build_separator(pad)
 
+        # ── 5c. Performance: compute device & precision (issue #23) ──
+        self._build_section_label(pad, locales.get("setting_device"))
+
+        self._device_dropdown = ctk.CTkComboBox(
+            pad, values=[label for _, label in _DEVICES], font=T.FONT_SMALL,
+            dropdown_font=T.FONT_SMALL,
+            fg_color=T.BG_CARD, border_color=T.BORDER,
+            button_color=T.BORDER_GLOW, button_hover_color=T.FG_DIM,
+            dropdown_fg_color=T.BG_CARD, dropdown_hover_color=T.BG_HOVER,
+            dropdown_text_color=T.FG, text_color=T.FG,
+            height=36, corner_radius=6,
+            command=self._on_device_change, state="readonly",
+        )
+        self._device_dropdown.pack(fill="x", pady=(0, T.PAD_M))
+
+        self._build_section_label(pad, locales.get("setting_compute_type"))
+
+        self._compute_dropdown = ctk.CTkComboBox(
+            pad, values=_COMPUTE_TYPES, font=T.FONT_SMALL,
+            dropdown_font=T.FONT_SMALL,
+            fg_color=T.BG_CARD, border_color=T.BORDER,
+            button_color=T.BORDER_GLOW, button_hover_color=T.FG_DIM,
+            dropdown_fg_color=T.BG_CARD, dropdown_hover_color=T.BG_HOVER,
+            dropdown_text_color=T.FG, text_color=T.FG,
+            height=36, corner_radius=6,
+            command=self._on_compute_change, state="readonly",
+        )
+        self._compute_dropdown.pack(fill="x", pady=(0, T.PAD_S))
+
+        ctk.CTkLabel(
+            pad, text=locales.get("setting_device_hint"),
+            font=T.FONT_TINY, text_color=T.FG_DIM, anchor="w",
+            wraplength=_WIN_W - 3 * T.PAD_L, justify="left",
+        ).pack(fill="x")
+
+        self._perf_note = ctk.CTkLabel(
+            pad, text="", font=T.FONT_TINY, text_color=T.FG_DIM, anchor="w",
+        )
+        self._perf_note.pack(fill="x")
+
+        self._build_separator(pad)
+
         # ── 6. Language ──────────────────────────────────────────────
         self._build_section_label(pad, locales.get("setting_language"))
 
@@ -664,6 +715,15 @@ class SettingsWindow:
         if self._whisper_dropdown:
             self._whisper_dropdown.set(config.MODEL_SIZE)
 
+        # Performance: compute device & precision
+        if self._device_dropdown:
+            device_label = next(
+                (label for key, label in _DEVICES if key == config.DEVICE),
+                _DEVICES[0][1])
+            self._device_dropdown.set(device_label)
+        if self._compute_dropdown:
+            self._compute_dropdown.set(config.COMPUTE_TYPE)
+
         # Recognition language
         if self._recog_dropdown:
             current = config.WHISPER_LANGUAGE
@@ -858,6 +918,30 @@ class SettingsWindow:
             self._whisper_note.configure(text=locales.get("setting_restart_required"))
         if self._cb_whisper_change:
             self._cb_whisper_change(value)
+
+    # ── Performance callbacks (issue #23) ─────────────────────────────────
+
+    def _on_device_change(self, selected: str):
+        device = next((key for key, label in _DEVICES if label == selected),
+                      "cpu")
+        if device == config.DEVICE:
+            return
+        config.DEVICE = device
+        db.save_setting("device", device)
+        log.info("Compute device set to: %s", device)
+        if self._perf_note:
+            self._perf_note.configure(
+                text=locales.get("setting_restart_required"))
+
+    def _on_compute_change(self, value: str):
+        if value == config.COMPUTE_TYPE:
+            return
+        config.COMPUTE_TYPE = value
+        db.save_setting("compute_type", value)
+        log.info("Compute type set to: %s", value)
+        if self._perf_note:
+            self._perf_note.configure(
+                text=locales.get("setting_restart_required"))
 
     # ── Language callback ─────────────────────────────────────────────────
 
