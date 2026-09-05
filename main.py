@@ -6,6 +6,7 @@ import re
 import threading
 import time
 import tkinter as tk
+import unicodedata
 
 # Fix DPI awareness before any window is created.
 # CustomTkinter changes the DPI mode which shifts widget positioning.
@@ -41,6 +42,7 @@ from notifier import ReminderScheduler
 from notes_window import NotesWindow
 from settings_window import SettingsWindow
 from replacements import apply_replacements
+from agent_panel import AgentPanel
 import audio_cues
 
 _pipeline_queue   = queue.Queue()
@@ -50,6 +52,7 @@ recorder    = Recorder()
 transcriber = None
 tray        = None
 widget      = None
+agent_panel = None
 root        = None
 notes_win   = None
 settings_win = None
@@ -203,8 +206,9 @@ def _begin_recording(mode: str) -> int:
             if hotkey_listener:
                 if stale == "dictation":
                     hotkey_listener.reset_dictation_state()
-                else:
+                elif stale == "assistant":
                     hotkey_listener.reset_assistant_state()
+                # other owners (e.g. "confirm") have no hotkey flag to reset
         _rec_generation += 1
         generation = _rec_generation
         _active_mode = mode
@@ -320,6 +324,8 @@ def _on_hotkey_release():
 
 def _on_assist_press():
     _begin_recording("assistant")
+    if agent_panel:
+        agent_panel.hide()   # answering a pending confirm → dismiss the panel
     if tray:
         tray.set_recording(True)
     if widget:
@@ -389,21 +395,21 @@ def _set_pending_delete(kind: str, item_id: int):
         "expires_at": time.monotonic() + _DELETE_CONFIRM_SECONDS,
     }
 
-    def _open_dialog():
-        try:
-            if not notes_win:
-                return
+    # Ask for confirmation in the floating agent panel (no separate popup):
+    # the user answers by voice; the panel counts down and calls back on
+    # timeout. The old Notes-window dialog is no longer used.
+    if widget:
+        widget.hide()
+    if agent_panel:
+        prompt = locales.get("delete_confirm_widget",
+                             item=locales.get(f"delete_item_{kind}"))
+        agent_panel.show_confirm(prompt, _DELETE_CONFIRM_SECONDS,
+                                 on_timeout=_on_confirm_timeout,
+                                 hint=locales.get("delete_confirm_answer"))
 
-            if not (notes_win._win and notes_win._win.winfo_exists()):
-                notes_win.show("notes")
-
-            notes_win.show_voice_delete_confirmation(kind, item_id)
-            log.info("Pending delete dialog opened: %s #%d", kind, item_id)
-
-        except Exception as exc:
-            log.error("Could not open voice delete dialog: %s", exc)
-
-    _run_on_ui_thread(_open_dialog)
+    # Auto-listen for the spoken yes/no answer — no extra hotkey press needed.
+    if transcriber is not None:
+        threading.Thread(target=_confirm_listen, daemon=True).start()
 
     log.info(
         "Pending delete set: %s #%d (expires in %.1fs)",
@@ -415,6 +421,81 @@ def _set_pending_delete(kind: str, item_id: int):
 def _clear_pending_delete():
     global _pending_delete
     _pending_delete = None
+
+
+def _on_confirm_timeout():
+    """Runs on the Tk thread when the panel countdown elapses unanswered."""
+    if _pending_delete is None:
+        return
+    log.info("Pending delete timed out (no confirmation).")
+    _clear_pending_delete()
+    if agent_panel:
+        agent_panel.hide()
+    if widget:
+        widget.set_expression("sad")
+        widget.show_message(locales.get("delete_confirm_timeout"), 2200)
+
+
+_CONFIRM_LISTEN_SECONDS = 4.0
+
+def _confirm_listen():
+    """Auto-listen for the spoken yes/no answer while a delete is pending.
+
+    The user just says 'yes'/'no' — no need to press the assistant hotkey
+    again. Runs on a background thread: records a short window, transcribes,
+    and resolves; retries on an unclear/empty answer until the pending delete
+    is resolved or its countdown expires. Backs off if the user grabs the mic
+    via the hotkey (that path answers instead)."""
+    attempts = 3
+    while _pending_delete is not None and attempts > 0:
+        attempts -= 1
+        time.sleep(0.5)
+        if _pending_delete is None:
+            return
+        if _active_mode is not None:
+            # user is recording via the hotkey — let that path answer
+            time.sleep(0.4)
+            attempts += 1
+            continue
+        _begin_recording("confirm")   # dedicated owner, isolated from hotkeys
+        time.sleep(_CONFIRM_LISTEN_SECONDS)
+        audio = _end_recording("confirm")
+        if _pending_delete is None:
+            return
+        if audio is None or len(audio) == 0:
+            continue
+        try:
+            # Force the app language: autodetect on a lone "sì"/"yes" is
+            # unreliable and often mis-transcribes it as another language.
+            text = transcriber.transcribe(audio, language=config.LANGUAGE)
+        except Exception as exc:
+            log.error("Confirm-listen transcription failed: %s", exc)
+            return
+        log.info("Confirm-listen heard: %r", text)
+        result = _handle_pending_delete_confirmation(text)
+        if result is None:
+            return
+        if result.startswith("__delete_confirm_repeat__"):
+            continue  # ambiguous/empty answer → listen again
+        _apply_confirm_result(result)
+        return
+
+
+def _apply_confirm_result(result: str):
+    """Show the outcome of an auto-listened confirmation and dismiss the panel."""
+    if agent_panel:
+        agent_panel.hide()
+    if not widget:
+        return
+    if result == "__delete_confirm_timeout__":
+        widget.set_expression("sad")
+        widget.show_message(locales.get("delete_confirm_timeout"), 2200)
+    elif result == "__delete_cancelled__":
+        widget.set_expression("sad")
+        widget.show_message(locales.get("delete_cancelled"), 2200)
+    else:
+        widget.set_expression("happy")
+        widget.show_message("✓", 2000)
 
 def _close_voice_delete_dialog():
     """Close/hide the voice delete dialog on the Tk main thread."""
@@ -433,30 +514,37 @@ def _close_voice_delete_dialog():
     root.after(0, _close)
 
 
-def _matches_locale_choice(text: str, key: str) -> bool:
-    t = " ".join((text or "").strip().lower().split())
+def _fold(s: str) -> str:
+    """Lowercase, collapse whitespace, and strip diacritics.
+
+    So a mis-accented transcription ('si') still matches its locale variant
+    ('sì'), and comparisons never hinge on which accent Whisper produced.
+    """
+    s = " ".join((s or "").strip().lower().split())
+    s = unicodedata.normalize("NFKD", s)
+    return "".join(c for c in s if not unicodedata.combining(c))
+
+
+def _matches_choice_list(text: str, choices) -> bool:
+    t = _fold(text)
     if not t:
         return False
-
-    choices = [
-        " ".join(choice.strip().lower().split())
-        for choice in locales.get_choices(key)
-        if choice.strip()
-    ]
-    if not choices:
+    folded = [c for c in (_fold(choice) for choice in choices) if c]
+    if not folded:
         return False
-
-    alternatives = "|".join(re.escape(choice) for choice in choices)
+    alternatives = "|".join(re.escape(choice) for choice in folded)
     pattern = rf"(?<!\w)(?:{alternatives})(?!\w)"
     return bool(re.search(pattern, t))
 
 
 def _is_affirmative(text: str) -> bool:
-    return _matches_locale_choice(text, "delete_confirmations")
+    # Accept a spoken yes in any supported language: a short confirmation word
+    # is often transcribed under the wrong language, so match across all of them.
+    return _matches_choice_list(text, locales.get_all_choices("delete_confirmations"))
 
 
 def _is_negative(text: str) -> bool:
-    return _matches_locale_choice(text, "delete_rejections")
+    return _matches_choice_list(text, locales.get_all_choices("delete_rejections"))
 
 
 def _refresh_notes_window_if_open():
@@ -570,17 +658,7 @@ def _assistant_worker():
             token = _parse_delete_token(result)
             if token:
                 kind, item_id = token
-                _set_pending_delete(kind, item_id)
-                if widget:
-                    widget.set_expression("listening")
-                    widget.show_message(
-                        locales.get(
-                            "delete_confirm_prompt",
-                            item=locales.get(f"delete_item_{kind}"),
-                            seconds=int(_DELETE_CONFIRM_SECONDS),
-                        ),
-                        2200,
-                    )
+                _set_pending_delete(kind, item_id)  # shows the inline confirm
                 continue
 
             # Handle special show commands
@@ -594,9 +672,13 @@ def _assistant_worker():
                     widget.show_message(locales.get("delete_cancelled"), 2200)
             elif result.startswith("__delete_confirm_repeat__:"):
                 remaining = int(result.rsplit(":", 1)[1])
-                if widget:
-                    widget.set_expression("listening")
-                    widget.show_message(locales.get("delete_confirm_repeat", seconds=remaining), 2200)
+                if agent_panel and _pending_delete:
+                    prompt = locales.get(
+                        "delete_confirm_widget",
+                        item=locales.get(f"delete_item_{_pending_delete['kind']}"))
+                    agent_panel.show_confirm(
+                        prompt, remaining, on_timeout=_on_confirm_timeout,
+                        hint=locales.get("delete_confirm_answer"))
             elif result == "__show_notes__":
                 if notes_win:
                     root.after(0, lambda: notes_win.show("notes"))
@@ -869,7 +951,7 @@ def _finish_startup():
 
 
 def main():
-    global tray, widget, root, notes_win, settings_win
+    global tray, widget, agent_panel, root, notes_win, settings_win
 
     _mutex = _acquire_instance_lock()
 
@@ -880,6 +962,7 @@ def main():
     root.withdraw()
 
     widget = RecordingWidget(root)
+    agent_panel = AgentPanel(root)
     notes_win = NotesWindow(root)
     settings_win = SettingsWindow(root)
 

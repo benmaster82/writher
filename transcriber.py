@@ -8,6 +8,10 @@ import config
 from logger import log
 from replacements import get_initial_prompt
 
+# Sentinel for transcribe(language=...): distinguishes "caller did not specify"
+# (honour config.WHISPER_LANGUAGE) from an explicit None (force autodetect).
+_AUTO = object()
+
 
 def _nvidia_bin_dirs() -> list[str]:
     """Return bin directories of pip-installed NVIDIA CUDA packages.
@@ -100,10 +104,14 @@ class Transcriber:
             )
         log.info("Model loaded.")
 
-    def transcribe(self, audio_np: np.ndarray) -> str:
+    def transcribe(self, audio_np: np.ndarray, language: str = _AUTO) -> str:
+        # Callers may force a recognition language (e.g. a yes/no confirmation,
+        # where autodetect on a single short word is unreliable). When left
+        # unset we honour the configured WHISPER_LANGUAGE (None = autodetect).
+        lang = config.WHISPER_LANGUAGE if language is _AUTO else language
         segments, info = self._model.transcribe(
             audio_np,
-            language=config.WHISPER_LANGUAGE,
+            language=lang,
             beam_size=5,
             vad_filter=True,
             initial_prompt=get_initial_prompt(),
