@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 670 220" width="670" height="220" fill="none" role="img" aria-label="WritHer">
+  <defs>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#38bdf8"/>
+      <stop offset="0.5" stop-color="#7c9cf8"/>
+      <stop offset="1" stop-color="#a78bfa"/>
+    </linearGradient>
+    <linearGradient id="wave" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#a78bfa"/>
+    </linearGradient>
+    <linearGradient id="pill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#131318"/>
+      <stop offset="1" stop-color="#07070a"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.10"/>
+      <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.02"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="glowCyan" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#38bdf8" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#38bdf8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowViolet" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#a78bfa" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#a78bfa" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+
+  <!-- outer glow: blurred gradient border halo (keeps the pill visible on dark bg) -->
+  <rect x="42" y="49.0" width="586.1" height="122" rx="61.0"
+        fill="none" stroke="url(#edge)" stroke-width="4" opacity="0.55" filter="url(#soft)"/>
+
+  <!-- pill body -->
+  <rect x="42" y="49.0" width="586.1" height="122" rx="61.0" fill="url(#pill)"/>
+  <!-- glass gloss on the upper half -->
+  <rect x="45" y="52.0" width="580.1" height="61.0" rx="58.0" fill="url(#gloss)"/>
+  <!-- crisp gradient border -->
+  <rect x="42" y="49.0" width="586.1" height="122" rx="61.0"
+        fill="none" stroke="url(#edge)" stroke-width="2" opacity="0.95"/>
+
+  <!-- eyes: cyan = dictation, violet = assistant -->
+  <circle cx="87" cy="110.0" r="26.4" fill="url(#glowCyan)" filter="url(#soft)"/>
+  <circle cx="121" cy="110.0" r="26.4" fill="url(#glowViolet)" filter="url(#soft)"/>
+  <circle cx="87" cy="110.0" r="11" fill="#bfe9ff"/>
+  <circle cx="121" cy="110.0" r="11" fill="#d8ccff"/>
+  <circle cx="84" cy="107.0" r="3.7" fill="#ffffff"/>
+  <circle cx="118" cy="107.0" r="3.7" fill="#ffffff"/>
+
+  <!-- separator -->
+  <line x1="158" y1="84.0" x2="158" y2="136.0" stroke="#2a2a3a" stroke-width="1.5"/>
+
+  <!-- wordmark (Segoe UI Bold, outlined) -->
+  <path transform="translate(192.00 137.57) scale(1,-1)" d="M75.70 53.21L61.64 0.00L48.36 0.00L39.52 34.14Q38.82 36.81 38.66 40.11L38.52 40.11Q38.19 36.48 37.56 34.14L28.50 0.00L14.65 0.00L0.67 53.21L13.76 53.21L21.27 17.78Q21.74 15.51 21.97 11.69L22.19 11.69Q22.34 14.55 23.26 17.92L32.92 53.21L45.75 53.21L54.48 17.48Q54.96 15.51 55.33 11.77L55.48 11.77Q55.62 14.70 56.26 17.71L63.60 53.21L75.70 53.21ZM106.09 27.42Q103.98 28.57 101.17 28.57Q97.34 28.57 95.18 25.77Q93.03 22.97 93.03 18.14L93.03 0.00L81.31 0.00L81.31 38.00L93.03 38.00L93.03 30.95L93.19 30.95Q95.96 38.66 103.20 38.66Q105.06 38.66 106.09 38.23L106.09 27.42ZM117.78 44.01Q114.81 44.01 112.91 45.77Q111.02 47.54 111.02 50.10Q111.02 52.74 112.91 54.40Q114.81 56.07 117.78 56.07Q120.78 56.07 122.65 54.40Q124.52 52.74 124.52 50.10Q124.52 47.43 122.65 45.72Q120.78 44.01 117.78 44.01ZM123.56 0.00L111.84 0.00L111.84 38.00L123.56 38.00L123.56 0.00ZM156.40 0.45Q153.80 -0.93 148.58 -0.93Q136.18 -0.93 136.18 11.95L136.18 29.36L130.02 29.36L130.02 38.00L136.18 38.00L136.18 46.21L147.87 49.54L147.87 38.00L156.40 38.00L156.40 29.36L147.87 29.36L147.87 13.99Q147.87 8.05 152.58 8.05Q154.43 8.05 156.40 9.13L156.40 0.45ZM210.22 0.00L198.19 0.00L198.19 21.67L176.15 21.67L176.15 0.00L164.17 0.00L164.17 53.21L176.15 53.21L176.15 31.99L198.19 31.99L198.19 53.21L210.22 53.21L210.22 0.00ZM255.38 15.66L230.58 15.66Q231.18 7.39 241.01 7.39Q247.28 7.39 252.03 10.36L252.03 1.89Q246.77 -0.93 238.34 -0.93Q229.14 -0.93 224.05 4.17Q218.97 9.27 218.97 18.41Q218.97 27.87 224.46 33.39Q229.95 38.93 237.97 38.93Q246.28 38.93 250.83 33.99Q255.38 29.06 255.38 20.59L255.38 15.66ZM244.50 22.86Q244.50 31.03 237.90 31.03Q235.07 31.03 233.01 28.69Q230.95 26.35 230.51 22.86L244.50 22.86ZM287.14 27.42Q285.03 28.57 282.21 28.57Q278.39 28.57 276.23 25.77Q274.08 22.97 274.08 18.14L274.08 0.00L262.36 0.00L262.36 38.00L274.08 38.00L274.08 30.95L274.23 30.95Q277.01 38.66 284.24 38.66Q286.11 38.66 287.14 38.23L287.14 27.42Z" fill="#ffffff"/>
+
+  <!-- mini waveform -->
+  <rect x="515.1" y="95.0" width="7" height="29.9" rx="3.5" fill="url(#wave)" opacity="0.69"/>
+    <rect x="530.1" y="81.0" width="7" height="58.1" rx="3.5" fill="url(#wave)" opacity="0.81"/>
+    <rect x="545.1" y="66.0" width="7" height="88.0" rx="3.5" fill="url(#wave)" opacity="0.95"/>
+    <rect x="560.1" y="84.5" width="7" height="51.0" rx="3.5" fill="url(#wave)" opacity="0.78"/>
+    <rect x="575.1" y="92.4" width="7" height="35.2" rx="3.5" fill="url(#wave)" opacity="0.71"/>
+</svg>
