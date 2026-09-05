@@ -29,6 +29,8 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "reminder_deleted":     "Reminder '{message}' deleted (#{rid})",
         "reminder_set":         "Reminder set: {dt}",
         "delete_confirm_prompt": "Say yes within {seconds}s to delete this {item}",
+        "delete_confirm_widget": "Delete {item}?",
+        "delete_confirm_answer": "Say “yes” or “no”",
         "delete_confirm_repeat": "Please say yes or no ({seconds}s left)",
         "delete_confirm_timeout": "Delete confirmation timed out",
         "delete_cancelled":      "Delete cancelled",
@@ -188,6 +190,8 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "reminder_deleted":     "Reminder '{message}' eliminato (#{rid})",
         "reminder_set":         "Reminder impostato: {dt}",
         "delete_confirm_prompt": "Di' si entro {seconds}s per eliminare questo {item}",
+        "delete_confirm_widget": "Eliminare {item}?",
+        "delete_confirm_answer": "Di' «sì» o «no»",
         "delete_confirm_repeat": "Di' si o no ({seconds}s rimasti)",
         "delete_confirm_timeout": "Conferma eliminazione scaduta",
         "delete_cancelled":      "Eliminazione annullata",
@@ -340,6 +344,8 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "reminder_deleted":     "Erinnerung '{message}' gelöscht (#{rid})",
         "reminder_set":         "Erinnerung gesetzt: {dt}",
         "delete_confirm_prompt": "Sagen Sie ja innerhalb von {seconds}s, um dieses {item} zu löschen",
+        "delete_confirm_widget": "{item} löschen?",
+        "delete_confirm_answer": "„ja“ oder „nein“ sagen",
         "delete_confirm_repeat": "Bitte sagen Sie ja oder nein ({seconds}s verbleiben)",
         "delete_confirm_timeout": "Löschbestätigung abgelaufen",
         "delete_cancelled":      "Löschen abgebrochen",
@@ -511,3 +517,20 @@ def get_choices(key: str) -> tuple[str, ...]:
     if isinstance(choices, tuple):
         return choices
     return (choices,)
+
+
+def get_all_choices(key: str) -> tuple[str, ...]:
+    """Return the choice list for *key* merged across every language.
+
+    Used for language-agnostic matching: a spoken yes/no confirmation should be
+    accepted regardless of which UI language is active (and regardless of which
+    language Whisper happened to pick for a single short word).
+    """
+    merged: list[str] = []
+    for table in _STRINGS.values():
+        val = table.get(key)
+        if isinstance(val, tuple):
+            merged.extend(val)
+        elif isinstance(val, str):
+            merged.append(val)
+    return tuple(dict.fromkeys(merged))   # de-dupe, preserve order
