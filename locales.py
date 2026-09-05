@@ -167,6 +167,11 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "setting_vocab_empty":      "No entries yet",
         "setting_priming":          "Priming terms (best-effort)",
         "setting_priming_hint":     "Comma-separated hints joined into faster-whisper's initial prompt. Best-effort.",
+        "setting_device":           "Compute device",
+        "setting_compute_type":     "Compute precision",
+        "setting_device_hint":      "CUDA needs an NVIDIA GPU with the CUDA/cuDNN runtime. Wrong settings fall back to CPU. Restart required to apply.",
+        "setting_audio_cues":       "Recording sound cues",
+        "setting_audio_cues_hint":  "Play a short high tone when dictation starts and a low tone when it stops (dictation only).",
     },
 
     "it": {
@@ -314,6 +319,11 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "setting_vocab_empty":      "Nessuna voce",
         "setting_priming":          "Termini di priming (best-effort)",
         "setting_priming_hint":     "Suggerimenti separati da virgola inseriti nell'initial prompt di faster-whisper. Best-effort.",
+        "setting_device":           "Dispositivo di calcolo",
+        "setting_compute_type":     "Precisione di calcolo",
+        "setting_device_hint":      "CUDA richiede una GPU NVIDIA con runtime CUDA/cuDNN. Impostazioni errate tornano alla CPU. Riavvio necessario per applicare.",
+        "setting_audio_cues":       "Suoni di registrazione",
+        "setting_audio_cues_hint":  "Riproduce un tono alto quando la dettatura inizia e un tono basso quando finisce (solo dettatura).",
     },
 
     "de": {
@@ -456,6 +466,11 @@ _STRINGS: dict[str, dict[str, LocaleValue]] = {
         "setting_vocab_empty":      "Noch keine Einträge",
         "setting_priming":          "Priming-Begriffe (best-effort)",
         "setting_priming_hint":     "Komma-getrennte Hinweise für faster-whispers initial_prompt. Best-effort.",
+        "setting_device":           "Recheneinheit",
+        "setting_compute_type":     "Rechenpräzision",
+        "setting_device_hint":      "CUDA erfordert eine NVIDIA-GPU mit CUDA/cuDNN-Runtime. Falsche Einstellungen fallen auf die CPU zurück. Neustart erforderlich.",
+        "setting_audio_cues":       "Aufnahme-Signaltöne",
+        "setting_audio_cues_hint":  "Spielt einen hohen Ton bei Aufnahmestart und einen tiefen Ton beim Stopp (nur Diktat).",
     },
 }
 

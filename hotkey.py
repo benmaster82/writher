@@ -167,6 +167,26 @@ class HotkeyListener:
             if self._on_assist_release:
                 self._safe_call(self._on_assist_release, "Assistant timeout-stop")
 
+    def reset_dictation_state(self):
+        """Clear dictation press/record flags without firing any callback.
+
+        Used by the hold-mode safety timeout: when a key-release event is lost
+        the ``_dict_pressed`` flag stays stuck True, which would silently
+        swallow the next press and wedge the hotkey. Resetting it lets the
+        hotkey recover after the mic has been force-stopped (issue #25).
+        """
+        self._dict_pressed = False
+        self._dict_recording = False
+
+    def reset_assistant_state(self):
+        """Clear assistant press/record flags without firing any callback.
+
+        Hold-mode safety-timeout counterpart to reset_dictation_state()
+        (issue #25).
+        """
+        self._assist_pressed = False
+        self._assist_recording = False
+
     # ── helpers ───────────────────────────────────────────────────────────
 
     @staticmethod

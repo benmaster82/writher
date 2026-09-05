@@ -22,6 +22,9 @@ WHISPER_LANGUAGE = None
 
 MODEL_SIZE = "base"
 SAMPLE_RATE = 16000
+# Inference device / precision. Also selectable at runtime from Settings and
+# persisted in the DB (issue #23). DEVICE: "cpu" or "cuda" (needs the NVIDIA
+# CUDA/cuDNN runtime). COMPUTE_TYPE: "int8", "float16" or "float32".
 DEVICE = "cpu"
 COMPUTE_TYPE = "int8"
 
@@ -52,8 +55,15 @@ CLIPBOARD_RESTORE_DELAY = 0.5
 # True = hold key to record (release stops).  False = toggle (press start, press stop).
 HOLD_TO_RECORD = True
 
-# Maximum recording duration in seconds (toggle mode only, safety net).
+# Maximum recording duration in seconds. Safety cap for both recording modes:
+# in toggle mode it auto-stops if you forget to press again; in hold mode it
+# bounds the mic if a key-release event is ever lost (issue #25). 0 disables.
 MAX_RECORD_SECONDS = 120
+
+# Play a short high tone when dictation recording starts and a low tone when it
+# stops (eyes-free confirmation / pacing cue). Off by default; toggle from
+# Settings. Windows only. (issue #24)
+AUDIO_CUES = False
 
 # ── Appointment notifications ─────────────────────────────────────────────
 # How many minutes before an appointment to send a toast notification.

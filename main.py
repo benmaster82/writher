@@ -41,6 +41,7 @@ from notifier import ReminderScheduler
 from notes_window import NotesWindow
 from settings_window import SettingsWindow
 from replacements import apply_replacements
+import audio_cues
 
 _pipeline_queue   = queue.Queue()
 _assistant_queue  = queue.Queue()
@@ -64,9 +65,17 @@ _DELETE_CONFIRM_SECONDS = 15.0
 _DELETE_CONFIRM_TOKEN = re.compile(r"^__confirm_delete__:(note|appointment|reminder):(\d+)$")
 _pending_delete = None
 
-# Toggle-mode timeout timers
+# Safety-timeout timers (both hold and toggle modes)
 _dict_timeout_timer  = None
 _assist_timeout_timer = None
+
+# Recorder ownership. The dictation and assistant pipelines share a single
+# Recorder instance; these track who currently owns it so a lost key-release,
+# a stale timeout, or an overlapping press can't leak audio from one session
+# into another (issue #25).
+_rec_lock       = threading.Lock()
+_active_mode    = None   # None | "dictation" | "assistant"
+_rec_generation = 0      # bumped on every start; lets stale timers self-cancel
 
 
 # ── Load persisted settings into config at startup ────────────────────────
@@ -108,6 +117,15 @@ def _load_settings():
     whisper = db.get_setting("whisper_model", "")
     if whisper:
         config.MODEL_SIZE = whisper
+    device = db.get_setting("device", "")
+    if device in {"cpu", "cuda"}:
+        config.DEVICE = device
+    compute_type = db.get_setting("compute_type", "")
+    if compute_type in {"int8", "float16", "float32"}:
+        config.COMPUTE_TYPE = compute_type
+    audio_cues_setting = db.get_setting("audio_cues", "")
+    if audio_cues_setting != "":
+        config.AUDIO_CUES = audio_cues_setting == "1"
     lang = db.get_setting("language", "")
     if lang:
         config.LANGUAGE = lang
@@ -128,22 +146,27 @@ def _load_settings():
             config.ASSISTANT_HOTKEY = parsed
 
 
-# ── Toggle-mode timeout helpers ───────────────────────────────────────────
+# ── Recording session ownership & safety timeout ──────────────────────────
 
-def _start_timeout(mode: str):
-    """Start a safety timer that auto-stops recording in toggle mode."""
+def _start_timeout(mode: str, generation: int):
+    """Arm a safety timer that hard-caps recording length.
+
+    Runs in BOTH hold and toggle modes. In hold mode a missed key-release
+    event would otherwise leave the mic recording until another code path
+    stops it or the process exits (issue #25); the cap bounds that window.
+    """
     global _dict_timeout_timer, _assist_timeout_timer
-    if config.HOLD_TO_RECORD:
-        return
     seconds = getattr(config, "MAX_RECORD_SECONDS", 120)
     if seconds <= 0:
         return
     if mode == "dictation":
-        _dict_timeout_timer = threading.Timer(seconds, _timeout_dictation)
+        _dict_timeout_timer = threading.Timer(
+            seconds, _timeout_dictation, args=(generation,))
         _dict_timeout_timer.daemon = True
         _dict_timeout_timer.start()
     elif mode == "assistant":
-        _assist_timeout_timer = threading.Timer(seconds, _timeout_assistant)
+        _assist_timeout_timer = threading.Timer(
+            seconds, _timeout_assistant, args=(generation,))
         _assist_timeout_timer.daemon = True
         _assist_timeout_timer.start()
 
@@ -158,35 +181,123 @@ def _cancel_timeout(mode: str):
         _assist_timeout_timer = None
 
 
-def _timeout_dictation():
-    log.warning("Toggle-mode dictation timeout reached.")
-    if hotkey_listener:
-        hotkey_listener.force_stop_dictation()
+def _begin_recording(mode: str) -> int:
+    """Take ownership of the shared recorder for *mode* and start capturing.
+
+    Returns the new recording generation. If the recorder is still owned by an
+    earlier session — e.g. a lost key-release left it running — that session is
+    stopped, its buffer discarded, and its hotkey state reset before the new
+    one starts, so audio can never leak across sessions or modes (issue #25).
+    """
+    global _active_mode, _rec_generation, _rec_start
+    with _rec_lock:
+        if _active_mode is not None:
+            stale = _active_mode
+            log.warning("Recorder still owned by %s when %s started — "
+                        "discarding stale session.", stale, mode)
+            _cancel_timeout(stale)
+            try:
+                recorder.stop()  # drop the inherited buffer
+            except Exception as exc:
+                log.error("Failed to discard stale recording: %s", exc)
+            if hotkey_listener:
+                if stale == "dictation":
+                    hotkey_listener.reset_dictation_state()
+                else:
+                    hotkey_listener.reset_assistant_state()
+        _rec_generation += 1
+        generation = _rec_generation
+        _active_mode = mode
+        _rec_start = time.monotonic()
+        recorder.start()
+        _start_timeout(mode, generation)
+        return generation
 
 
-def _timeout_assistant():
-    log.warning("Toggle-mode assistant timeout reached.")
-    if hotkey_listener:
-        hotkey_listener.force_stop_assistant()
+def _end_recording(mode: str, discard: bool = False):
+    """Release ownership of the recorder and return the captured audio.
+
+    A stop for a mode that no longer owns the recorder (a stale or duplicate
+    event) is ignored and returns None. When *discard* is True the buffer is
+    dropped and None returned — used by the safety timeout so an overrun
+    recording is never transcribed or pasted anywhere.
+    """
+    global _active_mode
+    with _rec_lock:
+        if _active_mode != mode:
+            log.info("Ignoring stale %s stop (recorder owner=%s).",
+                     mode, _active_mode)
+            return None
+        _cancel_timeout(mode)
+        audio = recorder.stop()
+        _active_mode = None
+    return None if discard else audio
+
+
+def _safety_stop(mode: str):
+    """Stop a recording that overran its safety cap and reset UI state.
+
+    In hold mode reaching the cap almost always means a key-release event was
+    lost, so the (possibly very long) audio is discarded rather than pasted
+    into whatever window has focus. In toggle mode the cap is a deliberate
+    convenience stop, so the audio is processed like a normal press-to-stop.
+    """
+    if config.HOLD_TO_RECORD:
+        _end_recording(mode, discard=True)
+        if hotkey_listener:
+            if mode == "dictation":
+                hotkey_listener.reset_dictation_state()
+            else:
+                hotkey_listener.reset_assistant_state()
+        # Toggle mode announces the stop via the normal release path below;
+        # the hold-mode discard path has to play the cue itself (dictation only).
+        if mode == "dictation" and config.AUDIO_CUES:
+            audio_cues.play_stop()
+        if tray:
+            tray.set_recording(False)
+        if widget:
+            widget.hide()
+    elif hotkey_listener:
+        # Toggle mode: fire the normal stop path so the audio is processed.
+        if mode == "dictation":
+            hotkey_listener.force_stop_dictation()
+        else:
+            hotkey_listener.force_stop_assistant()
+
+
+def _timeout_dictation(generation: int):
+    if generation != _rec_generation:
+        return  # a newer session is active; this timer is obsolete
+    log.warning("Dictation recording hit the %ds safety cap.",
+                getattr(config, "MAX_RECORD_SECONDS", 120))
+    _safety_stop("dictation")
+
+
+def _timeout_assistant(generation: int):
+    if generation != _rec_generation:
+        return  # a newer session is active; this timer is obsolete
+    log.warning("Assistant recording hit the %ds safety cap.",
+                getattr(config, "MAX_RECORD_SECONDS", 120))
+    _safety_stop("assistant")
 
 
 # ── Dictation callbacks (AltGr) ──────────────────────────────────────────
 
 def _on_hotkey_press():
-    global _rec_start
-    _rec_start = time.monotonic()
-    recorder.start()
+    _begin_recording("dictation")
+    if config.AUDIO_CUES:
+        audio_cues.play_start()
     if tray:
         tray.set_recording(True)
     if widget:
         widget.show_recording()
-    _start_timeout("dictation")
     log.info("Recording started (dictation).")
 
 
 def _on_hotkey_release():
-    _cancel_timeout("dictation")
-    audio = recorder.stop()
+    audio = _end_recording("dictation")
+    if config.AUDIO_CUES:
+        audio_cues.play_stop()
     duration = time.monotonic() - _rec_start
     if tray:
         tray.set_recording(False)
@@ -208,21 +319,17 @@ def _on_hotkey_release():
 # ── Assistant callbacks (Ctrl+R) ──────────────────────────────────────────
 
 def _on_assist_press():
-    global _rec_start
-    _rec_start = time.monotonic()
-    recorder.start()
+    _begin_recording("assistant")
     if tray:
         tray.set_recording(True)
     if widget:
         widget.show_assistant()
         widget.set_expression("listening")
-    _start_timeout("assistant")
     log.info("Recording started (assistant).")
 
 
 def _on_assist_release():
-    _cancel_timeout("assistant")
-    audio = recorder.stop()
+    audio = _end_recording("assistant")
     duration = time.monotonic() - _rec_start
     if tray:
         tray.set_recording(False)
