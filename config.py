@@ -52,7 +52,9 @@ CLIPBOARD_RESTORE_DELAY = 0.5
 # True = hold key to record (release stops).  False = toggle (press start, press stop).
 HOLD_TO_RECORD = True
 
-# Maximum recording duration in seconds (toggle mode only, safety net).
+# Maximum recording duration in seconds. Safety cap for both recording modes:
+# in toggle mode it auto-stops if you forget to press again; in hold mode it
+# bounds the mic if a key-release event is ever lost (issue #25). 0 disables.
 MAX_RECORD_SECONDS = 120
 
 # ── Appointment notifications ─────────────────────────────────────────────

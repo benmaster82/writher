@@ -178,5 +178,48 @@ class TestBareModifierHotkeys(unittest.TestCase):
             mock_log.warning.assert_not_called()
 
 
+class TestSafetyStateReset(unittest.TestCase):
+    """Issue #25: the safety timeout must un-wedge a stuck hold-mode flag."""
+
+    def _listener(self):
+        cbs = {name: Mock() for name in
+               ("press", "release", "assist_press", "assist_release")}
+        return HotkeyListener(
+            on_press_cb=cbs["press"],
+            on_release_cb=cbs["release"],
+            on_assist_press_cb=cbs["assist_press"],
+            on_assist_release_cb=cbs["assist_release"],
+        ), cbs
+
+    def test_reset_dictation_clears_flags_without_callback(self):
+        listener, cbs = self._listener()
+        listener._dict_pressed = True
+        listener._dict_recording = True
+        listener.reset_dictation_state()
+        self.assertFalse(listener._dict_pressed)
+        self.assertFalse(listener._dict_recording)
+        cbs["release"].assert_not_called()
+
+    def test_reset_assistant_clears_flags_without_callback(self):
+        listener, cbs = self._listener()
+        listener._assist_pressed = True
+        listener._assist_recording = True
+        listener.reset_assistant_state()
+        self.assertFalse(listener._assist_pressed)
+        self.assertFalse(listener._assist_recording)
+        cbs["assist_release"].assert_not_called()
+
+    def test_press_fires_again_after_reset(self):
+        # A stuck _dict_pressed swallows presses; reset restores the hotkey.
+        with patch.multiple(config, HOTKEY=Key.alt_gr, HOLD_TO_RECORD=True):
+            listener, cbs = self._listener()
+            listener._dict_pressed = True  # simulate a lost key-release
+            listener._handle_press(Key.alt_gr)
+            cbs["press"].assert_not_called()  # wedged
+            listener.reset_dictation_state()
+            listener._handle_press(Key.alt_gr)
+            cbs["press"].assert_called_once_with()  # recovered
+
+
 if __name__ == "__main__":
     unittest.main()

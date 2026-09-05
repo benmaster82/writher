@@ -34,6 +34,7 @@
 
 ## 🆕 What's New
 
+- 🛡️ **Hold-mode recording safety cap** - if a key-release event is ever lost, hold-to-record could previously leave the microphone recording indefinitely. `MAX_RECORD_SECONDS` now caps *both* recording modes; when the cap is hit in hold mode the mic stops and the audio is discarded (never pasted), and the shared recorder now tracks a single session owner so audio can't leak from one mode into another. (root-caused by [@MaxiKingXXL](https://github.com/MaxiKingXXL))
 - 🤖 **OpenAI-compatible providers** - the assistant now works with llama.cpp, LM Studio and any OpenAI-compatible local server, not just Ollama. Pick the provider in Settings; models are discovered automatically via `/v1/models`, and each provider keeps its own URL and model settings. (thanks [@aladin7](https://github.com/aladin7))
 - 🖼️ **Clipboard keeps your images and files** - dictating no longer destroys non-text clipboard content: screenshots, copied files and other formats are preserved and restored after the paste. If you copy something new while WritHer is pasting, your fresh copy wins. Restore delay is configurable via `CLIPBOARD_RESTORE_DELAY`. (thanks [@aladin7](https://github.com/aladin7))
 - 👻 **Quit really quits** - closing WritHer from the tray now always terminates the process. No more invisible ghost instance holding the single-instance lock and blocking the next launch.
@@ -52,7 +53,7 @@
 - ⌨️ **Customizable hotkeys** - change dictation and assistant shortcuts from Settings. Press the ⌨ button, hit any key, done. No restart needed.
 - 🎙️ **Microphone selection** - pick your input device from Settings, with hot-plug refresh
 - 🔄 **Toggle recording mode** - press once to start, press again to stop (alternative to hold)
-- ⏱️ **Safety timeout** - auto-stops recording in toggle mode if you forget
+- ⏱️ **Safety timeout** - caps recording length in both modes: auto-stops toggle mode if you forget, and bounds hold mode if a key-release is lost
 - 🎨 **Redesigned UI** - CustomTkinter with unified Pandora Blackboard theme (pure black + bright white)
 - 🖥️ **Resizable Notes window** - drag to resize, maximize/restore, DPI-aware
 - ⚡ **Faster Ollama responses** - timeout increased from 10s to 30s for larger models

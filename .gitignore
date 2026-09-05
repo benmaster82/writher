@@ -33,6 +33,10 @@ site/
 build/
 dist/
 
+# Release packages (kept local only)
+WritHer-*.zip
+*.zip
+
 # SEO instructions (local only)
 modificaseo.md
 

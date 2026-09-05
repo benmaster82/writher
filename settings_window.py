@@ -2,7 +2,7 @@
 
 Allows the user to configure:
   - Recording mode: hold-to-record vs toggle (press to start/stop)
-  - Max recording duration in seconds (toggle mode only)
+  - Max recording duration in seconds (safety cap for both modes)
   - Keyboard shortcuts for dictation and assistant
   - Microphone device selection
   - Local assistant provider, model, and URL
@@ -230,7 +230,7 @@ class SettingsWindow:
         )
         self._toggle_btn.pack(side="left")
 
-        # Max duration (toggle only)
+        # Max duration (safety cap for both hold and toggle modes)
         self._slider_section = ctk.CTkFrame(pad, fg_color="transparent")
         self._slider_section.pack(fill="x")
 
