@@ -2,8 +2,6 @@
   <img src="img/logo_writher.svg" width="380" alt="WritHer">
 </p>
 
-<h1 align="center">WritHer</h1>
-
 <p align="center">
   <strong>Offline voice dictation &amp; voice assistant for Windows - paste text anywhere, manage notes &amp; reminders hands-free, and speak symbols &amp; code directly (say <em>forward slash</em>, <em>dash</em>, <em>one two three</em> → <code>/</code> <code>-</code> <code>123</code>).</strong>
 </p>
