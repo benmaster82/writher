@@ -121,7 +121,8 @@ def apply_layer_a(text: str, vocab: dict[str, str]) -> str:
         if not spoken.strip():
             continue
         pattern = re.compile(r"\b" + re.escape(spoken) + r"\b", re.IGNORECASE)
-        text = pattern.sub(vocab[spoken], text)
+        replacement = vocab[spoken]
+        text = pattern.sub(lambda m: replacement, text)
     return text
 
 
