@@ -108,6 +108,26 @@ class TestLayerAVocabulary(unittest.TestCase):
         vocab = {"pi": "3.14159"}
         self.assertEqual(apply_layer_a("pi is a constant", vocab),
                          "3.14159 is a constant")
+    
+    def test_written_form_preserves_backslashes(self):
+        vocab = {
+            "my folder": r"C:\Users\alice",
+            "newline": r"\new",
+            "reference": r"\1",
+        }
+
+        self.assertEqual(
+            apply_layer_a("Open my folder", vocab),
+            r"Open C:\Users\alice",
+        )
+        self.assertEqual(
+            apply_layer_a("newline", vocab),
+            r"\new",
+        )
+        self.assertEqual(
+            apply_layer_a("reference", vocab),
+            r"\1",
+        )
 
 
 class TestApplyReplacementsPipeline(unittest.TestCase):
