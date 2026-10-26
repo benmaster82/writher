@@ -11,13 +11,19 @@ Hotkeys can be a single pynput Key/KeyCode or a combo tuple
 (frozenset_of_modifier_strings, trigger_key) — see hotkey_util.py.
 """
 
+import threading
 import time
 from pynput import keyboard
+from pynput.keyboard import Controller, Key, KeyCode
 import config
 from logger import log
 from hotkey_util import canonical_modifier, keys_match
 
 _DEBOUNCE_SEC = 0.3  # minimum time between toggle actions
+
+_DUMMY_VK = 0xE8
+_MASK_DELAY_SEC = 0.01
+_ALT_KEYS = (Key.alt, Key.alt_l, Key.alt_r, Key.alt_gr)
 
 
 # ── Hotkey matching helpers ───────────────────────────────────────────────
@@ -72,9 +78,36 @@ class HotkeyListener:
         # Currently held modifier keys (canonical names: "ctrl", "shift", etc.)
         self._held_modifiers: set = set()
         self._listener = None
+        self._kb = Controller()
+        self._mask_pending = False
 
     def _is_hold_mode(self) -> bool:
         return getattr(config, "HOLD_TO_RECORD", True)
+
+    def _mask_alt_tap(self, key):
+        """Schedule a dummy key shortly after an Alt-down event.
+
+        Stops Windows from treating a lone Alt/AltGr press as "open the menu
+        bar". Called for EVERY press event, including the auto-repeats sent
+        while the key is held, because each repeated Alt-down would otherwise
+        re-arm the menu. Only one dummy is queued at a time.
+        """
+        if key not in _ALT_KEYS or self._mask_pending:
+            return
+        self._mask_pending = True
+        timer = threading.Timer(_MASK_DELAY_SEC, self._send_dummy)
+        timer.daemon = True
+        timer.start()
+
+    def _send_dummy(self):
+        try:
+            dummy = KeyCode.from_vk(_DUMMY_VK)
+            self._kb.press(dummy)
+            self._kb.release(dummy)
+        except Exception as exc:
+            log.error("Alt mask error: %s", exc)
+        finally:
+            self._mask_pending = False
 
     # ── press ─────────────────────────────────────────────────────────────
 
@@ -90,6 +123,10 @@ class HotkeyListener:
                 return
 
         held = frozenset(self._held_modifiers)
+
+        if (_is_hotkey_match(key, config.HOTKEY, held)
+                or _is_hotkey_match(key, config.ASSISTANT_HOTKEY, held)):
+            self._mask_alt_tap(key)
 
         if _is_hotkey_match(key, config.HOTKEY, held):
             if self._is_hold_mode():
