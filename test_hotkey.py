@@ -227,16 +227,29 @@ class TestSafetyStateReset(unittest.TestCase):
         self.assertFalse(listener._assist_recording)
         cbs["assist_release"].assert_not_called()
 
-    def test_press_fires_again_after_reset(self):
+    @patch("hotkey.threading.Timer")
+    @patch("hotkey.Controller")
+    def test_press_fires_again_after_reset(self, controller_class, timer_class):
         # A stuck _dict_pressed swallows presses; reset restores the hotkey.
+        # Mock the timer and keyboard controller because AltGr now triggers the
+        # masking workaround, which must not send real OS keyboard events here.
         with patch.multiple(config, HOTKEY=Key.alt_gr, HOLD_TO_RECORD=True):
             listener, cbs = self._listener()
             listener._dict_pressed = True  # simulate a lost key-release
             listener._handle_press(Key.alt_gr)
             cbs["press"].assert_not_called()  # wedged
+
             listener.reset_dictation_state()
             listener._handle_press(Key.alt_gr)
             cbs["press"].assert_called_once_with()  # recovered
+
+        timer_class.assert_called_once_with(
+            hotkey._MASK_DELAY_SEC, listener._send_dummy
+        )
+        timer_class.return_value.start.assert_called_once_with()
+        controller_class.assert_called_once_with()
+        listener._kb.press.assert_not_called()
+        listener._kb.release.assert_not_called()
 
 
 class TestAltMask(unittest.TestCase):
@@ -247,14 +260,15 @@ class TestAltMask(unittest.TestCase):
             name: Mock()
             for name in ("press", "release", "assist_press", "assist_release")
         }
-        listener = HotkeyListener(
-            on_press_cb=cbs["press"],
-            on_release_cb=cbs["release"],
-            on_assist_press_cb=cbs["assist_press"],
-            on_assist_release_cb=cbs["assist_release"],
-        )
-        # Prevent real keyboard events during these unit tests.
-        listener._kb = Mock()
+        # Mock Controller before constructing HotkeyListener, so no real OS
+        # keyboard controller is instantiated during these unit tests.
+        with patch("hotkey.Controller", return_value=Mock()):
+            listener = HotkeyListener(
+                on_press_cb=cbs["press"],
+                on_release_cb=cbs["release"],
+                on_assist_press_cb=cbs["assist_press"],
+                on_assist_release_cb=cbs["assist_release"],
+            )
         return listener, cbs
 
     @patch("hotkey.threading.Timer")
@@ -305,6 +319,7 @@ class TestAltMask(unittest.TestCase):
     def test_send_dummy_presses_and_releases_expected_key(self):
         listener, _ = self._listener()
         listener._mask_pending = True
+        listener._sign.set()  # _send_dummy exits early unless the listener is started
 
         listener._send_dummy()
 
@@ -316,6 +331,7 @@ class TestAltMask(unittest.TestCase):
     def test_pending_flag_resets_if_dummy_press_raises(self):
         listener, _ = self._listener()
         listener._mask_pending = True
+        listener._sign.set()  # allow _send_dummy to reach the error-handling path
         listener._kb.press.side_effect = RuntimeError("simulated keyboard error")
 
         with patch.object(hotkey, "log") as mock_log:
@@ -360,6 +376,35 @@ class TestAltMask(unittest.TestCase):
         timer_class.assert_not_called()
         cbs["press"].assert_not_called()
         cbs["assist_press"].assert_not_called()
+
+    @patch("hotkey.threading.Timer")
+    def test_stop_cancels_pending_mask_timer_and_prevents_late_key_event(
+        self, timer_class
+    ):
+        listener, _ = self._listener()
+        listener._sign.set()  # simulate a started listener without starting OS hooks
+
+        listener._mask_alt_tap(Key.alt_gr)
+
+        timer_class.assert_called_once_with(
+            hotkey._MASK_DELAY_SEC, listener._send_dummy
+        )
+        timer = timer_class.return_value
+        self.assertTrue(listener._mask_pending)
+        self.assertIs(listener._alarm, timer)
+
+        # Shutdown must cancel the pending timer and clear its state.
+        listener.stop()
+
+        timer.cancel.assert_called_once_with()
+        self.assertFalse(listener._sign.is_set())
+        self.assertFalse(listener._mask_pending)
+
+        # Exercise the race where a timer callback was already dispatched when
+        # cancellation happened. It must not send keyboard input after stop().
+        listener._send_dummy()
+        listener._kb.press.assert_not_called()
+        listener._kb.release.assert_not_called()
 
 
 if __name__ == "__main__":

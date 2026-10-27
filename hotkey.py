@@ -80,6 +80,8 @@ class HotkeyListener:
         self._listener = None
         self._kb = Controller()
         self._mask_pending = False
+        self._alarm = None
+        self._sign = threading.Event()
 
     def _is_hold_mode(self) -> bool:
         return getattr(config, "HOLD_TO_RECORD", True)
@@ -96,10 +98,13 @@ class HotkeyListener:
             return
         self._mask_pending = True
         timer = threading.Timer(_MASK_DELAY_SEC, self._send_dummy)
-        timer.daemon = True
-        timer.start()
+        self._alarm = timer
+        self._alarm.daemon = True
+        self._alarm.start()
 
     def _send_dummy(self):
+        if not self._sign.is_set():
+            return
         try:
             dummy = KeyCode.from_vk(_DUMMY_VK)
             self._kb.press(dummy)
@@ -259,10 +264,18 @@ class HotkeyListener:
             on_press=self._handle_press,
             on_release=self._handle_release,
         )
+        self._sign.set()
         self._listener.start()
         self._listener.wait()
 
     def stop(self):
+        self._sign.clear()
+
         if self._listener is not None:
             self._listener.stop()
             self._listener.join(timeout=1.0)
+
+        if self._alarm is not None:
+            self._alarm.cancel()
+
+        self._mask_pending = False
