@@ -11,13 +11,19 @@ Hotkeys can be a single pynput Key/KeyCode or a combo tuple
 (frozenset_of_modifier_strings, trigger_key) — see hotkey_util.py.
 """
 
+import threading
 import time
 from pynput import keyboard
+from pynput.keyboard import Controller, Key, KeyCode
 import config
 from logger import log
 from hotkey_util import canonical_modifier, keys_match
 
 _DEBOUNCE_SEC = 0.3  # minimum time between toggle actions
+
+_DUMMY_VK = 0xE8
+_MASK_DELAY_SEC = 0.01
+_ALT_KEYS = (Key.alt, Key.alt_l, Key.alt_r, Key.alt_gr)
 
 
 # ── Hotkey matching helpers ───────────────────────────────────────────────
@@ -72,9 +78,41 @@ class HotkeyListener:
         # Currently held modifier keys (canonical names: "ctrl", "shift", etc.)
         self._held_modifiers: set = set()
         self._listener = None
+        self._kb = Controller()
+        self._mask_pending = False
+        self._alarm = None
+        self._sign = threading.Event()
 
     def _is_hold_mode(self) -> bool:
         return getattr(config, "HOLD_TO_RECORD", True)
+
+    def _mask_alt_tap(self, key):
+        """Schedule a dummy key shortly after an Alt-down event.
+
+        Stops Windows from treating a lone Alt/AltGr press as "open the menu
+        bar". Called for EVERY press event, including the auto-repeats sent
+        while the key is held, because each repeated Alt-down would otherwise
+        re-arm the menu. Only one dummy is queued at a time.
+        """
+        if key not in _ALT_KEYS or self._mask_pending:
+            return
+        self._mask_pending = True
+        timer = threading.Timer(_MASK_DELAY_SEC, self._send_dummy)
+        self._alarm = timer
+        self._alarm.daemon = True
+        self._alarm.start()
+
+    def _send_dummy(self):
+        if not self._sign.is_set():
+            return
+        try:
+            dummy = KeyCode.from_vk(_DUMMY_VK)
+            self._kb.press(dummy)
+            self._kb.release(dummy)
+        except Exception as exc:
+            log.error("Alt mask error: %s", exc)
+        finally:
+            self._mask_pending = False
 
     # ── press ─────────────────────────────────────────────────────────────
 
@@ -90,6 +128,10 @@ class HotkeyListener:
                 return
 
         held = frozenset(self._held_modifiers)
+
+        if (_is_hotkey_match(key, config.HOTKEY, held)
+                or _is_hotkey_match(key, config.ASSISTANT_HOTKEY, held)):
+            self._mask_alt_tap(key)
 
         if _is_hotkey_match(key, config.HOTKEY, held):
             if self._is_hold_mode():
@@ -222,10 +264,18 @@ class HotkeyListener:
             on_press=self._handle_press,
             on_release=self._handle_release,
         )
+        self._sign.set()
         self._listener.start()
         self._listener.wait()
 
     def stop(self):
+        self._sign.clear()
+
         if self._listener is not None:
             self._listener.stop()
             self._listener.join(timeout=1.0)
+
+        if self._alarm is not None:
+            self._alarm.cancel()
+
+        self._mask_pending = False
